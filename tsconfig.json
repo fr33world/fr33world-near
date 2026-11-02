@@ -1,0 +1,4 @@
+{
+  "extends": "./packages/shared/tsconfig/node.json",
+  "include": ["vitest.config.ts", "eslint.config.js", "scripts/**/*.ts"]
+}

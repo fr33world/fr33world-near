@@ -1,0 +1,4 @@
+pnpm-lock.yaml
+**/dist/
+# three's Basis transcoder, vendored as is.
+apps/client/public/basis/

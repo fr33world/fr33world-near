@@ -1,0 +1,42 @@
+# Cloudflare static-asset headers (wrangler.jsonc). Models, textures, sounds and pictures keep
+# their names between deploys, so browsers check each time (ETag: an unchanged file is a tiny
+# "not modified"); otherwise a deploy took a day to reach players. The hashed bundles
+# (/assets/<name>-<hash>.js|css) are left to Cloudflare's defaults.
+# (Folder by folder: Cloudflare joins every rule that matches a path.)
+# Every page: not to be framed by another site, and the Content Security Policy Privy asks for
+# to protect the embedded wallet (docs.privy.io/security/implementation-guide/content-security-policy),
+# plus what the game itself needs: WebAssembly for physics and textures, blob workers for
+# textures, the world, API and voice servers, and the Web Analytics script Cloudflare adds to
+# pages at the edge. 'unsafe-eval' is only for the KTX2 texture
+# decoder (three's basis_transcoder, built with embind's new Function): a build of it with
+# dynamic execution off would let it go. Retest all this after any Privy SDK upgrade.
+/*
+  X-Frame-Options: DENY
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval' https://challenges.cloudflare.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; media-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; child-src https://auth.privy.io https://verify.walletconnect.com https://verify.walletconnect.org; frame-src https://auth.privy.io https://verify.walletconnect.com https://verify.walletconnect.org https://challenges.cloudflare.com; connect-src 'self' data: blob: https://cloudflareinsights.com https://fr33world-api.onrender.com https://fr33world-world.onrender.com wss://fr33world-world.onrender.com https://*.livekit.cloud wss://*.livekit.cloud https://auth.privy.io wss://relay.walletconnect.com wss://relay.walletconnect.org wss://www.walletlink.org https://*.rpc.privy.systems https://explorer-api.walletconnect.com https://api.mainnet-beta.solana.com https://api.devnet.solana.com https://api.testnet.solana.com; worker-src 'self' blob:; manifest-src 'self'
+/assets/animations/*
+  Cache-Control: no-cache
+/assets/audio/*
+  Cache-Control: no-cache
+/assets/cars/*
+  Cache-Control: no-cache
+/assets/characters/*
+  Cache-Control: no-cache
+/assets/props/*
+  Cache-Control: no-cache
+/assets/textures/*
+  Cache-Control: no-cache
+/brand/*
+  Cache-Control: no-cache
+/map/*
+  Cache-Control: no-cache
+/ui/*
+  Cache-Control: no-cache
+/slides/*
+  Cache-Control: no-cache
+/fonts/*
+  Cache-Control: public, max-age=86400
+# The service worker and the manifest: always checked, so a deploy reaches installed apps.
+/sw.js
+  Cache-Control: no-cache
+/manifest.webmanifest
+  Cache-Control: no-cache

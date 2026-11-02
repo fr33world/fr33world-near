@@ -1,0 +1,22 @@
+{
+  "name": "Compact",
+  "symbol": "LSM",
+  "description": "A car in Los Soles: its certificate of ownership. Driven, sold and traded in the game.",
+  "image": "https://fr33worldgame.xyz/ui/cars/compact.webp",
+  "external_url": "https://fr33worldgame.xyz",
+  "attributes": [
+    {
+      "trait_type": "Model",
+      "value": "Compact"
+    }
+  ],
+  "properties": {
+    "category": "image",
+    "files": [
+      {
+        "uri": "https://fr33worldgame.xyz/ui/cars/compact.webp",
+        "type": "image/webp"
+      }
+    ]
+  }
+}

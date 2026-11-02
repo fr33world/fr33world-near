@@ -1,0 +1,7 @@
+{
+  "name": "Los Soles Sol Taxi",
+  "description": "A Los Soles taxi. Ownership certificate for a car in fr33world; it can only be traded inside the game.",
+  "image": "https://fr33worldgame.xyz/brand/icon-512.png",
+  "external_url": "https://fr33worldgame.xyz",
+  "attributes": [{ "trait_type": "model", "value": "sol-taxi" }]
+}

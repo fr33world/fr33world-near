@@ -1,0 +1,23 @@
+{
+  "name": "@fr33world/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --env-file-if-exists=../../.env --watch src/main.ts",
+    "start": "node --env-file-if-exists=../../.env src/main.ts",
+    "migrate": "node --env-file-if-exists=../../.env src/migrate.ts",
+    "typecheck": "tsc --noEmit",
+    "simulate": "node src/simulate-run.ts"
+  },
+  "dependencies": {
+    "@fr33world/auth": "workspace:*",
+    "@fr33world/chain": "workspace:*",
+    "@fr33world/shared": "workspace:*",
+    "fastify": "5.12.5",
+    "pg": "8.23.1"
+  },
+  "devDependencies": {
+    "@types/pg": "8.23.1"
+  }
+}

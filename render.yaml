@@ -1,0 +1,91 @@
+# Render Blueprint (decision D-31): the world server on Render's free plan. The game client is
+# served by Cloudflare instead (apps/client/wrangler.jsonc, decision D-32).
+# Render dashboard → New → Blueprint → this repo. Secrets marked `sync: false` are asked for once.
+#
+# Free-plan limits this is tuned for: 0.1 CPU and 512 MB per web service, sleep after 15 idle
+# minutes (about a minute to wake), 750 instance hours a month shared by both services (both
+# awake around the clock would need 1,488), and 5 GB of outbound traffic a month for the whole
+# workspace (over either, Render suspends every service until the next month).
+services:
+  # The world server (Horizon): game WebSocket at /ws plus its HTTP API (/health, /status).
+  - type: web
+    name: fr33world-world
+    runtime: node
+    plan: free
+    region: frankfurt
+    buildCommand: corepack enable && pnpm install --frozen-lockfile --filter "@fr33world/world..."
+    # Plain node, not `pnpm start`: a pnpm wrapper would cost ~50 MB of the 512 MB.
+    startCommand: node apps/world/src/main.ts
+    healthCheckPath: /health
+    buildFilter:
+      paths:
+        - apps/world/**
+        - packages/**
+        - pnpm-lock.yaml
+        - render.yaml
+    envVars:
+      - key: WORLD_PROFILE
+        value: free
+      # Render's native runtime is Debian 12 (glibc 2.36); uWebSockets.js needs 2.38+.
+      - key: TRANSPORT
+        value: ws
+      # Proximity voice (LiveKit Cloud project): entered once, see README.
+      - key: LIVEKIT_URL
+        sync: false
+      - key: LIVEKIT_API_KEY
+        sync: false
+      - key: LIVEKIT_API_SECRET
+        sync: false
+      # Only players with a world ticket from the API (logged in, 18+ onboarding done).
+      - key: WORLD_AUTH
+        value: required
+      - key: PRIVY_APP_ID
+        sync: false
+      - key: PRIVY_APP_SECRET
+        sync: false
+      # Staff chat commands that last (bans, admins) and the audit log go to the API.
+      - key: API_URL
+        value: https://fr33world-api.onrender.com
+      - fromGroup: fr33world-shared
+
+  # The game API (accounts, the $ ledger, world tickets). Database: Neon (decision D-36).
+  - type: web
+    name: fr33world-api
+    runtime: node
+    plan: free
+    region: frankfurt
+    buildCommand: corepack enable && pnpm install --frozen-lockfile --filter "@fr33world/api..."
+    startCommand: node apps/api/src/main.ts
+    healthCheckPath: /health
+    buildFilter:
+      paths:
+        - apps/api/**
+        - packages/**
+        - pnpm-lock.yaml
+        - render.yaml
+    envVars:
+      # Neon's connection string (with sslmode=require), entered once on creation.
+      - key: DATABASE_URL
+        sync: false
+      # Opens /v1/admin/errors (read the value in Render → fr33world-api → Environment).
+      - key: ADMIN_TOKEN
+        generateValue: true
+      # The super admins: character names ("First Last"), comma-separated. They have every staff
+      # power and appoint admins in game (/admin add "First Last" kick,teleport).
+      - key: SUPER_ADMINS
+        sync: false
+      # Optional: a Discord or Slack webhook the economy's alerts are posted to.
+      - key: ALERT_WEBHOOK_URL
+        sync: false
+      - key: PRIVY_APP_ID
+        sync: false
+      - key: PRIVY_APP_SECRET
+        sync: false
+      - fromGroup: fr33world-shared
+
+envVarGroups:
+  # Shared by the API (signs world tickets) and the world server (checks them).
+  - name: fr33world-shared
+    envVars:
+      - key: WORLD_TICKET_SECRET
+        generateValue: true

@@ -1,0 +1,17 @@
+packages:
+  - apps/*
+  - packages/*
+
+# Dependencies allowed to run install scripts. Everything else is blocked by default.
+allowBuilds:
+  esbuild: true
+  simple-git-hooks: true
+  # Pulled in by Privy's wallet connectors. Optional native speed-ups (bufferutil,
+  # utf-8-validate, keccak) have JS fallbacks; Reown's script isn't needed.
+  '@reown/appkit': false
+  bufferutil: false
+  keccak: false
+  utf-8-validate: false
+  # Wrangler's local runtime (wrangler dev); deploys don't need it, and it doesn't support
+  # macOS 12 anyway.
+  workerd: false

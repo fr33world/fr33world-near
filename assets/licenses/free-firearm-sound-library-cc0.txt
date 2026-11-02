@@ -1,0 +1,12 @@
+The Free Firearm Sound Library, by Ben Jaszczak, et al.
+https://opengameart.org/content/the-free-firearm-sound-library
+Checked on the page on 2026-10-31. License(s) field: CC0.
+
+The page quotes the library's own homepage (http://freefirearmsfx.com):
+
+  "Our team holds CC0 NO RIGHTS RESERVED for this library. It may be used without royalty or
+  credit (though we would love to hear how you've used our sounds) for any application,
+  personal or professional. Have at it!"
+
+CC0 1.0 text: cc0-1.0.txt. Used here: audio/gun-pistol.mp3 (1911, A_42P.wav) and
+audio/gun-rifle.mp3 (AK-47, C_28P.wav), from Prepared SFX Library.7z.

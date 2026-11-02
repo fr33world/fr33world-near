@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#07080a" />
+    <title>fr33world</title>
+    <meta
+      name="description"
+      content="An online open-world RP game set in the city of Los Soles. Free to play in your browser, on phone or laptop. 18+."
+    />
+    <!-- What a shared link shows on X, Discord and WhatsApp. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="fr33world" />
+    <meta property="og:url" content="https://fr33worldgame.xyz/" />
+    <meta property="og:title" content="fr33world" />
+    <meta
+      property="og:description"
+      content="An online open-world RP game set in the city of Los Soles. Free to play in your browser, on phone or laptop. 18+."
+    />
+    <meta property="og:image" content="https://fr33worldgame.xyz/brand/share.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" type="image/png" href="/brand/favicon.png" />
+    <link rel="apple-touch-icon" href="/brand/apple-touch-icon.png" />
+    <!-- Installable (PWA): the manifest, and iPhone's own tags for a full-screen home-screen app. -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="fr33world" />
+    <!-- The interface's fonts, fetched with the page so text never reflows (ui.css). -->
+    <link rel="preload" href="/fonts/barlow-600.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/barlow-700.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/bebas-neue.woff2" as="font" type="font/woff2" crossorigin />
+    <style>
+      html,
+      body,
+      #root {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #07080a;
+        overscroll-behavior: none;
+        touch-action: none;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+      /*
+       * The page can never scroll: pinned to the screen. In an iPhone home-screen app the
+       * keyboard (chat, the bank) or turning the phone scrolled it up, leaving a black strip
+       * under the game and every tap landing off its button.
+       */
+      html,
+      body {
+        position: fixed;
+        inset: 0;
+      }
+      #splash {
+        position: fixed;
+        inset: 0;
+        z-index: 1000;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: #000;
+        transition: opacity 450ms ease;
+      }
+      #splash img {
+        animation: splash-in 700ms ease-out both;
+      }
+      #splash.gone {
+        opacity: 0;
+        pointer-events: none;
+      }
+      @keyframes splash-in {
+        from {
+          opacity: 0;
+          transform: scale(0.94);
+        }
+      }
+      /*
+       * Orientation gate: phones and tablets held upright are asked to turn sideways (the game
+       * is landscape). Here in the page itself, so it shows before any script has loaded. Only
+       * touch-first devices (no hover, coarse pointer): desktops never see it, whatever their
+       * window shape.
+       */
+      @font-face {
+        font-family: 'Bebas Neue';
+        font-display: swap;
+        src: url('/fonts/bebas-neue.woff2') format('woff2');
+      }
+      @font-face {
+        font-family: 'Barlow';
+        font-weight: 600;
+        font-display: swap;
+        src: url('/fonts/barlow-600.woff2') format('woff2');
+      }
+      .rotate-gate {
+        display: none;
+      }
+      @media (orientation: portrait) and (hover: none) and (pointer: coarse) {
+        .rotate-gate {
+          position: fixed;
+          inset: 0;
+          z-index: 1000;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 18px;
+          padding: 24px;
+          text-align: center;
+          background: radial-gradient(circle at 50% 42%, #151920 0%, #07080a 72%);
+          color: #f4f6f8;
+          font:
+            400 34px/1 'Bebas Neue',
+            system-ui,
+            sans-serif;
+          letter-spacing: 1px;
+        }
+        .rotate-gate small {
+          max-width: 260px;
+          color: rgba(244, 246, 248, 0.64);
+          font:
+            600 15px/1.35 'Barlow',
+            system-ui,
+            sans-serif;
+          letter-spacing: 0;
+        }
+        .rotate-gate svg {
+          width: 92px;
+          height: 92px;
+          margin-bottom: 8px;
+          animation: rotate-phone 2.4s ease-in-out infinite;
+        }
+      }
+      @keyframes rotate-phone {
+        0%,
+        20% {
+          transform: rotate(0deg);
+        }
+        50%,
+        80% {
+          transform: rotate(-90deg);
+        }
+        100% {
+          transform: rotate(0deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- The boot shell: the emblem until the scripts arrive (React replaces it). -->
+    <!-- The splash: black with the emblem (it carries the name; one logo, owner 2026-10-30),
+         from the first paint (before any script), held at least 1.5 s and faded out once the
+         app has drawn (main.tsx). -->
+    <div id="splash" aria-hidden="true">
+      <img src="/brand/emblem.webp" alt="" width="168" height="168" />
+    </div>
+    <div id="root">
+      <img
+        src="/brand/emblem.webp"
+        alt="fr33world"
+        style="
+          position: fixed;
+          left: 50%;
+          top: 50%;
+          width: min(200px, 36vmin);
+          transform: translate(-50%, -50%);
+        "
+      />
+    </div>
+    <div class="rotate-gate" role="alert">
+      <svg viewBox="0 0 64 64" fill="none" aria-hidden="true">
+        <rect x="20" y="6" width="24" height="52" rx="5" stroke="#f4f6f8" stroke-width="3" />
+        <rect x="28" y="51" width="8" height="2.5" rx="1.25" fill="#7def06" />
+      </svg>
+      Turn your phone sideways
+      <small
+        >Los Soles plays in landscape. If the screen doesn't turn, switch off rotation lock.</small
+      >
+    </div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

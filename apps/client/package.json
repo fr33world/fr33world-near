@@ -1,0 +1,36 @@
+{
+  "name": "@fr33world/client",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host",
+    "build": "vite build",
+    "preview": "vite preview --host",
+    "typecheck": "tsc --noEmit",
+    "deploy:cloudflare": "VITE_BUILD=$(git rev-parse --short HEAD) VITE_WORLD_URL=${VITE_WORLD_URL:-wss://fr33world-world.onrender.com/ws} VITE_API_URL=${VITE_API_URL:-https://fr33world-api.onrender.com} vite build && wrangler deploy"
+  },
+  "dependencies": {
+    "@dimforge/rapier3d-compat": "^0.21.0",
+    "@fr33world/city": "workspace:*",
+    "@fr33world/protocol": "workspace:*",
+    "@fr33world/shared": "workspace:*",
+    "@privy-io/react-auth": "^3.51.0",
+    "@solana-program/memo": "^0.16.0",
+    "@solana-program/system": "^0.16.0",
+    "@solana-program/token": "^0.18.0",
+    "@solana/kit": "^8.5.0",
+    "livekit-client": "2.22.4",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "three": "^0.186.1"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@types/three": "^0.186.0",
+    "@vitejs/plugin-react": "^6.1.1",
+    "vite": "^8.3.2",
+    "wrangler": "4.150.0"
+  }
+}

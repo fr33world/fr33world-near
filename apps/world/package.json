@@ -1,0 +1,25 @@
+{
+  "name": "@fr33world/world",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --env-file-if-exists=../../.env --watch src/main.ts",
+    "start": "node --env-file-if-exists=../../.env src/main.ts",
+    "load": "node src/load/run.ts",
+    "typecheck": "tsc --noEmit",
+    "bots": "node src/load/bots.ts"
+  },
+  "dependencies": {
+    "@fr33world/auth": "workspace:*",
+    "@fr33world/city": "workspace:*",
+    "@fr33world/protocol": "workspace:*",
+    "@fr33world/shared": "workspace:*",
+    "livekit-server-sdk": "2.19.1",
+    "uWebSockets.js": "github:uNetworking/uWebSockets.js#v20.71.0",
+    "ws": "^8.22.0"
+  },
+  "devDependencies": {
+    "@types/ws": "^8.18.1"
+  }
+}

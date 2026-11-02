@@ -1,0 +1,1819 @@
+# Asset registry: every runtime asset the game ships, where it came from, and its license.
+# Files are relative to apps/client/public/assets/. License snapshots live in assets/licenses/.
+# Nothing ships without an entry here.
+assets:
+  - id: paving_color
+    file: textures/paving_color.webp
+    class: texture
+    source_url: https://ambientcg.com/view?id=PavingStones128
+    source_name: ambientCG (PavingStones128), reused from the earlier FreeWorld project
+    license:
+      { name: CC0 1.0, url: 'https://docs.ambientcg.com/license/', verified_at: '2026-10-03' }
+    license_snapshot: ambientcg-license.txt
+    notes: 1K colour map re-encoded to WebP.
+  - id: paving_normal
+    file: textures/paving_normal.webp
+    class: texture
+    source_url: https://ambientcg.com/view?id=PavingStones128
+    source_name: ambientCG (PavingStones128), reused from the earlier FreeWorld project
+    license:
+      { name: CC0 1.0, url: 'https://docs.ambientcg.com/license/', verified_at: '2026-10-03' }
+    license_snapshot: ambientcg-license.txt
+    notes: OpenGL normal map from the 1K set, re-encoded to WebP.
+  - id: room_plaster
+    file: textures/room_plaster.webp
+    class: texture
+    source_url: https://ambientcg.com/view?id=Plaster003
+    source_name: ambientCG (Plaster003), reused from the earlier FreeWorld project
+    license:
+      { name: CC0 1.0, url: 'https://docs.ambientcg.com/license/', verified_at: '2026-10-31' }
+    license_snapshot: ambientcg-license.txt
+    notes: Colour map for the rooms, 512 px WebP (scripts/assets/room-textures.mjs).
+  - id: room_tile
+    file: textures/room_tile.webp
+    class: texture
+    source_url: https://ambientcg.com/view?id=Tiles141
+    source_name: ambientCG (Tiles141), reused from the earlier FreeWorld project
+    license:
+      { name: CC0 1.0, url: 'https://docs.ambientcg.com/license/', verified_at: '2026-10-31' }
+    license_snapshot: ambientcg-license.txt
+    notes: Colour map for the rooms, 512 px WebP (scripts/assets/room-textures.mjs).
+  - id: room_wood_floor
+    file: textures/room_wood_floor.webp
+    class: texture
+    source_url: https://ambientcg.com/view?id=WoodFloor051
+    source_name: ambientCG (WoodFloor051), reused from the earlier FreeWorld project
+    license:
+      { name: CC0 1.0, url: 'https://docs.ambientcg.com/license/', verified_at: '2026-10-31' }
+    license_snapshot: ambientcg-license.txt
+    notes: Colour map for the rooms, 512 px WebP (scripts/assets/room-textures.mjs).
+  - id: room_carpet
+    file: textures/room_carpet.webp
+    class: texture
+    source_url: https://ambientcg.com/view?id=Carpet012
+    source_name: ambientCG (Carpet012), reused from the earlier FreeWorld project
+    license:
+      { name: CC0 1.0, url: 'https://docs.ambientcg.com/license/', verified_at: '2026-10-31' }
+    license_snapshot: ambientcg-license.txt
+    notes: Colour map for the rooms, 512 px WebP (scripts/assets/room-textures.mjs).
+  - id: room_ceiling
+    file: textures/room_ceiling.webp
+    class: texture
+    source_url: https://ambientcg.com/view?id=OfficeCeiling001
+    source_name: ambientCG (OfficeCeiling001), reused from the earlier FreeWorld project
+    license:
+      { name: CC0 1.0, url: 'https://docs.ambientcg.com/license/', verified_at: '2026-10-31' }
+    license_snapshot: ambientcg-license.txt
+    notes: Colour map for the rooms, 512 px WebP (scripts/assets/room-textures.mjs).
+  - id: room_wood
+    file: textures/room_wood.webp
+    class: texture
+    source_url: https://ambientcg.com/view?id=Wood066
+    source_name: ambientCG (Wood066), reused from the earlier FreeWorld project
+    license:
+      { name: CC0 1.0, url: 'https://docs.ambientcg.com/license/', verified_at: '2026-10-31' }
+    license_snapshot: ambientcg-license.txt
+    notes: Colour map for the rooms, 512 px WebP (scripts/assets/room-textures.mjs).
+  - id: room_fabric
+    file: textures/room_fabric.webp
+    class: texture
+    source_url: https://ambientcg.com/view?id=Fabric026
+    source_name: ambientCG (Fabric026), reused from the earlier FreeWorld project
+    license:
+      { name: CC0 1.0, url: 'https://docs.ambientcg.com/license/', verified_at: '2026-10-31' }
+    license_snapshot: ambientcg-license.txt
+    notes: Colour map for the rooms, 512 px WebP (scripts/assets/room-textures.mjs).
+  # Reused from the earlier FreeWorld project (Works/Fullstack/FreeWorld/assets/registry.yaml).
+  - id: humanoid_core_animations
+    file: animations/humanoid_core.glb
+    class: animation
+    source_url: https://www.mixamo.com
+    source_name: Adobe Mixamo (downloaded by the owner for our uploaded base_male rig)
+    license:
+      name: Mixamo terms (royalty-free in projects, no standalone redistribution)
+      url: https://helpx.adobe.com/creative-cloud/faq/mixamo-faq.html
+      verified_at: '2026-10-03'
+    license_snapshot: mixamo-terms-summary.txt
+    commercial_use: 'yes'
+    modification: 'yes'
+    redistribution_in_game: 'yes'
+    attribution:
+      required: false
+    acquired_by: owner
+    acquired_at: '2026-10-03'
+    rig: shared_humanoid_v1
+    status: mvp
+    notes: >-
+      Reused from the earlier FreeWorld project (same owner), with its LOD1/LOD2 files.
+      Core pack, loaded with every character (12 clips): idle, neutral_idle, walking, running,
+      female_walk and social emotes. Built by blender/convert_animations.py --only; only shipped
+      embedded in the game, raw FBX files stay in .raw/ and Drive.
+  - id: humanoid_combat_animations
+    file: animations/humanoid_combat.glb
+    class: animation
+    source_url: https://www.mixamo.com
+    source_name: Adobe Mixamo (downloaded by the owner for our uploaded base_male rig)
+    license:
+      name: Mixamo terms (royalty-free in projects, no standalone redistribution)
+      url: https://helpx.adobe.com/creative-cloud/faq/mixamo-faq.html
+      verified_at: '2026-10-05'
+    license_snapshot: mixamo-terms-summary.txt
+    commercial_use: 'yes'
+    modification: 'yes'
+    redistribution_in_game: 'yes'
+    attribution:
+      required: false
+    acquired_by: owner
+    acquired_at: '2026-10-05'
+    rig: shared_humanoid_v1
+    status: mvp
+    notes: >-
+      Reused from the earlier FreeWorld project (same owner), with its LOD1/LOD2 files.
+      Combat pack, fetched when the first character appears (2 clips): punching and knocked_out (the faint). Built by blender/convert_animations.py --only; only shipped
+      embedded in the game, raw FBX files stay in .raw/ and Drive.
+  - id: humanoid_dance_animations
+    file: animations/humanoid_dances.glb
+    class: animation
+    source_url: https://www.mixamo.com
+    source_name: Adobe Mixamo (downloaded by the owner for our uploaded base_male rig)
+    license:
+      name: Mixamo terms (royalty-free in projects, no standalone redistribution)
+      url: https://helpx.adobe.com/creative-cloud/faq/mixamo-faq.html
+      verified_at: '2026-10-05'
+    license_snapshot: mixamo-terms-summary.txt
+    commercial_use: 'yes'
+    modification: 'yes'
+    redistribution_in_game: 'yes'
+    attribution:
+      required: false
+    acquired_by: owner
+    acquired_at: '2026-10-05'
+    rig: shared_humanoid_v1
+    status: mvp
+    notes: >-
+      Reused from the earlier FreeWorld project (same owner), with its LOD1/LOD2 files.
+      Dance pack, fetched the first time someone dances (3 clips): hip_hop_dancing, dancing and dancing_twerk (women only). Built by blender/convert_animations.py --only; only shipped
+      embedded in the game, raw FBX files stay in .raw/ and Drive.
+  - id: humanoid_pistol_animations
+    file: animations/humanoid_pistol.glb
+    class: animation
+    source_url: https://www.mixamo.com
+    source_name: Adobe Mixamo (downloaded by the owner for our uploaded base_male rig)
+    license:
+      name: Mixamo terms (royalty-free in projects, no standalone redistribution)
+      url: https://helpx.adobe.com/creative-cloud/faq/mixamo-faq.html
+      verified_at: '2026-10-28'
+    license_snapshot: mixamo-terms-summary.txt
+    commercial_use: 'yes'
+    modification: 'yes'
+    redistribution_in_game: 'yes'
+    attribution:
+      required: false
+    acquired_by: owner
+    acquired_at: '2026-10-28'
+    rig: shared_humanoid_v1
+    status: mvp
+    notes: >-
+      Pistol pack, fetched the first time anyone near holds a pistol (10 clips): pistol_idle,
+      pistol_walk, pistol_run, pistol_walk_backward, pistol_run_backward, pistol_strafe_left,
+      pistol_strafe_right (from the Pistol Handgun Locomotion Pack), pistol_fire (Gunplay),
+      pistol_reload (Reloading) and hit_reaction. Built by scripts/build-animations.mjs; raw FBX
+      files stay in .raw/. The rifle pack is packed when its feature lands (Phase 8).
+  - id: humanoid_social_animations
+    file: animations/humanoid_social.glb
+    class: animation
+    source_url: https://www.mixamo.com
+    source_name: Adobe Mixamo (downloaded by the owner for our uploaded base_male rig)
+    license:
+      name: Mixamo terms (royalty-free in projects, no standalone redistribution)
+      url: https://helpx.adobe.com/creative-cloud/faq/mixamo-faq.html
+      verified_at: '2026-10-28'
+    license_snapshot: mixamo-terms-summary.txt
+    commercial_use: 'yes'
+    modification: 'yes'
+    redistribution_in_game: 'yes'
+    attribution:
+      required: false
+    acquired_by: owner
+    acquired_at: '2026-10-28'
+    rig: shared_humanoid_v1
+    status: mvp
+    notes: >-
+      Social pack (owner's choice, 2026-10-30): standing_idle, talking, jump. Built by scripts/build-animations.mjs.
+  - id: humanoid_rifle_animations
+    file: animations/humanoid_rifle.glb
+    class: animation
+    source_url: https://www.mixamo.com
+    source_name: Adobe Mixamo (downloaded by the owner for our uploaded base_male rig)
+    license:
+      name: Mixamo terms (royalty-free in projects, no standalone redistribution)
+      url: https://helpx.adobe.com/creative-cloud/faq/mixamo-faq.html
+      verified_at: '2026-10-28'
+    license_snapshot: mixamo-terms-summary.txt
+    commercial_use: 'yes'
+    modification: 'yes'
+    redistribution_in_game: 'yes'
+    attribution:
+      required: false
+    acquired_by: owner
+    acquired_at: '2026-10-28'
+    rig: shared_humanoid_v1
+    status: mvp
+    notes: >-
+      Rifle pack from the owner's Rifle 8-Way Locomotion Pack (8 clips: idle, walk, run, backwards, strafes, idle aiming), fetched the first time anyone near holds a rifle. Built by scripts/build-animations.mjs.
+  - id: humanoid_moves_animations
+    file: animations/humanoid_moves.glb
+    class: animation
+    source_url: https://www.mixamo.com
+    source_name: Adobe Mixamo (downloaded by the owner for our uploaded base_male rig)
+    license:
+      name: Mixamo terms (royalty-free in projects, no standalone redistribution)
+      url: https://helpx.adobe.com/creative-cloud/faq/mixamo-faq.html
+      verified_at: '2026-10-31'
+    license_snapshot: mixamo-terms-summary.txt
+    commercial_use: 'yes'
+    modification: 'yes'
+    redistribution_in_game: 'yes'
+    attribution:
+      required: false
+    acquired_by: owner
+    acquired_at: '2026-10-31'
+    rig: shared_humanoid_v1
+    status: mvp
+    notes: >-
+      The owner's later dances (snake_hip_hop, step_hip_hop). Built by scripts/build-animations.mjs; only shipped embedded in the game, raw FBX files stay in .raw/.
+  - id: humanoid_rest_animations
+    file: animations/humanoid_rest.glb
+    class: animation
+    source_url: https://www.mixamo.com
+    source_name: Adobe Mixamo (downloaded by the owner for our uploaded base_male rig)
+    license:
+      name: Mixamo terms (royalty-free in projects, no standalone redistribution)
+      url: https://helpx.adobe.com/creative-cloud/faq/mixamo-faq.html
+      verified_at: '2026-10-31'
+    license_snapshot: mixamo-terms-summary.txt
+    commercial_use: 'yes'
+    modification: 'yes'
+    redistribution_in_game: 'yes'
+    attribution:
+      required: false
+    acquired_by: owner
+    acquired_at: '2026-10-03'
+    rig: shared_humanoid_v1
+    status: mvp
+    notes: >-
+      Sitting (sitting_idle, stand_to_sit, sit_to_stand), from the owner's earlier FreeWorld downloads. Built by scripts/build-animations.mjs; only shipped embedded in the game, raw FBX files stay in .raw/.
+  - id: humanoid_vehicle_animations
+    file: animations/humanoid_vehicle.glb
+    class: animation
+    source_url: https://www.mixamo.com
+    source_name: Adobe Mixamo (downloaded by the owner for our uploaded base_male rig)
+    license:
+      name: Mixamo terms (royalty-free in projects, no standalone redistribution)
+      url: https://helpx.adobe.com/creative-cloud/faq/mixamo-faq.html
+      verified_at: '2026-10-28'
+    license_snapshot: mixamo-terms-summary.txt
+    commercial_use: 'yes'
+    modification: 'yes'
+    redistribution_in_game: 'yes'
+    attribution:
+      required: false
+    acquired_by: owner
+    acquired_at: '2026-10-28'
+    rig: shared_humanoid_v1
+    status: mvp
+    notes: >-
+      Car pack (3 clips), fetched when a player first walks up to a car: driving (Driving),
+      entering_car (Entering Car) and exiting_car (Exiting Car). Built by
+      scripts/build-animations.mjs; raw FBX files stay in .raw/.
+  # BEGIN polyhaven (generated by scripts/fetch-polyhaven.mjs)
+  - id: road_color
+    file: textures/road_color.webp
+    class: texture
+    source_url: https://polyhaven.com/a/asphalt_02
+    source_name: 'Poly Haven (Asphalt 02, Diffuse 1K)'
+    author: 'Rob Tuytel'
+    license: { name: CC0 1.0, url: 'https://polyhaven.com/license', verified_at: '2026-10-29' }
+    license_snapshot: polyhaven-license.txt
+    notes: 1K JPG re-encoded to WebP.
+  - id: road_normal
+    file: textures/road_normal.webp
+    class: texture
+    source_url: https://polyhaven.com/a/asphalt_02
+    source_name: 'Poly Haven (Asphalt 02, nor_gl 1K)'
+    author: 'Rob Tuytel'
+    license: { name: CC0 1.0, url: 'https://polyhaven.com/license', verified_at: '2026-10-29' }
+    license_snapshot: polyhaven-license.txt
+    notes: 1K JPG re-encoded to WebP.
+  - id: road_rough
+    file: textures/road_rough.webp
+    class: texture
+    source_url: https://polyhaven.com/a/asphalt_02
+    source_name: 'Poly Haven (Asphalt 02, Rough 1K)'
+    author: 'Rob Tuytel'
+    license: { name: CC0 1.0, url: 'https://polyhaven.com/license', verified_at: '2026-10-29' }
+    license_snapshot: polyhaven-license.txt
+    notes: 1K JPG re-encoded to WebP.
+  - id: sidewalk_color
+    file: textures/sidewalk_color.webp
+    class: texture
+    source_url: https://polyhaven.com/a/concrete_pavement_02
+    source_name: 'Poly Haven (Concrete Pavement 02, Diffuse 1K)'
+    author: 'Charlotte Baglioni'
+    license: { name: CC0 1.0, url: 'https://polyhaven.com/license', verified_at: '2026-10-29' }
+    license_snapshot: polyhaven-license.txt
+    notes: 1K JPG re-encoded to WebP.
+  - id: sidewalk_normal
+    file: textures/sidewalk_normal.webp
+    class: texture
+    source_url: https://polyhaven.com/a/concrete_pavement_02
+    source_name: 'Poly Haven (Concrete Pavement 02, nor_gl 1K)'
+    author: 'Charlotte Baglioni'
+    license: { name: CC0 1.0, url: 'https://polyhaven.com/license', verified_at: '2026-10-29' }
+    license_snapshot: polyhaven-license.txt
+    notes: 1K JPG re-encoded to WebP.
+  - id: sidewalk_rough
+    file: textures/sidewalk_rough.webp
+    class: texture
+    source_url: https://polyhaven.com/a/concrete_pavement_02
+    source_name: 'Poly Haven (Concrete Pavement 02, Rough 1K)'
+    author: 'Charlotte Baglioni'
+    license: { name: CC0 1.0, url: 'https://polyhaven.com/license', verified_at: '2026-10-29' }
+    license_snapshot: polyhaven-license.txt
+    notes: 1K JPG re-encoded to WebP.
+  - id: grass_color
+    file: textures/grass_color.webp
+    class: texture
+    source_url: https://polyhaven.com/a/leafy_grass
+    source_name: 'Poly Haven (Leafy Grass, Diffuse 1K)'
+    author: 'Charlotte Baglioni'
+    license: { name: CC0 1.0, url: 'https://polyhaven.com/license', verified_at: '2026-10-29' }
+    license_snapshot: polyhaven-license.txt
+    notes: 1K JPG re-encoded to WebP.
+  - id: grass_normal
+    file: textures/grass_normal.webp
+    class: texture
+    source_url: https://polyhaven.com/a/leafy_grass
+    source_name: 'Poly Haven (Leafy Grass, nor_gl 1K)'
+    author: 'Charlotte Baglioni'
+    license: { name: CC0 1.0, url: 'https://polyhaven.com/license', verified_at: '2026-10-29' }
+    license_snapshot: polyhaven-license.txt
+    notes: 1K JPG re-encoded to WebP.
+  - id: grass_rough
+    file: textures/grass_rough.webp
+    class: texture
+    source_url: https://polyhaven.com/a/leafy_grass
+    source_name: 'Poly Haven (Leafy Grass, Rough 1K)'
+    author: 'Charlotte Baglioni'
+    license: { name: CC0 1.0, url: 'https://polyhaven.com/license', verified_at: '2026-10-29' }
+    license_snapshot: polyhaven-license.txt
+    notes: 1K JPG re-encoded to WebP.
+  - id: stucco_color
+    file: textures/stucco_color.webp
+    class: texture
+    source_url: https://polyhaven.com/a/white_stucco
+    source_name: 'Poly Haven (White Stucco, Diffuse 1K)'
+    author: 'Amal Kumar'
+    license: { name: CC0 1.0, url: 'https://polyhaven.com/license', verified_at: '2026-10-29' }
+    license_snapshot: polyhaven-license.txt
+    notes: 1K JPG re-encoded to WebP.
+  - id: stucco_normal
+    file: textures/stucco_normal.webp
+    class: texture
+    source_url: https://polyhaven.com/a/white_stucco
+    source_name: 'Poly Haven (White Stucco, nor_gl 1K)'
+    author: 'Amal Kumar'
+    license: { name: CC0 1.0, url: 'https://polyhaven.com/license', verified_at: '2026-10-29' }
+    license_snapshot: polyhaven-license.txt
+    notes: 1K JPG re-encoded to WebP.
+  - id: stucco_rough
+    file: textures/stucco_rough.webp
+    class: texture
+    source_url: https://polyhaven.com/a/white_stucco
+    source_name: 'Poly Haven (White Stucco, Rough 1K)'
+    author: 'Amal Kumar'
+    license: { name: CC0 1.0, url: 'https://polyhaven.com/license', verified_at: '2026-10-29' }
+    license_snapshot: polyhaven-license.txt
+    notes: 1K JPG re-encoded to WebP.
+  - id: facade_tiles_color
+    file: textures/facade_tiles_color.webp
+    class: texture
+    source_url: https://polyhaven.com/a/rectangular_facade_tiles
+    source_name: 'Poly Haven (Rectangular Facade Tiles, Diffuse 1K)'
+    author: 'Charlotte Baglioni'
+    license: { name: CC0 1.0, url: 'https://polyhaven.com/license', verified_at: '2026-10-29' }
+    license_snapshot: polyhaven-license.txt
+    notes: 1K JPG re-encoded to WebP.
+  - id: facade_tiles_normal
+    file: textures/facade_tiles_normal.webp
+    class: texture
+    source_url: https://polyhaven.com/a/rectangular_facade_tiles
+    source_name: 'Poly Haven (Rectangular Facade Tiles, nor_gl 1K)'
+    author: 'Charlotte Baglioni'
+    license: { name: CC0 1.0, url: 'https://polyhaven.com/license', verified_at: '2026-10-29' }
+    license_snapshot: polyhaven-license.txt
+    notes: 1K JPG re-encoded to WebP.
+  - id: facade_tiles_rough
+    file: textures/facade_tiles_rough.webp
+    class: texture
+    source_url: https://polyhaven.com/a/rectangular_facade_tiles
+    source_name: 'Poly Haven (Rectangular Facade Tiles, Rough 1K)'
+    author: 'Charlotte Baglioni'
+    license: { name: CC0 1.0, url: 'https://polyhaven.com/license', verified_at: '2026-10-29' }
+    license_snapshot: polyhaven-license.txt
+    notes: 1K JPG re-encoded to WebP.
+  - id: brick_color
+    file: textures/brick_color.webp
+    class: texture
+    source_url: https://polyhaven.com/a/brick_wall_09
+    source_name: 'Poly Haven (Brick Wall 09, Diffuse 1K)'
+    author: 'Rob Tuytel, Matterfield'
+    license: { name: CC0 1.0, url: 'https://polyhaven.com/license', verified_at: '2026-10-29' }
+    license_snapshot: polyhaven-license.txt
+    notes: 1K JPG re-encoded to WebP.
+  - id: brick_normal
+    file: textures/brick_normal.webp
+    class: texture
+    source_url: https://polyhaven.com/a/brick_wall_09
+    source_name: 'Poly Haven (Brick Wall 09, nor_gl 1K)'
+    author: 'Rob Tuytel, Matterfield'
+    license: { name: CC0 1.0, url: 'https://polyhaven.com/license', verified_at: '2026-10-29' }
+    license_snapshot: polyhaven-license.txt
+    notes: 1K JPG re-encoded to WebP.
+  - id: brick_rough
+    file: textures/brick_rough.webp
+    class: texture
+    source_url: https://polyhaven.com/a/brick_wall_09
+    source_name: 'Poly Haven (Brick Wall 09, Rough 1K)'
+    author: 'Rob Tuytel, Matterfield'
+    license: { name: CC0 1.0, url: 'https://polyhaven.com/license', verified_at: '2026-10-29' }
+    license_snapshot: polyhaven-license.txt
+    notes: 1K JPG re-encoded to WebP.
+  - id: cladding_color
+    file: textures/cladding_color.webp
+    class: texture
+    source_url: https://polyhaven.com/a/exterior_wall_cladding
+    source_name: 'Poly Haven (Exterior Wall Cladding, Diffuse 1K)'
+    author: 'Charlotte Baglioni'
+    license: { name: CC0 1.0, url: 'https://polyhaven.com/license', verified_at: '2026-10-29' }
+    license_snapshot: polyhaven-license.txt
+    notes: 1K JPG re-encoded to WebP.
+  - id: cladding_normal
+    file: textures/cladding_normal.webp
+    class: texture
+    source_url: https://polyhaven.com/a/exterior_wall_cladding
+    source_name: 'Poly Haven (Exterior Wall Cladding, nor_gl 1K)'
+    author: 'Charlotte Baglioni'
+    license: { name: CC0 1.0, url: 'https://polyhaven.com/license', verified_at: '2026-10-29' }
+    license_snapshot: polyhaven-license.txt
+    notes: 1K JPG re-encoded to WebP.
+  - id: cladding_rough
+    file: textures/cladding_rough.webp
+    class: texture
+    source_url: https://polyhaven.com/a/exterior_wall_cladding
+    source_name: 'Poly Haven (Exterior Wall Cladding, Rough 1K)'
+    author: 'Charlotte Baglioni'
+    license: { name: CC0 1.0, url: 'https://polyhaven.com/license', verified_at: '2026-10-29' }
+    license_snapshot: polyhaven-license.txt
+    notes: 1K JPG re-encoded to WebP.
+  - id: palm_bark_color
+    file: textures/palm_bark_color.webp
+    class: texture
+    source_url: https://polyhaven.com/a/palm_tree_bark
+    source_name: 'Poly Haven (Palm Tree Bark, Diffuse 1K)'
+    author: 'Dimitrios Savva, Rico Cilliers'
+    license: { name: CC0 1.0, url: 'https://polyhaven.com/license', verified_at: '2026-10-29' }
+    license_snapshot: polyhaven-license.txt
+    notes: 1K JPG re-encoded to WebP.
+  - id: palm_bark_normal
+    file: textures/palm_bark_normal.webp
+    class: texture
+    source_url: https://polyhaven.com/a/palm_tree_bark
+    source_name: 'Poly Haven (Palm Tree Bark, nor_gl 1K)'
+    author: 'Dimitrios Savva, Rico Cilliers'
+    license: { name: CC0 1.0, url: 'https://polyhaven.com/license', verified_at: '2026-10-29' }
+    license_snapshot: polyhaven-license.txt
+    notes: 1K JPG re-encoded to WebP.
+  - id: palm_bark_rough
+    file: textures/palm_bark_rough.webp
+    class: texture
+    source_url: https://polyhaven.com/a/palm_tree_bark
+    source_name: 'Poly Haven (Palm Tree Bark, Rough 1K)'
+    author: 'Dimitrios Savva, Rico Cilliers'
+    license: { name: CC0 1.0, url: 'https://polyhaven.com/license', verified_at: '2026-10-29' }
+    license_snapshot: polyhaven-license.txt
+    notes: 1K JPG re-encoded to WebP.
+  - id: roof_clay_color
+    file: textures/roof_clay_color.webp
+    class: texture
+    source_url: https://polyhaven.com/a/clay_roof_tiles_02
+    source_name: 'Poly Haven (Clay Roof Tiles 02, Diffuse 1K)'
+    author: 'Amal Kumar'
+    license: { name: CC0 1.0, url: 'https://polyhaven.com/license', verified_at: '2026-10-29' }
+    license_snapshot: polyhaven-license.txt
+    notes: 1K JPG re-encoded to WebP.
+  - id: roof_clay_normal
+    file: textures/roof_clay_normal.webp
+    class: texture
+    source_url: https://polyhaven.com/a/clay_roof_tiles_02
+    source_name: 'Poly Haven (Clay Roof Tiles 02, nor_gl 1K)'
+    author: 'Amal Kumar'
+    license: { name: CC0 1.0, url: 'https://polyhaven.com/license', verified_at: '2026-10-29' }
+    license_snapshot: polyhaven-license.txt
+    notes: 1K JPG re-encoded to WebP.
+  - id: roof_clay_rough
+    file: textures/roof_clay_rough.webp
+    class: texture
+    source_url: https://polyhaven.com/a/clay_roof_tiles_02
+    source_name: 'Poly Haven (Clay Roof Tiles 02, Rough 1K)'
+    author: 'Amal Kumar'
+    license: { name: CC0 1.0, url: 'https://polyhaven.com/license', verified_at: '2026-10-29' }
+    license_snapshot: polyhaven-license.txt
+    notes: 1K JPG re-encoded to WebP.
+  - id: roof_shingle_color
+    file: textures/roof_shingle_color.webp
+    class: texture
+    source_url: https://polyhaven.com/a/grey_roof_01
+    source_name: 'Poly Haven (Grey Roof 01, Diffuse 1K)'
+    author: 'Rob Tuytel'
+    license: { name: CC0 1.0, url: 'https://polyhaven.com/license', verified_at: '2026-10-29' }
+    license_snapshot: polyhaven-license.txt
+    notes: 1K JPG re-encoded to WebP.
+  - id: roof_shingle_normal
+    file: textures/roof_shingle_normal.webp
+    class: texture
+    source_url: https://polyhaven.com/a/grey_roof_01
+    source_name: 'Poly Haven (Grey Roof 01, nor_gl 1K)'
+    author: 'Rob Tuytel'
+    license: { name: CC0 1.0, url: 'https://polyhaven.com/license', verified_at: '2026-10-29' }
+    license_snapshot: polyhaven-license.txt
+    notes: 1K JPG re-encoded to WebP.
+  - id: roof_shingle_rough
+    file: textures/roof_shingle_rough.webp
+    class: texture
+    source_url: https://polyhaven.com/a/grey_roof_01
+    source_name: 'Poly Haven (Grey Roof 01, Rough 1K)'
+    author: 'Rob Tuytel'
+    license: { name: CC0 1.0, url: 'https://polyhaven.com/license', verified_at: '2026-10-29' }
+    license_snapshot: polyhaven-license.txt
+    notes: 1K JPG re-encoded to WebP.
+  - id: hill_ground_color
+    file: textures/hill_ground_color.webp
+    class: texture
+    source_url: https://polyhaven.com/a/rocky_terrain_02
+    source_name: 'Poly Haven (Rocky Terrain 02, Diffuse 1K)'
+    author: 'Amal Kumar'
+    license: { name: CC0 1.0, url: 'https://polyhaven.com/license', verified_at: '2026-10-29' }
+    license_snapshot: polyhaven-license.txt
+    notes: 1K JPG re-encoded to WebP.
+  - id: hill_ground_normal
+    file: textures/hill_ground_normal.webp
+    class: texture
+    source_url: https://polyhaven.com/a/rocky_terrain_02
+    source_name: 'Poly Haven (Rocky Terrain 02, nor_gl 1K)'
+    author: 'Amal Kumar'
+    license: { name: CC0 1.0, url: 'https://polyhaven.com/license', verified_at: '2026-10-29' }
+    license_snapshot: polyhaven-license.txt
+    notes: 1K JPG re-encoded to WebP.
+  - id: hill_ground_rough
+    file: textures/hill_ground_rough.webp
+    class: texture
+    source_url: https://polyhaven.com/a/rocky_terrain_02
+    source_name: 'Poly Haven (Rocky Terrain 02, Rough 1K)'
+    author: 'Amal Kumar'
+    license: { name: CC0 1.0, url: 'https://polyhaven.com/license', verified_at: '2026-10-29' }
+    license_snapshot: polyhaven-license.txt
+    notes: 1K JPG re-encoded to WebP.
+  - id: hill_rock_color
+    file: textures/hill_rock_color.webp
+    class: texture
+    source_url: https://polyhaven.com/a/aerial_rocks_02
+    source_name: 'Poly Haven (Aerial Rocks 02, Diffuse 1K)'
+    author: 'Rob Tuytel'
+    license: { name: CC0 1.0, url: 'https://polyhaven.com/license', verified_at: '2026-10-29' }
+    license_snapshot: polyhaven-license.txt
+    notes: 1K JPG re-encoded to WebP.
+  - id: hill_rock_normal
+    file: textures/hill_rock_normal.webp
+    class: texture
+    source_url: https://polyhaven.com/a/aerial_rocks_02
+    source_name: 'Poly Haven (Aerial Rocks 02, nor_gl 1K)'
+    author: 'Rob Tuytel'
+    license: { name: CC0 1.0, url: 'https://polyhaven.com/license', verified_at: '2026-10-29' }
+    license_snapshot: polyhaven-license.txt
+    notes: 1K JPG re-encoded to WebP.
+  - id: hill_rock_rough
+    file: textures/hill_rock_rough.webp
+    class: texture
+    source_url: https://polyhaven.com/a/aerial_rocks_02
+    source_name: 'Poly Haven (Aerial Rocks 02, Rough 1K)'
+    author: 'Rob Tuytel'
+    license: { name: CC0 1.0, url: 'https://polyhaven.com/license', verified_at: '2026-10-29' }
+    license_snapshot: polyhaven-license.txt
+    notes: 1K JPG re-encoded to WebP.
+  - id: hill_dirt_color
+    file: textures/hill_dirt_color.webp
+    class: texture
+    source_url: https://polyhaven.com/a/forest_ground_04
+    source_name: 'Poly Haven (Forest Ground 04, Diffuse 1K)'
+    author: 'Rob Tuytel, Rico Cilliers'
+    license: { name: CC0 1.0, url: 'https://polyhaven.com/license', verified_at: '2026-10-29' }
+    license_snapshot: polyhaven-license.txt
+    notes: 1K JPG re-encoded to WebP.
+  - id: hill_dirt_normal
+    file: textures/hill_dirt_normal.webp
+    class: texture
+    source_url: https://polyhaven.com/a/forest_ground_04
+    source_name: 'Poly Haven (Forest Ground 04, nor_gl 1K)'
+    author: 'Rob Tuytel, Rico Cilliers'
+    license: { name: CC0 1.0, url: 'https://polyhaven.com/license', verified_at: '2026-10-29' }
+    license_snapshot: polyhaven-license.txt
+    notes: 1K JPG re-encoded to WebP.
+  - id: hill_dirt_rough
+    file: textures/hill_dirt_rough.webp
+    class: texture
+    source_url: https://polyhaven.com/a/forest_ground_04
+    source_name: 'Poly Haven (Forest Ground 04, Rough 1K)'
+    author: 'Rob Tuytel, Rico Cilliers'
+    license: { name: CC0 1.0, url: 'https://polyhaven.com/license', verified_at: '2026-10-29' }
+    license_snapshot: polyhaven-license.txt
+    notes: 1K JPG re-encoded to WebP.
+  # END polyhaven
+  # BEGIN polyhaven-props (generated by scripts/assets/fetch-props.mjs)
+  - id: prop_hydrant
+    file: props/hydrant.glb
+    class: model
+    source_url: https://polyhaven.com/a/fire_hydrant
+    source_name: 'Poly Haven (Fire Hydrant, glTF 1K)'
+    author: 'Gonçalo Felício'
+    license: { name: CC0 1.0, url: 'https://polyhaven.com/license', verified_at: '2026-10-31' }
+    license_snapshot: polyhaven-license.txt
+    notes: Simplified to at most 1200 triangles, textures 256² WebP, meshopt geometry.
+  - id: prop_bin
+    file: props/bin.glb
+    class: model
+    source_url: https://polyhaven.com/a/metal_trash_can
+    source_name: 'Poly Haven (Metal Trash Can, glTF 1K)'
+    author: 'GurJas Studios'
+    license: { name: CC0 1.0, url: 'https://polyhaven.com/license', verified_at: '2026-10-31' }
+    license_snapshot: polyhaven-license.txt
+    notes: Simplified to at most 900 triangles, textures 256² WebP, meshopt geometry.
+  - id: prop_bench
+    file: props/bench.glb
+    class: model
+    source_url: https://polyhaven.com/a/painted_wooden_bench
+    source_name: 'Poly Haven (Painted Wooden Bench, glTF 1K)'
+    author: 'Kirill Sannikov'
+    license: { name: CC0 1.0, url: 'https://polyhaven.com/license', verified_at: '2026-10-31' }
+    license_snapshot: polyhaven-license.txt
+    notes: Simplified to at most 700 triangles, textures 256² WebP, meshopt geometry.
+  - id: prop_planter
+    file: props/planter.glb
+    class: model
+    source_url: https://polyhaven.com/a/planter_box_01
+    source_name: 'Poly Haven (Planter Box 01, glTF 1K)'
+    author: 'James Ray Cock'
+    license: { name: CC0 1.0, url: 'https://polyhaven.com/license', verified_at: '2026-10-31' }
+    license_snapshot: polyhaven-license.txt
+    notes: Simplified to at most 1200 triangles, textures 256² WebP, meshopt geometry.
+  - id: prop_barrier
+    file: props/barrier.glb
+    class: model
+    source_url: https://polyhaven.com/a/concrete_road_barrier_02
+    source_name: 'Poly Haven (Concrete Road Barrier 02, glTF 1K)'
+    author: 'Amal Kumar'
+    license: { name: CC0 1.0, url: 'https://polyhaven.com/license', verified_at: '2026-10-31' }
+    license_snapshot: polyhaven-license.txt
+    notes: Simplified to at most 500 triangles, textures 256² WebP, meshopt geometry.
+  - id: prop_plant
+    file: props/plant.glb
+    class: model
+    source_url: https://polyhaven.com/a/potted_plant_01
+    source_name: 'Poly Haven (Potted Plant 01, glTF 1K)'
+    author: 'Rico Cilliers'
+    license: { name: CC0 1.0, url: 'https://polyhaven.com/license', verified_at: '2026-10-31' }
+    license_snapshot: polyhaven-license.txt
+    notes: Simplified to at most 1800 triangles, textures 256² WebP, meshopt geometry.
+  - id: prop_sofa
+    file: props/sofa.glb
+    class: model
+    source_url: https://polyhaven.com/a/Sofa_01
+    source_name: 'Poly Haven (Sofa 01, glTF 1K)'
+    author: 'Kirill Sannikov'
+    license: { name: CC0 1.0, url: 'https://polyhaven.com/license', verified_at: '2026-10-31' }
+    license_snapshot: polyhaven-license.txt
+    notes: Simplified to at most 1600 triangles, textures 256² WebP, meshopt geometry.
+  - id: prop_desk
+    file: props/desk.glb
+    class: model
+    source_url: https://polyhaven.com/a/metal_office_desk
+    source_name: 'Poly Haven (Metal Office Desk, glTF 1K)'
+    author: 'Ulan Cabanilla'
+    license: { name: CC0 1.0, url: 'https://polyhaven.com/license', verified_at: '2026-10-31' }
+    license_snapshot: polyhaven-license.txt
+    notes: Simplified to at most 900 triangles, textures 256² WebP, meshopt geometry.
+  # END polyhaven-props
+  # Fonts (public/fonts, outside assets/).
+  - id: font_barlow
+    file: '../fonts/barlow-{500,600,700,800,800-italic}.woff2'
+    class: font
+    source_url: https://fonts.google.com/specimen/Barlow
+    source_name: 'Barlow by Jeremy Tribby (Google Fonts)'
+    license: { name: SIL OFL 1.1, url: 'https://openfontlicense.org', verified_at: '2026-10-29' }
+    license_snapshot: ofl-1.1-barlow.txt
+    notes: 'Interface typeface; Latin subset WOFF2 from Google Fonts, served from public/fonts.'
+  - id: font_bebas_neue
+    file: '../fonts/bebas-neue.woff2'
+    class: font
+    source_url: https://fonts.google.com/specimen/Bebas+Neue
+    source_name: 'Bebas Neue by Dharma Type (Google Fonts)'
+    license: { name: SIL OFL 1.1, url: 'https://openfontlicense.org', verified_at: '2026-10-29' }
+    license_snapshot: ofl-1.1-bebas-neue.txt
+    notes: 'Display typeface for titles, main buttons and the HUD clock; Latin subset WOFF2.'
+  # Sound (public/assets/audio): CC0 only.
+  - id: audio_engine
+    file: 'audio/engine.wav'
+    class: audio
+    source_url: https://opengameart.org/content/racing-car-engine-sound-loops
+    source_name: 'OpenGameArt: Racing car engine sound loops (loop_0)'
+    author: 'domasx2'
+    license:
+      {
+        name: CC0 1.0,
+        url: 'https://creativecommons.org/publicdomain/zero/1.0/',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: cc0-1.0.txt
+    notes: 'Mono 22 kHz WAV for an exact loop; pitch set by speed in game.'
+  - id: audio_footsteps
+    file: 'audio/step-{concrete,grass}-{0..4}.mp3'
+    class: audio
+    source_url: https://kenney.nl/assets/impact-sounds
+    source_name: 'Kenney: Impact Sounds (footstep_concrete, footstep_grass)'
+    author: 'Kenney'
+    license:
+      {
+        name: CC0 1.0,
+        url: 'https://creativecommons.org/publicdomain/zero/1.0/',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: kenney-cc0.txt
+    notes: 'Mono MP3 from the OGG originals.'
+  - id: audio_gunshots
+    file: 'audio/gun-{pistol,rifle}.mp3'
+    class: audio
+    source_url: https://opengameart.org/content/the-free-firearm-sound-library
+    source_name: 'The Free Firearm Sound Library, Prepared SFX Library (1911 A_42P, AK-47 C_28P)'
+    author: 'Ben Jaszczak, et al.'
+    license:
+      {
+        name: CC0 1.0,
+        url: 'https://creativecommons.org/publicdomain/zero/1.0/',
+        verified_at: '2026-10-31',
+      }
+    license_snapshot: free-firearm-sound-library-cc0.txt
+    notes: 'One near-distance shot each, cut to under a second, mono MP3.'
+  - id: audio_gun_handling
+    file: 'audio/gun-{reload,dry}.mp3'
+    class: audio
+    source_url: https://kenney.nl/assets/rpg-audio
+    source_name: 'Kenney: RPG Audio (metalLatch, metalClick)'
+    author: 'Kenney'
+    license:
+      {
+        name: CC0 1.0,
+        url: 'https://creativecommons.org/publicdomain/zero/1.0/',
+        verified_at: '2026-10-31',
+      }
+    license_snapshot: kenney-rpg-audio-cc0.txt
+    notes: 'Mono MP3 from the OGG originals, reused from the earlier FreeWorld project.'
+  - id: audio_music_menu
+    file: 'audio/music-menu.mp3'
+    class: audio
+    source_url: https://opengameart.org/content/chill-lofi-inspired
+    source_name: 'OpenGameArt: Chill lofi inspired'
+    author: 'omfgdude'
+    license:
+      {
+        name: CC0 1.0,
+        url: 'https://creativecommons.org/publicdomain/zero/1.0/',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: cc0-1.0.txt
+    notes: 'Menu music, loudness-normalised MP3.'
+  # Sign-in marks (apps/client/src/ui/platforms.tsx, inline SVG).
+  - id: platform_marks
+    file: '../src/ui/platforms.tsx'
+    class: icon
+    source_url: https://simpleicons.org
+    source_name: 'Simple Icons (Discord, X); Google sign-in mark per its branding guidelines'
+    license:
+      {
+        name: CC0 1.0,
+        url: 'https://github.com/simple-icons/simple-icons/blob/develop/LICENSE.md',
+        verified_at: '2026-10-30',
+      }
+    license_snapshot: cc0-1.0.txt
+    notes: 'Used only on sign-in buttons for those platforms, as their guidelines allow.'
+  # BEGIN rocketbox (generated by scripts/assets/rocketbox.mjs)
+  - id: rb_f01_face
+    file: characters/rb_f01_face.glb
+    class: character
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox/tree/master/Assets/Avatars/Adults/Female_Adult_01
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'The face of Female_Adult_01 (scripts/blender/convert_rocketbox.py): LODs .lod1/.lod2, KTX2 textures, recolouring mask rb_f01_face.mask.png.'
+  - id: rb_f01_outfit
+    file: characters/rb_f01_outfit.glb
+    class: character
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox/tree/master/Assets/Avatars/Adults/Female_Adult_01
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'The outfit of Female_Adult_01 (scripts/blender/convert_rocketbox.py): LODs .lod1/.lod2, KTX2 textures, recolouring mask rb_f01_outfit.mask.png.'
+  - id: rb_f02_face
+    file: characters/rb_f02_face.glb
+    class: character
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox/tree/master/Assets/Avatars/Adults/Female_Adult_02
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'The face of Female_Adult_02 (scripts/blender/convert_rocketbox.py): LODs .lod1/.lod2, KTX2 textures, recolouring mask rb_f02_face.mask.png.'
+  - id: rb_f02_outfit
+    file: characters/rb_f02_outfit.glb
+    class: character
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox/tree/master/Assets/Avatars/Adults/Female_Adult_02
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'The outfit of Female_Adult_02 (scripts/blender/convert_rocketbox.py): LODs .lod1/.lod2, KTX2 textures, recolouring mask rb_f02_outfit.mask.png.'
+  - id: rb_f03_face
+    file: characters/rb_f03_face.glb
+    class: character
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox/tree/master/Assets/Avatars/Adults/Female_Adult_03
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'The face of Female_Adult_03 (scripts/blender/convert_rocketbox.py): LODs .lod1/.lod2, KTX2 textures, recolouring mask rb_f03_face.mask.png.'
+  - id: rb_f03_outfit
+    file: characters/rb_f03_outfit.glb
+    class: character
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox/tree/master/Assets/Avatars/Adults/Female_Adult_03
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'The outfit of Female_Adult_03 (scripts/blender/convert_rocketbox.py): LODs .lod1/.lod2, KTX2 textures, recolouring mask rb_f03_outfit.mask.png.'
+  - id: rb_f04_face
+    file: characters/rb_f04_face.glb
+    class: character
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox/tree/master/Assets/Avatars/Adults/Female_Adult_04
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'The face of Female_Adult_04 (scripts/blender/convert_rocketbox.py): LODs .lod1/.lod2, KTX2 textures, recolouring mask rb_f04_face.mask.png.'
+  - id: rb_f04_outfit
+    file: characters/rb_f04_outfit.glb
+    class: character
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox/tree/master/Assets/Avatars/Adults/Female_Adult_04
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'The outfit of Female_Adult_04 (scripts/blender/convert_rocketbox.py): LODs .lod1/.lod2, KTX2 textures, recolouring mask rb_f04_outfit.mask.png.'
+  - id: rb_f05_face
+    file: characters/rb_f05_face.glb
+    class: character
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox/tree/master/Assets/Avatars/Adults/Female_Adult_05
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'The face of Female_Adult_05 (scripts/blender/convert_rocketbox.py): LODs .lod1/.lod2, KTX2 textures, recolouring mask rb_f05_face.mask.png.'
+  - id: rb_f05_outfit
+    file: characters/rb_f05_outfit.glb
+    class: character
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox/tree/master/Assets/Avatars/Adults/Female_Adult_05
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'The outfit of Female_Adult_05 (scripts/blender/convert_rocketbox.py): LODs .lod1/.lod2, KTX2 textures, recolouring mask rb_f05_outfit.mask.png.'
+  - id: rb_f07_face
+    file: characters/rb_f07_face.glb
+    class: character
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox/tree/master/Assets/Avatars/Adults/Female_Adult_07
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'The face of Female_Adult_07 (scripts/blender/convert_rocketbox.py): LODs .lod1/.lod2, KTX2 textures, recolouring mask rb_f07_face.mask.png.'
+  - id: rb_f07_outfit
+    file: characters/rb_f07_outfit.glb
+    class: character
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox/tree/master/Assets/Avatars/Adults/Female_Adult_07
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'The outfit of Female_Adult_07 (scripts/blender/convert_rocketbox.py): LODs .lod1/.lod2, KTX2 textures, recolouring mask rb_f07_outfit.mask.png.'
+  - id: rb_f08_face
+    file: characters/rb_f08_face.glb
+    class: character
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox/tree/master/Assets/Avatars/Adults/Female_Adult_08
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'The face of Female_Adult_08 (scripts/blender/convert_rocketbox.py): LODs .lod1/.lod2, KTX2 textures, recolouring mask rb_f08_face.mask.png.'
+  - id: rb_f08_outfit
+    file: characters/rb_f08_outfit.glb
+    class: character
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox/tree/master/Assets/Avatars/Adults/Female_Adult_08
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'The outfit of Female_Adult_08 (scripts/blender/convert_rocketbox.py): LODs .lod1/.lod2, KTX2 textures, recolouring mask rb_f08_outfit.mask.png.'
+  - id: rb_f09_face
+    file: characters/rb_f09_face.glb
+    class: character
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox/tree/master/Assets/Avatars/Adults/Female_Adult_09
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'The face of Female_Adult_09 (scripts/blender/convert_rocketbox.py): LODs .lod1/.lod2, KTX2 textures, recolouring mask rb_f09_face.mask.png.'
+  - id: rb_f09_outfit
+    file: characters/rb_f09_outfit.glb
+    class: character
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox/tree/master/Assets/Avatars/Adults/Female_Adult_09
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'The outfit of Female_Adult_09 (scripts/blender/convert_rocketbox.py): LODs .lod1/.lod2, KTX2 textures, recolouring mask rb_f09_outfit.mask.png.'
+  - id: rb_f11_face
+    file: characters/rb_f11_face.glb
+    class: character
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox/tree/master/Assets/Avatars/Adults/Female_Adult_11
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'The face of Female_Adult_11 (scripts/blender/convert_rocketbox.py): LODs .lod1/.lod2, KTX2 textures, recolouring mask rb_f11_face.mask.png.'
+  - id: rb_f11_outfit
+    file: characters/rb_f11_outfit.glb
+    class: character
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox/tree/master/Assets/Avatars/Adults/Female_Adult_11
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'The outfit of Female_Adult_11 (scripts/blender/convert_rocketbox.py): LODs .lod1/.lod2, KTX2 textures, recolouring mask rb_f11_outfit.mask.png.'
+  - id: rb_f12_face
+    file: characters/rb_f12_face.glb
+    class: character
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox/tree/master/Assets/Avatars/Adults/Female_Adult_12
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'The face of Female_Adult_12 (scripts/blender/convert_rocketbox.py): LODs .lod1/.lod2, KTX2 textures, recolouring mask rb_f12_face.mask.png.'
+  - id: rb_f12_outfit
+    file: characters/rb_f12_outfit.glb
+    class: character
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox/tree/master/Assets/Avatars/Adults/Female_Adult_12
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'The outfit of Female_Adult_12 (scripts/blender/convert_rocketbox.py): LODs .lod1/.lod2, KTX2 textures, recolouring mask rb_f12_outfit.mask.png.'
+  - id: rb_f13_face
+    file: characters/rb_f13_face.glb
+    class: character
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox/tree/master/Assets/Avatars/Adults/Female_Adult_13
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'The face of Female_Adult_13 (scripts/blender/convert_rocketbox.py): LODs .lod1/.lod2, KTX2 textures, recolouring mask rb_f13_face.mask.png.'
+  - id: rb_f13_outfit
+    file: characters/rb_f13_outfit.glb
+    class: character
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox/tree/master/Assets/Avatars/Adults/Female_Adult_13
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'The outfit of Female_Adult_13 (scripts/blender/convert_rocketbox.py): LODs .lod1/.lod2, KTX2 textures, recolouring mask rb_f13_outfit.mask.png.'
+  - id: rb_f14_face
+    file: characters/rb_f14_face.glb
+    class: character
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox/tree/master/Assets/Avatars/Adults/Female_Adult_14
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'The face of Female_Adult_14 (scripts/blender/convert_rocketbox.py): LODs .lod1/.lod2, KTX2 textures, recolouring mask rb_f14_face.mask.png.'
+  - id: rb_f14_outfit
+    file: characters/rb_f14_outfit.glb
+    class: character
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox/tree/master/Assets/Avatars/Adults/Female_Adult_14
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'The outfit of Female_Adult_14 (scripts/blender/convert_rocketbox.py): LODs .lod1/.lod2, KTX2 textures, recolouring mask rb_f14_outfit.mask.png.'
+  - id: rb_f15_face
+    file: characters/rb_f15_face.glb
+    class: character
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox/tree/master/Assets/Avatars/Adults/Female_Adult_15
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'The face of Female_Adult_15 (scripts/blender/convert_rocketbox.py): LODs .lod1/.lod2, KTX2 textures, recolouring mask rb_f15_face.mask.png.'
+  - id: rb_f15_outfit
+    file: characters/rb_f15_outfit.glb
+    class: character
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox/tree/master/Assets/Avatars/Adults/Female_Adult_15
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'The outfit of Female_Adult_15 (scripts/blender/convert_rocketbox.py): LODs .lod1/.lod2, KTX2 textures, recolouring mask rb_f15_outfit.mask.png.'
+  - id: rb_f17_face
+    file: characters/rb_f17_face.glb
+    class: character
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox/tree/master/Assets/Avatars/Adults/Female_Adult_17
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'The face of Female_Adult_17 (scripts/blender/convert_rocketbox.py): LODs .lod1/.lod2, KTX2 textures, recolouring mask rb_f17_face.mask.png.'
+  - id: rb_f17_outfit
+    file: characters/rb_f17_outfit.glb
+    class: character
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox/tree/master/Assets/Avatars/Adults/Female_Adult_17
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'The outfit of Female_Adult_17 (scripts/blender/convert_rocketbox.py): LODs .lod1/.lod2, KTX2 textures, recolouring mask rb_f17_outfit.mask.png.'
+  - id: rb_m01_face
+    file: characters/rb_m01_face.glb
+    class: character
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox/tree/master/Assets/Avatars/Adults/Male_Adult_01
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'The face of Male_Adult_01 (scripts/blender/convert_rocketbox.py): LODs .lod1/.lod2, KTX2 textures, recolouring mask rb_m01_face.mask.png.'
+  - id: rb_m01_outfit
+    file: characters/rb_m01_outfit.glb
+    class: character
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox/tree/master/Assets/Avatars/Adults/Male_Adult_01
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'The outfit of Male_Adult_01 (scripts/blender/convert_rocketbox.py): LODs .lod1/.lod2, KTX2 textures, recolouring mask rb_m01_outfit.mask.png.'
+  - id: rb_m02_face
+    file: characters/rb_m02_face.glb
+    class: character
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox/tree/master/Assets/Avatars/Adults/Male_Adult_02
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'The face of Male_Adult_02 (scripts/blender/convert_rocketbox.py): LODs .lod1/.lod2, KTX2 textures, recolouring mask rb_m02_face.mask.png.'
+  - id: rb_m02_outfit
+    file: characters/rb_m02_outfit.glb
+    class: character
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox/tree/master/Assets/Avatars/Adults/Male_Adult_02
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'The outfit of Male_Adult_02 (scripts/blender/convert_rocketbox.py): LODs .lod1/.lod2, KTX2 textures, recolouring mask rb_m02_outfit.mask.png.'
+  - id: rb_m03_face
+    file: characters/rb_m03_face.glb
+    class: character
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox/tree/master/Assets/Avatars/Adults/Male_Adult_03
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'The face of Male_Adult_03 (scripts/blender/convert_rocketbox.py): LODs .lod1/.lod2, KTX2 textures, recolouring mask rb_m03_face.mask.png.'
+  - id: rb_m04_face
+    file: characters/rb_m04_face.glb
+    class: character
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox/tree/master/Assets/Avatars/Adults/Male_Adult_04
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'The face of Male_Adult_04 (scripts/blender/convert_rocketbox.py): LODs .lod1/.lod2, KTX2 textures, recolouring mask rb_m04_face.mask.png.'
+  - id: rb_m04_outfit
+    file: characters/rb_m04_outfit.glb
+    class: character
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox/tree/master/Assets/Avatars/Adults/Male_Adult_04
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'The outfit of Male_Adult_04 (scripts/blender/convert_rocketbox.py): LODs .lod1/.lod2, KTX2 textures, recolouring mask rb_m04_outfit.mask.png.'
+  - id: rb_m05_face
+    file: characters/rb_m05_face.glb
+    class: character
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox/tree/master/Assets/Avatars/Adults/Male_Adult_05
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'The face of Male_Adult_05 (scripts/blender/convert_rocketbox.py): LODs .lod1/.lod2, KTX2 textures, recolouring mask rb_m05_face.mask.png.'
+  - id: rb_m06_face
+    file: characters/rb_m06_face.glb
+    class: character
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox/tree/master/Assets/Avatars/Adults/Male_Adult_06
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'The face of Male_Adult_06 (scripts/blender/convert_rocketbox.py): LODs .lod1/.lod2, KTX2 textures, recolouring mask rb_m06_face.mask.png.'
+  - id: rb_m06_outfit
+    file: characters/rb_m06_outfit.glb
+    class: character
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox/tree/master/Assets/Avatars/Adults/Male_Adult_06
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'The outfit of Male_Adult_06 (scripts/blender/convert_rocketbox.py): LODs .lod1/.lod2, KTX2 textures, recolouring mask rb_m06_outfit.mask.png.'
+  - id: rb_m07_face
+    file: characters/rb_m07_face.glb
+    class: character
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox/tree/master/Assets/Avatars/Adults/Male_Adult_07
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'The face of Male_Adult_07 (scripts/blender/convert_rocketbox.py): LODs .lod1/.lod2, KTX2 textures, recolouring mask rb_m07_face.mask.png.'
+  - id: rb_m08_face
+    file: characters/rb_m08_face.glb
+    class: character
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox/tree/master/Assets/Avatars/Adults/Male_Adult_08
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'The face of Male_Adult_08 (scripts/blender/convert_rocketbox.py): LODs .lod1/.lod2, KTX2 textures, recolouring mask rb_m08_face.mask.png.'
+  - id: rb_m08_outfit
+    file: characters/rb_m08_outfit.glb
+    class: character
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox/tree/master/Assets/Avatars/Adults/Male_Adult_08
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'The outfit of Male_Adult_08 (scripts/blender/convert_rocketbox.py): LODs .lod1/.lod2, KTX2 textures, recolouring mask rb_m08_outfit.mask.png.'
+  - id: rb_m09_face
+    file: characters/rb_m09_face.glb
+    class: character
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox/tree/master/Assets/Avatars/Adults/Male_Adult_09
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'The face of Male_Adult_09 (scripts/blender/convert_rocketbox.py): LODs .lod1/.lod2, KTX2 textures, recolouring mask rb_m09_face.mask.png.'
+  - id: rb_m09_outfit
+    file: characters/rb_m09_outfit.glb
+    class: character
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox/tree/master/Assets/Avatars/Adults/Male_Adult_09
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'The outfit of Male_Adult_09 (scripts/blender/convert_rocketbox.py): LODs .lod1/.lod2, KTX2 textures, recolouring mask rb_m09_outfit.mask.png.'
+  - id: rb_m10_face
+    file: characters/rb_m10_face.glb
+    class: character
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox/tree/master/Assets/Avatars/Adults/Male_Adult_10
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'The face of Male_Adult_10 (scripts/blender/convert_rocketbox.py): LODs .lod1/.lod2, KTX2 textures, recolouring mask rb_m10_face.mask.png.'
+  - id: rb_m10_outfit
+    file: characters/rb_m10_outfit.glb
+    class: character
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox/tree/master/Assets/Avatars/Adults/Male_Adult_10
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'The outfit of Male_Adult_10 (scripts/blender/convert_rocketbox.py): LODs .lod1/.lod2, KTX2 textures, recolouring mask rb_m10_outfit.mask.png.'
+  - id: rb_m11_face
+    file: characters/rb_m11_face.glb
+    class: character
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox/tree/master/Assets/Avatars/Adults/Male_Adult_11
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'The face of Male_Adult_11 (scripts/blender/convert_rocketbox.py): LODs .lod1/.lod2, KTX2 textures, recolouring mask rb_m11_face.mask.png.'
+  - id: rb_m12_face
+    file: characters/rb_m12_face.glb
+    class: character
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox/tree/master/Assets/Avatars/Adults/Male_Adult_12
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'The face of Male_Adult_12 (scripts/blender/convert_rocketbox.py): LODs .lod1/.lod2, KTX2 textures, recolouring mask rb_m12_face.mask.png.'
+  - id: rb_m12_outfit
+    file: characters/rb_m12_outfit.glb
+    class: character
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox/tree/master/Assets/Avatars/Adults/Male_Adult_12
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'The outfit of Male_Adult_12 (scripts/blender/convert_rocketbox.py): LODs .lod1/.lod2, KTX2 textures, recolouring mask rb_m12_outfit.mask.png.'
+  - id: rb_m13_face
+    file: characters/rb_m13_face.glb
+    class: character
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox/tree/master/Assets/Avatars/Adults/Male_Adult_13
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'The face of Male_Adult_13 (scripts/blender/convert_rocketbox.py): LODs .lod1/.lod2, KTX2 textures, recolouring mask rb_m13_face.mask.png.'
+  - id: rb_m14_face
+    file: characters/rb_m14_face.glb
+    class: character
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox/tree/master/Assets/Avatars/Adults/Male_Adult_14
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'The face of Male_Adult_14 (scripts/blender/convert_rocketbox.py): LODs .lod1/.lod2, KTX2 textures, recolouring mask rb_m14_face.mask.png.'
+  - id: rb_m16_face
+    file: characters/rb_m16_face.glb
+    class: character
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox/tree/master/Assets/Avatars/Adults/Male_Adult_16
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'The face of Male_Adult_16 (scripts/blender/convert_rocketbox.py): LODs .lod1/.lod2, KTX2 textures, recolouring mask rb_m16_face.mask.png.'
+  - id: rb_m16_outfit
+    file: characters/rb_m16_outfit.glb
+    class: character
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox/tree/master/Assets/Avatars/Adults/Male_Adult_16
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'The outfit of Male_Adult_16 (scripts/blender/convert_rocketbox.py): LODs .lod1/.lod2, KTX2 textures, recolouring mask rb_m16_outfit.mask.png.'
+  - id: rb_m17_face
+    file: characters/rb_m17_face.glb
+    class: character
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox/tree/master/Assets/Avatars/Adults/Male_Adult_17
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'The face of Male_Adult_17 (scripts/blender/convert_rocketbox.py): LODs .lod1/.lod2, KTX2 textures, recolouring mask rb_m17_face.mask.png.'
+  - id: rb_m17_outfit
+    file: characters/rb_m17_outfit.glb
+    class: character
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox/tree/master/Assets/Avatars/Adults/Male_Adult_17
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'The outfit of Male_Adult_17 (scripts/blender/convert_rocketbox.py): LODs .lod1/.lod2, KTX2 textures, recolouring mask rb_m17_outfit.mask.png.'
+  - id: rb_m18_face
+    file: characters/rb_m18_face.glb
+    class: character
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox/tree/master/Assets/Avatars/Adults/Male_Adult_18
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'The face of Male_Adult_18 (scripts/blender/convert_rocketbox.py): LODs .lod1/.lod2, KTX2 textures, recolouring mask rb_m18_face.mask.png.'
+  - id: rb_m18_outfit
+    file: characters/rb_m18_outfit.glb
+    class: character
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox/tree/master/Assets/Avatars/Adults/Male_Adult_18
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'The outfit of Male_Adult_18 (scripts/blender/convert_rocketbox.py): LODs .lod1/.lod2, KTX2 textures, recolouring mask rb_m18_outfit.mask.png.'
+  - id: rb_m20_face
+    file: characters/rb_m20_face.glb
+    class: character
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox/tree/master/Assets/Avatars/Adults/Male_Adult_20
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'The face of Male_Adult_20 (scripts/blender/convert_rocketbox.py): LODs .lod1/.lod2, KTX2 textures, recolouring mask rb_m20_face.mask.png.'
+  - id: rb_m20_outfit
+    file: characters/rb_m20_outfit.glb
+    class: character
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox/tree/master/Assets/Avatars/Adults/Male_Adult_20
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'The outfit of Male_Adult_20 (scripts/blender/convert_rocketbox.py): LODs .lod1/.lod2, KTX2 textures, recolouring mask rb_m20_outfit.mask.png.'
+  - id: rocketbox_core
+    file: animations/rocketbox_core.glb
+    class: animation
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'humanoid_core (Mixamo clips, see that entry) retargeted onto the Rocketbox skeleton by scripts/assets/retarget-rocketbox.mjs.'
+  - id: rocketbox_moves
+    file: animations/rocketbox_moves.glb
+    class: animation
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-31',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'humanoid_moves (Mixamo clips, see that entry) retargeted onto the Rocketbox skeleton by scripts/assets/retarget-rocketbox.mjs.'
+  - id: rocketbox_rest
+    file: animations/rocketbox_rest.glb
+    class: animation
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-31',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'humanoid_rest (Mixamo clips, see that entry) retargeted onto the Rocketbox skeleton by scripts/assets/retarget-rocketbox.mjs.'
+  - id: rocketbox_combat
+    file: animations/rocketbox_combat.glb
+    class: animation
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'humanoid_combat (Mixamo clips, see that entry) retargeted onto the Rocketbox skeleton by scripts/assets/retarget-rocketbox.mjs.'
+  - id: rocketbox_pistol
+    file: animations/rocketbox_pistol.glb
+    class: animation
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'humanoid_pistol (Mixamo clips, see that entry) retargeted onto the Rocketbox skeleton by scripts/assets/retarget-rocketbox.mjs.'
+  - id: rocketbox_dances
+    file: animations/rocketbox_dances.glb
+    class: animation
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'humanoid_dances (Mixamo clips, see that entry) retargeted onto the Rocketbox skeleton by scripts/assets/retarget-rocketbox.mjs.'
+  - id: rocketbox_vehicle
+    file: animations/rocketbox_vehicle.glb
+    class: animation
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'humanoid_vehicle (Mixamo clips, see that entry) retargeted onto the Rocketbox skeleton by scripts/assets/retarget-rocketbox.mjs.'
+  - id: rocketbox_social
+    file: animations/rocketbox_social.glb
+    class: animation
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'humanoid_social (Mixamo clips, see that entry) retargeted onto the Rocketbox skeleton by scripts/assets/retarget-rocketbox.mjs.'
+  - id: rocketbox_rifle
+    file: animations/rocketbox_rifle.glb
+    class: animation
+    source_url: https://github.com/microsoft/Microsoft-Rocketbox
+    source_name: 'Microsoft Rocketbox avatar library'
+    author: 'Microsoft'
+    license:
+      {
+        name: MIT,
+        url: 'https://github.com/microsoft/Microsoft-Rocketbox/blob/master/LICENSE.md',
+        verified_at: '2026-10-29',
+      }
+    license_snapshot: rocketbox-mit.txt
+    notes: 'humanoid_rifle (Mixamo clips, see that entry) retargeted onto the Rocketbox skeleton by scripts/assets/retarget-rocketbox.mjs.'
+  # END rocketbox
+  # BEGIN cars (Phase 7; scripts/assets/cars.mjs)
+  - id: car_generic_pack
+    file: cars/{sedan,compact,hatchback,coupe,wagon,sport,suv,minivan,pickup,offroad}.glb
+    class: vehicle
+    source_url: https://sketchfab.com/3d-models/generic-passenger-car-pack-20f9af9b8a404d5cb022ac6fe87f21f5
+    source_name: 'Sketchfab: Generic passenger car pack'
+    author: 'Comrade1280 (https://sketchfab.com/comrade1280)'
+    license:
+      {
+        name: CC-BY-4.0,
+        url: 'https://creativecommons.org/licenses/by/4.0/',
+        verified_at: '2026-10-30',
+      }
+    license_snapshot: cc-by-4.0.txt
+    attribution_required: true
+    notes: 'Unbranded (fictional makes). Changed: re-oriented and re-scaled, parts regrouped, textures resized to 1024/512/256 and KTX2, hidden detail simplified, meshopt. Credited in Settings → Credits.'
+  - id: car_taxi
+    file: cars/taxi.glb
+    class: vehicle
+    source_url: https://sketchfab.com/3d-models/canyon-75-taxi-low-poly-model-9e8f92a215784f3d8aaaaeab1bef54c4
+    source_name: "Sketchfab: Canyon '75 Taxi - Low poly model"
+    author: 'Daniel Zhabotinsky (https://sketchfab.com/DanielZhabotinsky)'
+    license:
+      {
+        name: CC-BY-4.0,
+        url: 'https://creativecommons.org/licenses/by/4.0/',
+        verified_at: '2026-10-30',
+      }
+    license_snapshot: cc-by-4.0.txt
+    attribution_required: true
+    notes: 'Unbranded (fictional makes). Changed: re-oriented and re-scaled, parts regrouped, textures resized to 1024/512/256 and KTX2, hidden detail simplified, meshopt. Credited in Settings → Credits.'
+  - id: car_police
+    file: cars/police.glb
+    class: vehicle
+    source_url: https://sketchfab.com/3d-models/fairheaven-lt-80-cop-cruiser-low-poly-model-61766c1e6e1e4b2b803c174f33433a74
+    source_name: "Sketchfab: Fairheaven LT '80 Cop Cruiser - Low poly model"
+    author: 'Daniel Zhabotinsky (https://sketchfab.com/DanielZhabotinsky)'
+    license:
+      {
+        name: CC-BY-4.0,
+        url: 'https://creativecommons.org/licenses/by/4.0/',
+        verified_at: '2026-10-30',
+      }
+    license_snapshot: cc-by-4.0.txt
+    attribution_required: true
+    notes: 'Unbranded (fictional makes). Changed: re-oriented and re-scaled, parts regrouped, textures resized to 1024/512/256 and KTX2, hidden detail simplified, meshopt. Credited in Settings → Credits.'
+  - id: car_ambulance
+    file: cars/ambulance.glb
+    class: vehicle
+    source_url: https://sketchfab.com/3d-models/shvan-92-ambulance-low-poly-model-2856dd3c61f940909dced9a5c0379484
+    source_name: "Sketchfab: Shvan '92 Ambulance - Low Poly model"
+    author: 'Daniel Zhabotinsky (https://sketchfab.com/DanielZhabotinsky)'
+    license:
+      {
+        name: CC-BY-4.0,
+        url: 'https://creativecommons.org/licenses/by/4.0/',
+        verified_at: '2026-10-30',
+      }
+    license_snapshot: cc-by-4.0.txt
+    attribution_required: true
+    notes: 'Unbranded (fictional makes). Changed: re-oriented and re-scaled, parts regrouped, textures resized to 1024/512/256 and KTX2, hidden detail simplified, meshopt. Credited in Settings → Credits.'
+  # END cars

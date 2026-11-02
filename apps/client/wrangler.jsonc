@@ -1,0 +1,15 @@
+// The game client on Cloudflare (Workers static assets; decision D-32): Cloudflare serves the
+// built files from its CDN at no charge and without metered traffic, which keeps Render's 5 GB
+// allowance for the world server. Deploy with `pnpm deploy:cloudflare` at the repo root.
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "fr33world",
+  "compatibility_date": "2026-10-01",
+  // The main address. Named routes turn workers.dev off by default; the old link stays up.
+  "routes": [{ "pattern": "fr33worldgame.xyz", "custom_domain": true }],
+  "workers_dev": true,
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application",
+  },
+}

@@ -1,0 +1,18 @@
+Mixamo terms: summary (NOT a verbatim snapshot)
+
+Source: https://helpx.adobe.com/creative-cloud/faq/mixamo-faq.html
+Recorded 2026-10-03. Adobe's site refused automated retrieval (HTTP 403), so this file
+paraphrases the published FAQ. TODO(owner): save the page from a browser (File > Save As,
+or print to PDF) into assets/licenses/ and point the registry entry at it.
+
+As published in the Mixamo FAQ:
+- Mixamo characters and animations may be used royalty-free in personal, commercial and
+  non-profit projects, including creating and distributing video games.
+- Use requires an Adobe ID; the account owner (the Fr33World owner) downloaded the clips.
+- The raw Mixamo files may not be redistributed or resold on their own (for example as an
+  asset pack). They may only ship embedded in a project.
+
+How Fr33World complies:
+- Raw FBX downloads stay outside git (.raw/, the owner's Drive).
+- Only a converted, optimised, game-specific pack (assets/runtime/animations/) ships,
+  loaded by the game client.

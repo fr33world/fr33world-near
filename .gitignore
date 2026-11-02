@@ -1,0 +1,23 @@
+node_modules/
+dist/
+coverage/
+.turbo/
+*.tmp.ts
+*.log
+.env
+.env.*
+!.env.example
+.DS_Store
+# Load-test output; summaries worth keeping are copied into docs/.
+load-runs/
+# Raw, unoptimised asset sources (Mixamo FBX, Sketchfab downloads) never go in git.
+.raw/
+assets/incoming/
+# Wrangler (Cloudflare) local state.
+.wrangler/
+
+# Dev-only Rocketbox test models (rbtest.html); real ones are built by scripts/assets/rocketbox.mjs
+apps/client/public/assets/rbtest/
+
+# Personal Claude Code settings (not shared)
+.claude/settings.local.json

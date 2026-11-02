@@ -1,0 +1,57 @@
+{
+  "name": "fr33world",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.10.0",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "dev:world": "pnpm --filter @fr33world/world dev",
+    "dev:client": "pnpm --filter @fr33world/client dev",
+    "build": "turbo run build",
+    "typecheck": "turbo run typecheck",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "load": "pnpm --filter @fr33world/world load",
+    "bots": "pnpm --filter @fr33world/world bots",
+    "deploy:cloudflare": "pnpm --filter @fr33world/client deploy:cloudflare",
+    "db:start": "scripts/db.sh start",
+    "db:stop": "scripts/db.sh stop",
+    "dev:voice": "livekit-server --dev"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@gltf-transform/cli": "4.5.1",
+    "@gltf-transform/core": "4.5.1",
+    "@gltf-transform/extensions": "4.5.1",
+    "@gltf-transform/functions": "4.5.1",
+    "@types/node": "^24.0.0",
+    "eslint": "^10.11.0",
+    "eslint-config-prettier": "^10.1.0",
+    "globals": "^17.13.0",
+    "lint-staged": "^17.6.0",
+    "meshoptimizer": "1.2.0",
+    "prettier": "^3.9.9",
+    "sharp": "0.35.5",
+    "simple-git-hooks": "^2.14.0",
+    "turbo": "^2.11.0",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.71.0",
+    "vitest": "^5.0.3"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "pnpm exec lint-staged"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,mjs,cjs}": [
+      "prettier --write",
+      "eslint --fix --max-warnings=0 --no-warn-ignored"
+    ],
+    "*.{json,md,yml,yaml,css,html}": "prettier --write"
+  }
+}

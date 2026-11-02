@@ -1,0 +1,19 @@
+{
+  "name": "@fr33world/chain",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "spike": "node --env-file-if-exists=../../.env src/spike.ts"
+  },
+  "dependencies": {
+    "@metaplex-foundation/mpl-core": "1.10.0",
+    "@metaplex-foundation/umi": "1.6.0",
+    "@metaplex-foundation/umi-bundle-defaults": "1.6.0",
+    "@noble/hashes": "^1.8.0"
+  }
+}
