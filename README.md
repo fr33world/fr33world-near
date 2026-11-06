@@ -1,3 +1,43 @@
+# fr33world: a city whose businesses run themselves on NEAR
+
+**Built at NEAR HACKATHON.** Tracks: Games With Real Economies, Autonomous Business, Agent Economy, AI Security & Defense.
+
+fr33world is a multiplayer open-world life game in the browser. For this hackathon its shops became real businesses: each has its own NEAR account and wallet contract, watches its stock, reorders from its supplier, pays in USDC on chain, and hires players for deliveries, with nobody at the controls.
+
+**The problem:** "NPC economies" are usually scripted, and "AI agents with wallets" usually means trusting an AI with a key. Here the money is real and verifiable, and the AI can't overspend even if it's wrong or attacked.
+
+## Disclosure (hackathon rules Q-001 to Q-004)
+
+fr33world existed before this work, as a game with a Solana integration. **Only the NEAR work is the submission.** Tag `pre-hackathon` marks the game before it; everything after that tag is the NEAR integration, and Solana was removed. The diff between `pre-hackathon` and `hackathon-submission` is what to judge.
+
+## How the money works
+
+- **All USDC comes from players.** The game adds none: no treasury, no minting. Businesses start with stock and no cash, and their first USDC is a player's first purchase.
+- **Goods and services only.** Nothing here is a wager.
+- **Two currencies, no bridge.** In-game `$` is off chain. No code path turns `$` into USDC.
+- **Players hold their own USDC** in a Privy NEAR wallet, signed on their device. The game can't move it.
+- **Three locks on spending:** AI proposes, fixed rules validate, and [the wallet contract](contracts/business-wallet/src/lib.rs) enforces. The worker's key can only pay approved suppliers within per-payment and daily limits. There is no withdraw method, and a new supplier waits a day before it can be paid.
+- **The AI sees only numbers,** never player text, so it can't be prompt-injected. Its answer is clamped to [limits in one readable file](packages/shared/src/business.ts).
+
+## Try it
+
+Needs Node 24, pnpm and PostgreSQL. No NEAR account is needed for steps 1 to 3.
+
+1. **Do:** `cd contracts/business-wallet && cargo test`. **See:** 28 tests pass, including a stolen admin key failing to pay itself.
+2. **Do:** `pnpm install && pnpm db:start && pnpm --filter @fr33world/api economy:week`. **See:** a simulated week, ending in `No USDC created: it all adds up.`
+3. **Do:** read a live wallet from the chain:
+   `curl -s https://test.rpc.fastnear.com -H 'content-type: application/json' -d '{"jsonrpc":"2.0","id":1,"method":"query","params":{"request_type":"call_function","finality":"final","account_id":"soles-market.fr33world.testnet","method_name":"summary","args_base64":"e30="}}'`
+   **See:** a result whose bytes decode to the Market's balance, limits and suppliers. Or open [the account on NearBlocks](https://testnet.nearblocks.io/address/soles-market.fr33world.testnet).
+4. **Do (needs testnet keys in `.env`):** `pnpm --filter @fr33world/chain smoke:near`. **See:** a sale, a supplier payment and a delivery paid on the real chain, then each attack refused with its reason. Ends in `All good.`
+
+## Honest limits
+
+- It runs on NEAR Testnet with `usdc.fakes.testnet`, a community test token from the public faucet, not Circle's USDC. Test USDC has no value. Mainnet needs everything in [docs/mainnet-checklist.md](docs/mainnet-checklist.md).
+- The chain can't see a delivery happen: the game server reports it. That's why limits live in the contract: a compromised server can only do what those allow.
+- Contracts are unaudited. Player-owned businesses are designed for but not built.
+
+---
+
 # fr33world: Horizon Block prototype
 
 A browser 3D multiplayer roleplay game set in **Los Soles**, an original LA-inspired city. This is the M0 prototype (see [docs/technical-plan.md](docs/technical-plan.md) §13).

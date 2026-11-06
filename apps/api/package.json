@@ -8,7 +8,8 @@
     "start": "node --env-file-if-exists=../../.env src/main.ts",
     "migrate": "node --env-file-if-exists=../../.env src/migrate.ts",
     "typecheck": "tsc --noEmit",
-    "simulate": "node src/simulate-run.ts"
+    "simulate": "node src/simulate-run.ts",
+    "economy:week": "node --env-file-if-exists=../../.env src/economy-week.ts"
   },
   "dependencies": {
     "@fr33world/auth": "workspace:*",
