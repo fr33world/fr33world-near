@@ -61,7 +61,7 @@ function places(layout: CityLayout): Place[] {
     { ...middle({ x0: -936, z0: 704, x1: 624, z1: 1536 }), name: 'South Grid' },
     { ...middle({ x0: 700, z0: -840, x1: 1536, z1: 64 }), name: 'Eastside' },
     { ...middle({ x0: 700, z0: 64, x1: 1536, z1: 1300 }), name: 'Port' },
-    { x: 0, z: -1080, name: 'Los Soles Hills' },
+    { x: 0, z: -1080, name: 'Mission Hills' },
     { x: -1250, z: 300, name: 'Beach' },
     { x: l.stadium.x, z: l.stadium.z, name: 'Stadium', icon: 'stadium' },
     { x: l.cityHall.x, z: l.cityHall.z, name: 'City Hall', icon: 'hall' },

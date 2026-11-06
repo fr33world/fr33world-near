@@ -393,7 +393,7 @@ export function marketCall(
   return bankCall(privyToken, `/v1/market/${what}`, body);
 }
 
-/** A good on the Market's shelf. `cents` is null for goods sold for USDC only. */
+/** A good on Sunny's shelf. `cents` is null for goods sold for USDC only. */
 export interface ShelfItem {
   id: string;
   name: string;

@@ -89,7 +89,7 @@ const stock = async (g: string) =>
 beforeAll(async () => {
   db = await testDb('usdc');
   await db.query(
-    "insert into businesses (id, account, name, markup, target) values ('market', 'soles-market.test', 'Market', 0.3, 60)",
+    "insert into businesses (id, account, name, markup, target) values ('market', 'sunnys-grocery.test', 'Market', 0.3, 60)",
   );
 });
 afterAll(async () => {
@@ -218,7 +218,7 @@ describe('player USDC', () => {
   });
 });
 
-describe('$ at the Market', () => {
+describe("$ at Sunny's", () => {
   it('buys with $, lowers stock, and touches no USDC', async () => {
     const p = await player({ cents: 5_000 });
     const r = await buyWithDollars(db, { account: p.id, good: 'water', key: 'buy-water-1' });

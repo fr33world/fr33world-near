@@ -711,7 +711,7 @@ function gangHouse(id: 'vipers' | 'kings', x: number, z: number): Interior {
   );
 }
 
-/** Los Soles Market (Phase 17): aisles of stocked shelves, and a till where everything's sold. */
+/** Sunny's Grocery (Phase 17): aisles of stocked shelves, and a till where everything's sold. */
 function market(x: number, z: number): Interior {
   const green = 0x2f9e5b;
   const r = new Room(x, z, 24, 16, 3.4);
@@ -720,7 +720,7 @@ function market(x: number, z: number): Interior {
   r.block(2, 3.4, 8.5, 4.3, 0, 1.02, green).box(1.95, 3.35, 8.55, 4.35, 1.02, 1.07, 0xf2f2ee);
   r.box(3.1, 3.7, 3.66, 3.75, 1.1, 1.44, DARK).glow(3.13, 3.68, 3.63, 3.7, 1.13, 1.41, SCREEN);
   r.label('CHECKOUT', 5.25, 0.68, 4.37, 0, 3, 0.34, '#ffffff', '#1f6e40');
-  r.point('till', 5.25, 5.3, Math.PI, 'Los Soles Market', 2.4);
+  r.point('till', 5.25, 5.3, Math.PI, "Sunny's Grocery", 2.4);
   // Three aisles of shelves.
   const goods = [0xd8504a, 0x3fa7d6, 0xf2c14e, 0x6abf69, 0xf08a3c];
   for (const [i, sz] of [8.2, 10.6, 13].entries()) {
@@ -732,12 +732,12 @@ function market(x: number, z: number): Interior {
         r.box(sx, sz + 0.7, sx + 0.46, sz + 0.74, y, y + 0.32, c);
       }
   }
-  r.label('LOS SOLES MARKET', 12, 2.75, 15.95, Math.PI, 7, 0.6, '#ffffff', '#1f6e40');
+  r.label("SUNNY'S GROCERY", 12, 2.75, 15.95, Math.PI, 7, 0.6, '#ffffff', '#1f6e40');
   r.prop('plant', 1.1, 1.1, 0).prop('plant', 22.9, 1.1, 1);
   r.stop(0.8, 0.8, 1.4, 1.4, 1).stop(22.6, 0.8, 23.2, 1.4, 1);
   return r.done(
     'market',
-    'Los Soles Market',
+    "Sunny's Grocery",
     { x: 12, z: DOOR.spawnZ, yaw: 0 },
     { safe: true, members: false, accent: 0x7def06 },
   );

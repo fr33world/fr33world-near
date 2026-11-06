@@ -162,7 +162,7 @@ async function restock(d: EconomyDeps, all: Business[]): Promise<number> {
   return made;
 }
 
-/** The farm grows its own, and the local supplier keeps `$` goods on the Market's shelves. */
+/** The farm grows its own, and the local supplier keeps `$` goods on Sunny's shelves. */
 async function replenish(db: Db, all: Business[]): Promise<void> {
   const farm = all.find((b) => !b.supplier);
   if (farm)
@@ -507,7 +507,7 @@ export async function finishJob(db: Db, input: { account: string }): Promise<voi
       [input.account],
     );
     const row = r.rows[0];
-    if (!row) throw new EconomyError('Take a delivery job at the Market first.');
+    if (!row) throw new EconomyError("Take a delivery job at Sunny's first.");
     await arrive(tx, row.order_id);
   });
 }

@@ -17,7 +17,7 @@ export type GoodId = 'water' | 'sandwich' | 'meal';
 export interface Good {
   id: GoodId;
   name: string;
-  /** What a player pays in `$` (cents) at the Market. */
+  /** What a player pays in `$` (cents) at Sunny's. */
   cents: number;
   /** What it costs at the Farm's gate, in micro-USDC; prices rise from this down the chain. */
   cost: number;
@@ -78,8 +78,8 @@ export const BUSINESSES: readonly Business[] = [
   },
   {
     id: 'market',
-    account: 'soles-market',
-    name: 'Los Soles Market',
+    account: 'sunnys-grocery',
+    name: "Sunny's Grocery",
     supplier: 'wholesale',
     markup: 0.3,
     target: 60,

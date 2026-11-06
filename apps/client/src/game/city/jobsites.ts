@@ -56,7 +56,7 @@ const officeSign = () =>
     g.fillText('SITE OFFICE', 256, 62, 490);
     g.font = `700 30px ${FONT}`;
     g.fillStyle = '#c0571b';
-    g.fillText('LOS SOLES QUARRY · SIGN ON HERE', 256, 106, 490);
+    g.fillText('GRANITE RIDGE QUARRY · SIGN ON HERE', 256, 106, 490);
   });
 
 const buyerSign = () =>

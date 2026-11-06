@@ -86,7 +86,7 @@ export async function usdcWallet(d: UsdcDeps, privyUser: string) {
   return { near: me.near, micro: Number(await d.chain.usdcBalance(me.near)) };
 }
 
-/** What the Market has and what it costs. */
+/** What Sunny's has and what it costs. */
 export async function shelf(db: Db) {
   const r = await db.query<{ good: string; qty: number }>(
     "select good, qty from business_stock where business = 'market'",

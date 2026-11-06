@@ -2817,7 +2817,7 @@ export class World {
     }
   }
 
-  /** Buys a good for `$` at the Market's till. USDC goods are paid from the player's wallet. */
+  /** Buys a good for `$` at Sunny's till. USDC goods are paid from the player's wallet. */
   private async buyGood(p: Player, item: number) {
     const good = GOODS[item];
     const till = this.city.points.find((q) => q.kind === 'till');

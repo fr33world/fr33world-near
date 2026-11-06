@@ -338,7 +338,7 @@ export function cityPoints(
     const room = INTERIORS[service];
     for (const p of room.points) points.push({ ...p, service });
   }
-  // Deliveries for USDC (Phase 17): from a warehouse's dock to the Market's loading bay.
+  // Deliveries for USDC (Phase 17): from a warehouse's dock to Sunny's loading bay.
   const shop = sites.find((q) => q.service === 'market');
   if (shop) {
     const far = (b: Building) => Math.hypot(b.x - shop.x, b.z - shop.z);
@@ -355,7 +355,7 @@ export function cityPoints(
         z: shop.z - Math.sin(shop.yaw) * 7,
         yaw: shop.yaw,
         radius: 4,
-        name: 'Market loading bay',
+        name: "Sunny's loading bay",
       });
       break;
     }

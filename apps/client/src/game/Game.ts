@@ -352,7 +352,7 @@ export class Game {
   onGunStore: (point: number) => void = () => {};
   /** The Hospital's counter, and an applications computer (at this building). */
   onCounter: () => void = () => {};
-  /** The Market's till. */
+  /** Sunny's till. */
   onTill: () => void = () => {};
   onComputer: (service: ServiceId) => void = () => {};
   /** Opens the dealership's showroom (its desk's point). */
@@ -1697,7 +1697,7 @@ export class Game {
       kind === 'mining'
         ? {
             job: 'mining',
-            title: 'Mining · Los Soles Quarry',
+            title: 'Mining · Granite Ridge Quarry',
             step: 'Mine ore at the faces in the pit',
             objective: null,
             actions: pts

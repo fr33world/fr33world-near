@@ -11,7 +11,7 @@ export const JOB_OFFERS: Record<string, { job: JobId; label: string }> = {
   quarry_office: { job: 'mining', label: 'Sign on for mining' },
   taxi_depot: { job: 'taxi', label: 'Start a taxi shift' },
   hideout: { job: 'collect', label: 'Run collections' },
-  dock: { job: 'haul', label: 'Load the Market order' },
+  dock: { job: 'haul', label: "Load Sunny's order" },
 };
 
 /** Something the player can do now: use a point (the client shows the prompt). */

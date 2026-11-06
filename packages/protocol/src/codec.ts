@@ -32,7 +32,7 @@ export const ACT = {
   SIT: 8,
   /** Up from a seat. */
   STAND: 9,
-  /** At the Market's till: buy GOODS item `arg` for `$`. */
+  /** At Sunny's till: buy GOODS item `arg` for `$`. */
   BUY_GOOD: 10,
 } as const;
 

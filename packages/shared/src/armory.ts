@@ -88,7 +88,7 @@ export const CARE = {
   noUseAfterHitMs: 10_000,
 } as const;
 
-/** Everything the bag can hold and use: the Hospital's items, then the Market's goods. */
+/** Everything the bag can hold and use: the Hospital's items, then Sunny's goods. */
 export const CONSUMABLES: readonly { id: string; name: string; heal: number; clip: string }[] = [
   ...CARE.items,
   ...GOODS.map((g) => ({ id: g.id, name: g.name, heal: g.heal, clip: 'medicine' })),

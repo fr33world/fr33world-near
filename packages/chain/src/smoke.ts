@@ -1,6 +1,6 @@
 /**
  * Proves the money loop on the real chain: `node --env-file=../../.env src/smoke.ts`.
- * A test shopper buys from the Market, the Market pays its supplier and a delivery worker, and
+ * A test shopper buys from Sunny's, Sunny's pays its supplier and a delivery worker, and
  * the things that must fail do. Needs NEAR_ROOT_KEY and NEAR_OPERATOR_KEY. Testnet only.
  */
 import { randomUUID } from 'node:crypto';
@@ -13,7 +13,7 @@ const provider = e.rpc();
 const rootKey = process.env.NEAR_ROOT_KEY as KeyPairString;
 const root = new Account(e.cfg.root, provider, rootKey);
 const rootPublic = KeyPair.fromString(rootKey).getPublicKey().toString();
-const market = e.accountOf('soles-market');
+const market = e.accountOf('sunnys-grocery');
 const wholesale = e.accountOf('harbor-wholesale');
 const shopperId = e.accountOf('shopper');
 const FAUCET = 'v2.faucet.nonofficial.testnet';
@@ -51,7 +51,7 @@ if (!(await exists(shopperId)))
   });
 const shopper = new Account(shopperId, provider, rootKey);
 await e.registerUsdc(shopperId);
-if ((await e.usdcBalance(shopperId)) < 20_000_000n) {
+if ((await e.usdcBalance(shopperId)) < 40_000_000n) {
   await shopper.callFunction({
     contractId: FAUCET,
     methodName: 'ft_request_funds',
@@ -60,7 +60,7 @@ if ((await e.usdcBalance(shopperId)) < 20_000_000n) {
   });
 }
 const held = await e.usdcBalance(shopperId);
-check('the faucet gave test USDC', held >= 20_000_000n, `${Number(held) / 1e6} USDC`);
+check('the faucet gave test USDC', held >= 40_000_000n, `${Number(held) / 1e6} USDC`);
 
 await e.sync(market);
 const before = BigInt((await e.summary(market)).balance);
@@ -68,18 +68,18 @@ const sale = id('s');
 await shopper.callFunction({
   contractId: e.cfg.usdc,
   methodName: 'ft_transfer_call',
-  args: { receiver_id: market, amount: '12000000', msg: sale },
+  args: { receiver_id: market, amount: '20000000', msg: sale },
   deposit: 1n,
   gas: teraToGas('70'),
 });
-check('a sale reached the Market', (await e.getSale(market, sale)) === '12000000');
+check("a sale reached Sunny's", (await e.getSale(market, sale)) === '20000000');
 const after = BigInt((await e.summary(market)).balance);
-check('the Market banked it', after - before === 12_000_000n);
+check("Sunny's banked it", after - before === 20_000_000n);
 
 const order = id('o');
 const paid = await e.paySupplier(market, order, wholesale, 2_000_000);
 const got = await e.getOrder(market, order);
-check('the Market paid its supplier', got?.status === 'paid', paid.tx);
+check("Sunny's paid its supplier", got?.status === 'paid', paid.tx);
 
 await refused(
   'the same order can’t pay twice',

@@ -7,7 +7,7 @@ import { CONSUMABLES } from '@fr33world/shared';
 import { useEffect, useState } from 'react';
 import type { Game } from '../game/Game.ts';
 
-/** The Market's goods, until they have pictures of their own. */
+/** Sunny's goods, until they have pictures of their own. */
 const FOOD: Record<string, string> = { water: '💧', sandwich: '🥪', meal: '🍲' };
 
 export function Bag({ game, left }: { game: Game; left: number }) {

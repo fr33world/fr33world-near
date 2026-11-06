@@ -9,7 +9,7 @@ import { testDb } from './test-db.ts';
 let db: Db;
 let chain: FakeChain;
 let alerts: string[];
-const market = 'soles-market.test';
+const market = 'sunnys-grocery.test';
 const wholesale = 'harbor-wholesale.test';
 const farm = 'sol-farm.test';
 const run = () => tick({ db, chain, alert: (t) => alerts.push(t) }, 0);

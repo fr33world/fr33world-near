@@ -1,5 +1,5 @@
 /**
- * The Market's till (Phase 17): goods for `$` or USDC, and delivery jobs that pay USDC. Stock
+ * Sunny's till (Phase 17): goods for `$` or USDC, and delivery jobs that pay USDC. Stock
  * and prices are the business's own, read live. USDC prices show the mark and the word, never a
  * bare `$`, so the two can't be mistaken for each other (D-44).
  */
@@ -85,7 +85,7 @@ export function TillSheet({ game }: { game: Game }) {
         <div className="guide-head">
           <span className="gun-badge">◆</span>
           <div>
-            <div className="sheet-title">Los Soles Market</div>
+            <div className="sheet-title">Sunny's Grocery</div>
             <div className="sheet-note">Run by itself: its stock, its prices, its own wallet.</div>
           </div>
         </div>
