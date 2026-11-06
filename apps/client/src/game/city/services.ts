@@ -18,6 +18,7 @@ const LOOK: Record<ServiceId, { text: string; back: string; ink: string; glyph: 
   hospital: { text: 'HOSPITAL', back: '#ffffff', ink: '#d8312b', glyph: '✚' },
   vipers: { text: 'VIPERS', back: '#101512', ink: '#37d67a', glyph: 'V' },
   kings: { text: 'KINGS', back: '#15120a', ink: '#f2c14e', glyph: 'K' },
+  market: { text: 'LOS SOLES MARKET', back: '#1f6e40', ink: '#ffffff', glyph: '◆' },
 };
 
 function signTexture(id: ServiceId): THREE.CanvasTexture {

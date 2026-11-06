@@ -64,6 +64,20 @@ import {
 } from './accounts.ts';
 import type { Db } from './db.ts';
 import { readReport, recentErrors, recordError } from './errors.ts';
+import { type EconomyDeps, finishJob, settleJobs, tick } from './business.ts';
+import {
+  buyWithDollars,
+  economyView,
+  finishSale,
+  finishSend,
+  linkWallet,
+  shelf,
+  startSale,
+  startSend,
+  takeDelivery,
+  usdcWallet,
+  type UsdcDeps,
+} from './usdc.ts';
 import { openFlags, reviewFlag } from './anomalies.ts';
 import { BankError, pay, statement } from './bank.ts';
 import { correct, freeze, lookUp, reverse } from './corrections.ts';
@@ -132,6 +146,9 @@ export interface AppDeps {
   logger?: boolean;
   /** A player's gang rank (factions); none until Phase 9 wires it. */
   gangRank?: GangRank;
+  /** NEAR (Phase 17): absent when no operator key is set, and USDC routes then say so. */
+  economy?: EconomyDeps;
+  usdc?: UsdcDeps;
 }
 
 /** Logins per address per minute (each one verifies a token and touches the database). */
@@ -487,6 +504,54 @@ export function buildApp(deps: AppDeps): FastifyInstance {
   worldPost('/v1/internal/arms/buy', (b) => buyArms(deps.db, deps.gangRank ?? gangRank, b));
   worldPost('/v1/internal/care/buy', (b) => buyCare(deps.db, b));
   worldPost('/v1/internal/care/use', (b) => useCare(deps.db, b));
+
+  // The economy (business.ts, usdc.ts). The trigger is public because it can only do what the
+  // rules and wallet limits allow, and at most once per gap: the schedule needs no secret.
+  worldPost('/v1/internal/goods/buy', (b) => buyWithDollars(deps.db, b));
+  worldPost('/v1/internal/haul/finish', async (b) => {
+    await finishJob(deps.db, { account: String(b.account) });
+    if (deps.economy) await settleJobs(deps.economy);
+    return { ok: true };
+  });
+  app.get('/v1/economy', () => economyView(deps.db));
+  app.get('/v1/market/shelf', () => shelf(deps.db));
+  app.post('/v1/economy/tick', async (req, reply) => {
+    if (limited(req.ip, 'tick', 6)) return reply.code(429).send();
+    if (!deps.economy) return reply.code(503).send({ error: 'The economy isn’t on here.' });
+    return tick(deps.economy);
+  });
+  const withUsdc = (
+    req: FastifyRequest,
+    reply: FastifyReply,
+    run: (d: UsdcDeps, privyUser: string) => Promise<unknown>,
+  ) => {
+    const d = deps.usdc;
+    if (!d) return reply.code(503).send({ error: 'USDC isn’t on here.' });
+    if (limited(req.ip, 'usdc', 60)) return reply.code(429).send({ error: 'Slow down.' });
+    return bank(req, reply, (u) => run(d, u));
+  };
+  const usdcBody = (req: FastifyRequest) => (req.body ?? {}) as Record<string, unknown>;
+  app.post('/v1/usdc/job', (req, reply) =>
+    withUsdc(req, reply, async (d, u) => {
+      await takeDelivery(d, u, usdcBody(req));
+      if (deps.economy) await settleJobs(deps.economy);
+      return { ok: true };
+    }),
+  );
+  app.get('/v1/usdc', (req, reply) => withUsdc(req, reply, (d, u) => usdcWallet(d, u)));
+  app.post('/v1/usdc/link', (req, reply) => withUsdc(req, reply, (d, u) => linkWallet(d, u)));
+  app.post('/v1/usdc/sale', (req, reply) =>
+    withUsdc(req, reply, (d, u) => startSale(d, u, usdcBody(req))),
+  );
+  app.post('/v1/usdc/sale/finish', (req, reply) =>
+    withUsdc(req, reply, (d, u) => finishSale(d, u, usdcBody(req))),
+  );
+  app.post('/v1/usdc/send', (req, reply) =>
+    withUsdc(req, reply, (d, u) => startSend(d, u, usdcBody(req))),
+  );
+  app.post('/v1/usdc/send/finish', (req, reply) =>
+    withUsdc(req, reply, (d, u) => finishSend(d, u, usdcBody(req))),
+  );
   // Factions (factions.ts): the phone with a Privy login, the world server for the rest.
   app.get('/v1/factions', (req, reply) => bank(req, reply, (u) => factionStatus(deps.db, u)));
   app.get('/v1/factions/desk', (req, reply) => bank(req, reply, (u) => deskStatus(deps.db, u)));

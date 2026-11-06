@@ -46,6 +46,28 @@ export function privyWallet(
   };
 }
 
+/** The user's embedded NEAR wallet (an implicit account), read from Privy, never the client. */
+export function privyNearWallet(
+  appId: string,
+  appSecret: string,
+): (userId: string) => Promise<string | null> {
+  const privy = new PrivyClient({ appId, appSecret });
+  return async (userId) => {
+    try {
+      const user = await privy.users()._get(userId);
+      for (const a of user.linked_accounts as {
+        type?: string;
+        chain_type?: string;
+        address?: string;
+      }[])
+        if (a.type === 'wallet' && a.chain_type === 'near' && a.address) return a.address;
+      return null;
+    } catch {
+      return null;
+    }
+  };
+}
+
 /** Returns the Privy user id ("did:privy:…") for a valid token of this app, else null. */
 export function privyVerifier(
   appId: string,

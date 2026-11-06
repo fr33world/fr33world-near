@@ -152,6 +152,8 @@ export interface GameSession {
   tutorial?: string;
   /** A fresh login token for the API (blocks, reports); absent when playing without one. */
   apiToken?: () => Promise<string>;
+  /** Signs a hash with the player's own NEAR wallet (absent for guests and offline). */
+  signHash?: (hash: `0x${string}`) => Promise<string>;
 }
 
 /** A line of proximity chat as the HUD shows it. */
@@ -350,6 +352,8 @@ export class Game {
   onGunStore: (point: number) => void = () => {};
   /** The Hospital's counter, and an applications computer (at this building). */
   onCounter: () => void = () => {};
+  /** The Market's till. */
+  onTill: () => void = () => {};
   onComputer: (service: ServiceId) => void = () => {};
   /** Opens the dealership's showroom (its desk's point). */
   onDealer: (point: number) => void = () => {};
@@ -1112,6 +1116,23 @@ export class Game {
     return true;
   }
 
+  /** Buys GOODS item `item` for `$` at the till. */
+  buyGood(item: number): boolean {
+    if (!this.net.connected) return false;
+    this.net.send({ type: 'act', what: ACT.BUY_GOOD, arg: item });
+    window.setTimeout(() => void this.statement().catch(() => {}), 1500);
+    return true;
+  }
+
+  /** The login token and signer USDC needs, or null for guests and offline play. */
+  usdcAccess(): {
+    token: () => Promise<string>;
+    sign: (hash: `0x${string}`) => Promise<string>;
+  } | null {
+    const { apiToken, signHash } = this.session;
+    return apiToken && signHash ? { token: apiToken, sign: signHash } : null;
+  }
+
   /** Uses CARE item `item`. */
   useCare(item: number): void {
     if (this.net.connected) this.net.send({ type: 'act', what: ACT.USE_CARE, arg: item });
@@ -1566,7 +1587,13 @@ export class Game {
         return offers;
       }
       this.layout.points.forEach((p, i) => {
-        if (p.kind !== 'locker' && p.kind !== 'counter' && p.kind !== 'computer') return;
+        if (
+          p.kind !== 'locker' &&
+          p.kind !== 'counter' &&
+          p.kind !== 'computer' &&
+          p.kind !== 'till'
+        )
+          return;
         const n = near(i);
         if (!n) return;
         const kind = p.kind;
@@ -1579,14 +1606,17 @@ export class Game {
                 : 'Go on duty'
               : kind === 'counter'
                 ? 'Counter'
-                : 'Applications',
-          icon: kind === 'counter' ? 'talk' : 'door',
+                : kind === 'till'
+                  ? 'Shop and jobs'
+                  : 'Applications',
+          icon: kind === 'counter' || kind === 'till' ? 'talk' : 'door',
           at: { x: p.x, y: 2.2, z: p.z },
           distance: n.distance,
           run: () => {
             if (kind === 'locker') {
               if (this.net.connected) this.net.send({ type: 'act', what: ACT.LOCKER, arg: i });
             } else if (kind === 'counter') this.onCounter();
+            else if (kind === 'till') this.onTill();
             else this.onComputer(p.service ?? 'police');
           },
         });

@@ -392,3 +392,64 @@ export function marketCall(
 ): Promise<unknown> {
   return bankCall(privyToken, `/v1/market/${what}`, body);
 }
+
+/** A good on the Market's shelf. `cents` is null for goods sold for USDC only. */
+export interface ShelfItem {
+  id: string;
+  name: string;
+  heal: number;
+  cents: number | null;
+  micro: number;
+  stock: number;
+}
+
+export interface EconomyJob {
+  id: string;
+  business: string;
+  amount: string;
+  status: string;
+}
+
+async function usdcCall<T>(token: string, path: string, body?: unknown): Promise<T> {
+  const r = await fetch(`${apiUrl()}/v1/${path}`, {
+    method: body === undefined ? 'GET' : 'POST',
+    headers: {
+      authorization: `Bearer ${token}`,
+      ...(body === undefined ? {} : { 'content-type': 'application/json' }),
+    },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  const data = (await r.json().catch(() => ({}))) as T & { error?: string };
+  if (!r.ok) throw new Error(data.error ?? 'That didn’t go through.');
+  return data;
+}
+
+export const fetchUsdc = (token: string) =>
+  usdcCall<{ near: string | null; micro: number }>(token, 'usdc');
+export const linkUsdc = (token: string) => usdcCall<{ near: string }>(token, 'usdc/link', {});
+export const startUsdcSale = (token: string, good: string) =>
+  usdcCall<{ sale: string; micro: number; tx: string; hash: `0x${string}` }>(token, 'usdc/sale', {
+    good,
+  });
+export const finishUsdcSale = (
+  token: string,
+  body: { sale: string; tx: string; signature: string },
+) => usdcCall<{ tx: string | null }>(token, 'usdc/sale/finish', body);
+export const startUsdcSend = (token: string, to: string, micro: number) =>
+  usdcCall<{ tx: string; hash: `0x${string}` }>(token, 'usdc/send', { to, micro });
+export const finishUsdcSend = (token: string, tx: string, signature: string) =>
+  usdcCall<{ tx: string }>(token, 'usdc/send/finish', { tx, signature });
+export const takeUsdcJob = (token: string, job: string) =>
+  usdcCall<{ ok: boolean }>(token, 'usdc/job', { job });
+
+export async function fetchShelf(): Promise<ShelfItem[]> {
+  const r = await fetch(`${apiUrl()}/v1/market/shelf`);
+  return r.ok ? ((await r.json()) as ShelfItem[]) : [];
+}
+
+export async function fetchOpenJobs(): Promise<EconomyJob[]> {
+  const r = await fetch(`${apiUrl()}/v1/economy`);
+  if (!r.ok) return [];
+  const e = (await r.json()) as { jobs: EconomyJob[] };
+  return e.jobs.filter((j) => j.status === 'open');
+}

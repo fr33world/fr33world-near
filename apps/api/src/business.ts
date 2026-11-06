@@ -21,6 +21,7 @@ import {
   unitPrice,
   VAN_AFTER_MS,
 } from '@fr33world/shared';
+import { BankError } from './bank.ts';
 import type { Db, Tx } from './db.ts';
 import { inTx } from './db.ts';
 
@@ -467,25 +468,28 @@ export async function takeJob(
   if (r.rowCount === 0) throw new EconomyError('Someone else took that job.');
 }
 
-/** The server saw the delivery: the goods arrive and the pay goes out. */
-export async function finishJob(db: Db, input: { account: string; jobId: string }): Promise<void> {
+/** The server saw the delivery: the goods arrive and the pay is queued. One job at a time. */
+export async function finishJob(db: Db, input: { account: string }): Promise<void> {
   await inTx(db, async (tx) => {
     const r = await tx.query<{ order_id: string }>(
       `update business_jobs set status = 'releasing', next_at = now(), updated_at = now()
-       where id = $1 and worker = $2 and status = 'assigned' returning order_id`,
-      [input.jobId, input.account],
+       where worker = $1 and status = 'assigned' returning order_id`,
+      [input.account],
     );
     const row = r.rows[0];
-    if (!row) throw new EconomyError('That job isn’t yours to finish.');
+    if (!row) throw new EconomyError('Take a delivery job at the Market first.');
     await arrive(tx, row.order_id);
   });
 }
 
-export class EconomyError extends Error {
-  readonly status: number;
+/** Sends waiting job steps at once, so a player isn't left until the next tick for their pay. */
+export async function settleJobs(d: EconomyDeps): Promise<void> {
+  await runJobs(d, await live(d.db));
+}
+
+export class EconomyError extends BankError {
   constructor(message: string, status = 409) {
-    super(message);
-    this.status = status;
+    super(message, status);
   }
 }
 

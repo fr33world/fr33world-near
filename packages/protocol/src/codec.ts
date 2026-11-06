@@ -10,7 +10,7 @@
 import { DecodeError, Reader, Writer } from './buffer.ts';
 
 /** v2: `hello` carries the player's access token (empty when playing unauthenticated in dev). */
-export const PROTOCOL_VERSION = 17;
+export const PROTOCOL_VERSION = 18;
 
 /** What a player does with `act`. */
 export const ACT = {
@@ -32,6 +32,8 @@ export const ACT = {
   SIT: 8,
   /** Up from a seat. */
   STAND: 9,
+  /** At the Market's till: buy GOODS item `arg` for `$`. */
+  BUY_GOOD: 10,
 } as const;
 
 export const POS_SCALE = 64;

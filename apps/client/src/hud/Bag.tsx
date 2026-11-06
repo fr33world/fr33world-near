@@ -3,15 +3,18 @@
  * (or B on a keyboard), it opens on pictures of what's in it, each with its count on the corner;
  * tapping one uses it. Pictures: public/ui/care, rendered by scripts/assets/care-icons.mjs.
  */
-import { CARE } from '@fr33world/shared';
+import { CONSUMABLES } from '@fr33world/shared';
 import { useEffect, useState } from 'react';
 import type { Game } from '../game/Game.ts';
+
+/** The Market's goods, until they have pictures of their own. */
+const FOOD: Record<string, string> = { water: '💧', sandwich: '🥪', meal: '🍲' };
 
 export function Bag({ game, left }: { game: Game; left: number }) {
   const [open, setOpen] = useState(false);
   const { hp, downed, driving } = game.hud;
   const care = game.arms()?.care ?? {};
-  const carried = CARE.items.flatMap((item, i) => {
+  const carried = CONSUMABLES.flatMap((item, i) => {
     const count = care[item.id] ?? 0;
     return count > 0 ? [{ item, i, count }] : [];
   });
@@ -67,7 +70,11 @@ export function Bag({ game, left }: { game: Game; left: number }) {
                     setOpen(false);
                   }}
                 >
-                  <img src={`/ui/care/${item.id}.webp`} alt="" draggable={false} />
+                  {FOOD[item.id] ? (
+                    <span className="bag-food">{FOOD[item.id]}</span>
+                  ) : (
+                    <img src={`/ui/care/${item.id}.webp`} alt="" draggable={false} />
+                  )}
                   <b className="bag-count">{count}</b>
                 </button>
               ))}

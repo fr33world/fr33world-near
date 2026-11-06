@@ -31,6 +31,7 @@ const host = (): JobHost => ({
   rewarded: () => {},
   tell: (_id, t) => said.push(t),
   reward: (_account, pay) => pays(pay),
+  settle: () => Promise.resolve(),
   save: (account, s) => {
     if (s) saved.set(account, structuredClone(s));
     else saved.delete(account);

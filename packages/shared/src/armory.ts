@@ -4,6 +4,7 @@
  * rounds are bought (`$` into the purchases sink): the pistol at the Gun Store with a licence (from
  * level 5), the rifle from the black-market dealer, for gang members of rank (Phase 9).
  */
+import { GOODS } from './business.ts';
 
 export interface ArmoryItem {
   id: string;
@@ -86,6 +87,12 @@ export const CARE = {
   /** Hit this recently (ms), you can't use one: no patching up mid-fight. */
   noUseAfterHitMs: 10_000,
 } as const;
+
+/** Everything the bag can hold and use: the Hospital's items, then the Market's goods. */
+export const CONSUMABLES: readonly { id: string; name: string; heal: number; clip: string }[] = [
+  ...CARE.items,
+  ...GOODS.map((g) => ({ id: g.id, name: g.name, heal: g.heal, clip: 'medicine' })),
+];
 
 /** What a CARE item costs. */
 export function carePrice(cents: number, staffed: boolean): number {

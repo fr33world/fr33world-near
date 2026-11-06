@@ -112,6 +112,8 @@ import {
   FALL,
   fallDamage,
   CARE,
+  CONSUMABLES,
+  GOODS,
   HOSPITAL_FEE,
   MEDICAL,
   NO_ARMS,
@@ -124,6 +126,7 @@ import {
 import { type ApiPath, type CommandWorld, parse, parseCents, runCommand } from './commands.ts';
 import { collect } from './jobs/collect.ts';
 import { courier } from './jobs/courier.ts';
+import { haul } from './jobs/haul.ts';
 import { type JobDef, type JobHost, type JobPlayer, Jobs, type Saved } from './jobs/jobs.ts';
 import { mining } from './jobs/mining.ts';
 import { taxi } from './jobs/taxi.ts';
@@ -626,7 +629,13 @@ export class World {
     this.requireAuth = options.requireAuth ?? false;
     this.voice = options.voice;
     this.staffApi = options.staffApi;
-    this.jobs = new Jobs(this.jobHost(), [courier, mining, taxi, collect] as JobDef<unknown>[]);
+    this.jobs = new Jobs(this.jobHost(), [
+      courier,
+      mining,
+      taxi,
+      collect,
+      haul,
+    ] as JobDef<unknown>[]);
     this.collision = CollisionIndex.fromCity(this.city);
     this.startedAt = this.now();
     const rate = options.clockRate ?? CLOCK_EPOCH.rate;
@@ -2373,6 +2382,9 @@ export class World {
               totalXp: number;
             })
           : { cents: pay.cents, xp: pay.xp, totalXp: 0 },
+      settle: async (account) => {
+        if (api) await api('haul/finish', { account });
+      },
       save: async (account, saved) => {
         if (api) await api('jobs/save', { account, saved });
       },
@@ -2703,6 +2715,7 @@ export class World {
     else if (what === ACT.LOCKER) this.useLocker(p, arg);
     else if (what === ACT.BUY_CARE) void this.buyCare(p, arg);
     else if (what === ACT.USE_CARE) this.useCare(p, arg);
+    else if (what === ACT.BUY_GOOD) void this.buyGood(p, arg);
     else if (what === ACT.FAINT) {
       if (p.downedUntil > 0 && p.bed < 0) this.respawn(p);
     } else if (what === ACT.CALL_EMS) this.callEms(p);
@@ -2804,9 +2817,34 @@ export class World {
     }
   }
 
-  /** Uses a CARE item: not while down, in a car, or just after being hit. */
+  /** Buys a good for `$` at the Market's till. USDC goods are paid from the player's wallet. */
+  private async buyGood(p: Player, item: number) {
+    const good = GOODS[item];
+    const till = this.city.points.find((q) => q.kind === 'till');
+    if (!good || !till || !canReach(till, p.pose.x, p.pose.z))
+      return this.tell(p, 'Get closer to the till.');
+    const now = this.now();
+    if (now - p.carCalledAt < 1000) return;
+    p.carCalledAt = now;
+    const api = this.staffApi;
+    if (!api || !p.account) return this.tell(p, 'Log in to buy.');
+    try {
+      const r = (await api('goods/buy', {
+        account: p.account,
+        good: good.id,
+        key: `good-${Date.now()}-${p.id}`,
+      })) as { arms: Arms; name: string; cents: number };
+      if (!this.players.has(p.id)) return;
+      this.setArms(p, r.arms);
+      this.tell(p, `🛒 ${r.name}: $${(r.cents / 100).toLocaleString('en-US')}.`);
+    } catch (e) {
+      this.tell(p, e instanceof Error ? e.message : 'That didn’t go through.');
+    }
+  }
+
+  /** Uses something from the bag: not while down, in a car, or just after being hit. */
   private useCare(p: Player, item: number) {
-    const thing = CARE.items[item];
+    const thing = CONSUMABLES[item];
     if (!thing || p.downedUntil > 0 || p.fallUntil > 0 || p.vehicle !== NO_ENTITY) return;
     const have = p.arms.care?.[thing.id] ?? 0;
     if (have <= 0 || p.hp >= MAX_HP) return;

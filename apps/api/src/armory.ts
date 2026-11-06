@@ -4,7 +4,7 @@
  * purchases sink and the item into the inventory in one transaction, keyed by the world's id
  * for the purchase), rounds spent, and the kill log.
  */
-import { ARMORY, type Arms, CARE, carePrice, levelOf } from '@fr33world/shared';
+import { ARMORY, type Arms, CARE, carePrice, CONSUMABLES, levelOf } from '@fr33world/shared';
 import { BankError } from './bank.ts';
 import { type Db, inTx, type Tx } from './db.ts';
 import { spend } from './economy.ts';
@@ -30,7 +30,7 @@ export async function armsOf(db: Db | Tx, account: string): Promise<Arms> {
   return arms;
 }
 
-async function add(tx: Tx, account: string, item: string, count: number, max = Infinity) {
+export async function add(tx: Tx, account: string, item: string, count: number, max = Infinity) {
   await tx.query(
     `insert into inventory (account_id, item, count) values ($1, $2, least($3::int, $4::int))
      on conflict (account_id, item) do update
@@ -151,7 +151,7 @@ export async function buyCare(
 /** One CARE item used, never below none. */
 export async function useCare(db: Db, input: { account?: unknown; item?: unknown }): Promise<Arms> {
   const { account, item } = input;
-  if (typeof account !== 'string' || !CARE.items.some((i) => i.id === item))
+  if (typeof account !== 'string' || !CONSUMABLES.some((i) => i.id === item))
     throw new BankError('Bad item.');
   await db.query(
     `update inventory set count = greatest(count - 1, 0), updated_at = now()

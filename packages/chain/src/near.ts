@@ -12,7 +12,21 @@
  *   NEAR_OPERATOR_KEY   the operator's key, server-only
  *   CHAIN_ALLOW_MAINNET must be "yes" to use mainnet, so a stray variable can't spend real USDC
  */
-import { Account, JsonRpcProvider, type KeyPairString, teraToGas } from 'near-api-js';
+import { createHash } from 'node:crypto';
+import {
+  Account,
+  actions,
+  baseEncode,
+  decodeTransaction,
+  encodeTransaction,
+  JsonRpcProvider,
+  type KeyPairString,
+  KeyType,
+  nearToYocto,
+  Signature,
+  SignedTransaction,
+  teraToGas,
+} from 'near-api-js';
 
 export interface NearConfig {
   network: 'testnet' | 'mainnet';
@@ -82,6 +96,8 @@ const GAS = teraToGas('60');
 const YOCTO = 1n;
 /** What the USDC contract charges to register an account (0.00125 NEAR). */
 const REGISTER = 1_250_000_000_000_000_000_000n;
+/** A new player's gas money: enough for many sends, and the game pays it, not them. */
+const PLAYER_GAS = '0.02';
 
 export class NearEconomy {
   readonly cfg: NearConfig;
@@ -96,6 +112,10 @@ export class NearEconomy {
     this.operator = operatorKey
       ? new Account(cfg.operator, this.provider, operatorKey as KeyPairString)
       : null;
+  }
+
+  rpc(): JsonRpcProvider {
+    return this.provider;
   }
 
   /** A business's account from its short name. */
@@ -173,6 +193,17 @@ export class NearEconomy {
     return this.call(wallet, 'cancel_job', { job_id: jobId });
   }
 
+  /** Brings a new player's account to life with gas money, and lets it hold USDC. */
+  async welcomePlayer(account: string): Promise<void> {
+    const op = this.operator;
+    if (!op) throw new Error('no NEAR_OPERATOR_KEY');
+    const run = () => op.transfer({ receiverId: account, amount: nearToYocto(PLAYER_GAS) });
+    const next = this.queue.then(run, run);
+    this.queue = next.catch(() => {});
+    await next;
+    await this.registerUsdc(account);
+  }
+
   /** Lets an account hold USDC; the game pays the small fee. Does nothing if it's registered. */
   async registerUsdc(account: string): Promise<void> {
     const had = await this.view<unknown>(this.cfg.usdc, 'storage_balance_of', {
@@ -188,7 +219,79 @@ export class NearEconomy {
   }
 }
 
-export { YOCTO };
+/** A NEAR implicit account is its own public key in hex: the key that signs for it. */
+export function implicitPublicKey(account: string): string {
+  if (!/^[0-9a-f]{64}$/.test(account)) throw new Error('not an implicit account');
+  return `ed25519:${baseEncode(Buffer.from(account, 'hex'))}`;
+}
+
+export interface Prepared {
+  /** The borsh transaction, base64: comes back with the signature. */
+  tx: string;
+  /** sha256 of the transaction, 0x hex: what the player's wallet signs. */
+  hash: `0x${string}`;
+}
+
+/** What a player may sign through the game: USDC only, these two methods, nothing else. */
+export interface PlayerSpend {
+  method: 'ft_transfer' | 'ft_transfer_call';
+  receiver: string;
+  amount: number;
+  msg?: string;
+}
+
+/** Builds a USDC transfer for a player's own wallet to sign. The game can't sign it for them. */
+export async function prepareSpend(
+  e: NearEconomy,
+  account: string,
+  spend: PlayerSpend,
+): Promise<Prepared> {
+  const provider = e.rpc();
+  const publicKey = implicitPublicKey(account);
+  const tx = await new Account(account, provider).createTransaction({
+    receiverId: e.cfg.usdc,
+    publicKey,
+    actions: [
+      actions.functionCall(
+        spend.method,
+        {
+          receiver_id: spend.receiver,
+          amount: String(spend.amount),
+          ...(spend.msg === undefined ? {} : { msg: spend.msg }),
+        },
+        teraToGas('100'),
+        YOCTO,
+      ),
+    ],
+  });
+  const bytes = encodeTransaction(tx);
+  return {
+    tx: Buffer.from(bytes).toString('base64'),
+    hash: `0x${createHash('sha256').update(bytes).digest('hex')}`,
+  };
+}
+
+/** Adds the player's signature and sends. The transaction must be the one for this account. */
+export async function submitSigned(
+  e: NearEconomy,
+  account: string,
+  tx: string,
+  signature: string,
+): Promise<Sent> {
+  const transaction = decodeTransaction(Buffer.from(tx, 'base64'));
+  if (transaction.signerId !== account) throw new Error('not this player’s transaction');
+  if (transaction.receiverId !== e.cfg.usdc) throw new Error('not a USDC transaction');
+  const data = Buffer.from(signature.replace(/^0x/, ''), 'hex');
+  if (data.length !== 64) throw new Error('bad signature');
+  const signed = new SignedTransaction({
+    transaction,
+    signature: new Signature({ keyType: KeyType.ED25519, data }),
+  });
+  const r = await e.rpc().sendTransactionUntil(signed, 'EXECUTED_OPTIMISTIC');
+  const status = r.status as { Failure?: unknown };
+  if (status.Failure) throw new Error('the transaction failed');
+  return { tx: r.transaction.hash };
+}
 
 /** The economy from the environment; reads work without a key, writes need NEAR_OPERATOR_KEY. */
 export function economyFromEnv(env: Record<string, string | undefined> = process.env) {

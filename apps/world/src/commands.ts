@@ -9,6 +9,8 @@ import { can, type Staff, type StaffPermission } from '@fr33world/shared';
 
 /** The API's internal routes staff commands use (apps/api app.ts). */
 export type ApiPath =
+  | 'goods/buy'
+  | 'haul/finish'
   | 'ban'
   | 'staff'
   | 'staff/list'

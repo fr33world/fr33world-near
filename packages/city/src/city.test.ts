@@ -83,7 +83,7 @@ describe('city layout', () => {
 
   it('puts each public entrance on its doorstep, its ring reaching the wall', () => {
     const entrances = city.points.filter((p) => p.kind === 'entrance');
-    expect(entrances).toHaveLength(4);
+    expect(entrances).toHaveLength(5);
     for (const p of entrances) {
       const front = p.front as { x: number; z: number };
       expect(Math.hypot(p.x - front.x, p.z - front.z)).toBeLessThan(p.radius - 0.3);

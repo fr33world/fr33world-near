@@ -38,6 +38,8 @@ export interface Outcome<S> {
   state: S | null;
   pay?: Pay;
   say?: string;
+  /** The work is done: the API releases the USDC held for it on chain (haul.ts). */
+  settle?: boolean;
 }
 
 export interface JobContext {
@@ -105,6 +107,8 @@ export interface JobHost {
   tell(playerId: number, text: string): void;
   /** Pays through the API; rejects when it can't. */
   reward(account: string, pay: Pay): Promise<{ cents: number; xp: number; totalXp: number }>;
+  /** A USDC job finished: the API pays it from the money held on chain. */
+  settle(account: string): Promise<void>;
   /** Resolves after `ms` (between tries of a pay the API couldn't take). */
   wait(ms: number): Promise<void>;
   save(account: string, saved: Saved | null): Promise<void>;
@@ -209,6 +213,11 @@ export class Jobs {
   private apply(p: JobPlayer, a: Active, out: Outcome<unknown>, ctx: JobContext) {
     if (out.say) this.host.tell(p.id, out.say);
     if (out.pay) this.pay(p, a, out.pay);
+    if (out.settle && p.account)
+      this.host.settle(p.account).catch((e: unknown) => {
+        console.error('job settlement failed', e);
+        this.host.tell(p.id, e instanceof Error ? e.message : 'That payment didn’t go through.');
+      });
     if (out.state === null) {
       this.finish(p, a);
       return;

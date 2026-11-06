@@ -10,6 +10,7 @@ import { Guide } from './Guide.tsx';
 import { ComputerSheet } from './Computer.tsx';
 import { Bag } from './Bag.tsx';
 import { CounterSheet } from './Counter.tsx';
+import { TillSheet } from './Till.tsx';
 import { GunStoreSheet } from './GunStore.tsx';
 import { MiningSwing, RewardToasts, TaskPanel } from './Jobs.tsx';
 import { Minimap } from './Minimap.tsx';
@@ -142,6 +143,7 @@ export function Hud({ game }: { game: Game }) {
       <DealerSheet game={game} />
       <GunStoreSheet game={game} />
       <CounterSheet game={game} />
+      <TillSheet game={game} />
       <ComputerSheet game={game} />
       <DispatchCard game={game} />
       <RideCard game={game} />

@@ -23,6 +23,7 @@ import {
   type Progress,
   type Statement,
 } from '../game/api.ts';
+import { UsdcCard } from './Usdc.tsx';
 import type { Game } from '../game/Game.ts';
 import { isTouchDevice } from '../game/quality.ts';
 import { EmergencyApp, FactionApp, InboxApp } from './FactionApp.tsx';
@@ -522,6 +523,7 @@ function Bank({ game, onSend }: { game: Game; onSend: () => void }) {
           Send money
         </button>
       </div>
+      <UsdcCard game={game} />
       {error && <div className="login-error">{error}</div>}
       <div className="bank-title">History</div>
       <div className="bank-history">

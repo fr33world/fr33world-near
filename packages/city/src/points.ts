@@ -47,7 +47,10 @@ export type PointKind =
   | 'exit'
   | 'locker'
   | 'counter'
-  | 'computer';
+  | 'computer'
+  | 'till'
+  | 'dock'
+  | 'bay';
 
 export interface InteractionPoint {
   kind: PointKind;
@@ -335,6 +338,28 @@ export function cityPoints(
     const room = INTERIORS[service];
     for (const p of room.points) points.push({ ...p, service });
   }
+  // Deliveries for USDC (Phase 17): from a warehouse's dock to the Market's loading bay.
+  const shop = sites.find((q) => q.service === 'market');
+  if (shop) {
+    const far = (b: Building) => Math.hypot(b.x - shop.x, b.z - shop.z);
+    const sheds = buildings
+      .filter((b) => b.style === 'warehouse' && !b.service && far(b) > 350)
+      .sort((a, b) => far(a) - far(b));
+    for (const b of sheds) {
+      const [door] = doors(roads, [b], seed, true);
+      if (!door) continue;
+      points.push({ ...door, kind: 'dock', radius: 5, name: 'Harbor Wholesale' });
+      points.push({
+        kind: 'bay',
+        x: shop.x + Math.cos(shop.yaw) * 7,
+        z: shop.z - Math.sin(shop.yaw) * 7,
+        yaw: shop.yaw,
+        radius: 4,
+        name: 'Market loading bay',
+      });
+      break;
+    }
+  }
   solids.push(...interiorSolids());
   return { points, solids };
 }
@@ -345,6 +370,7 @@ const SITES: [ServiceId, string, number, number, number][] = [
   ['hospital', 'medical', 1024, -130, 18],
   ['vipers', 'eastside', 1000, -300, 9],
   ['kings', 'south_grid', -300, 1100, 9],
+  ['market', 'downtown', 40, -160, 12],
 ];
 
 /**

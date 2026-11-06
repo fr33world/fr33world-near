@@ -13,8 +13,14 @@
  *                        Solana (chain.ts); unset = the queue waits
  * Applies pending migrations on start, then runs the economy's invariant monitor.
  */
-import { assertSecret, privyGuestCheck, privyVerifier, privyWallet } from '@fr33world/auth';
-import { registryFromEnv } from '@fr33world/chain';
+import {
+  assertSecret,
+  privyGuestCheck,
+  privyNearWallet,
+  privyVerifier,
+  privyWallet,
+} from '@fr33world/auth';
+import { economyFromEnv, prepareSpend, registryFromEnv, submitSigned } from '@fr33world/chain';
 import { buildApp } from './app.ts';
 import { createDb } from './db.ts';
 import { migrate } from './migrate.ts';
@@ -22,6 +28,22 @@ import { reconcile, runChainQueue } from './chain.ts';
 import { alert, startMonitor } from './monitor.ts';
 
 const { PRIVY_APP_ID, PRIVY_APP_SECRET, WORLD_TICKET_SECRET } = process.env;
+
+/** The economy on NEAR, when this server has the operator's key. */
+function nearDeps() {
+  if (!process.env.NEAR_OPERATOR_KEY) return {};
+  const near = economyFromEnv();
+  const chain = Object.assign(near, {
+    prepare: (account: string, spend: Parameters<typeof prepareSpend>[2]) =>
+      prepareSpend(near, account, spend),
+    submit: (account: string, tx: string, signature: string) =>
+      submitSigned(near, account, tx, signature),
+  });
+  return {
+    economy: { db, chain, alert: (text: string) => void alert(db, 'economy', { text }) },
+    usdc: { db, chain, walletOf: privyNearWallet(PRIVY_APP_ID!, PRIVY_APP_SECRET!) },
+  };
+}
 if (!PRIVY_APP_ID || !PRIVY_APP_SECRET)
   throw new Error('the API needs PRIVY_APP_ID and PRIVY_APP_SECRET');
 assertSecret(WORLD_TICKET_SECRET);
@@ -42,6 +64,7 @@ const app = buildApp({
     .filter(Boolean),
   adminToken: process.env.ADMIN_TOKEN,
   logger: true,
+  ...nearDeps(),
 });
 await app.listen({ port: Number(process.env.PORT ?? 7410), host: '0.0.0.0' });
 startMonitor(db);

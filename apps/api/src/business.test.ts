@@ -224,7 +224,7 @@ describe('the economy', () => {
     const me = await player('driver');
     await takeJob(db, { account: me, near: 'me.test', jobId: job.id, level: 5, ageHours: 48 });
     await run();
-    await finishJob(db, { account: me, jobId: job.id });
+    await finishJob(db, { account: me });
     await run();
     expect(chain.paidTo.get('me.test')).toBe(Number(job.amount));
     expect(await stock('market', 'meal')).toBeGreaterThan(5);
@@ -251,9 +251,9 @@ describe('the economy', () => {
     const other = await player('b');
     await takeJob(db, { account: me, near: 'a.test', jobId: id, level: 5, ageHours: 48 });
     await run();
-    await expect(finishJob(db, { account: other, jobId: id })).rejects.toBeInstanceOf(EconomyError);
-    await finishJob(db, { account: me, jobId: id });
-    await expect(finishJob(db, { account: me, jobId: id })).rejects.toBeInstanceOf(EconomyError);
+    await expect(finishJob(db, { account: other })).rejects.toBeInstanceOf(EconomyError);
+    await finishJob(db, { account: me });
+    await expect(finishJob(db, { account: me })).rejects.toBeInstanceOf(EconomyError);
   });
 
   it('frees the money when a player takes a job and vanishes', async () => {

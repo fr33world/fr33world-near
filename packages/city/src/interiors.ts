@@ -9,8 +9,14 @@
 import type { Solid } from './landmarks.ts';
 import type { Rect } from './layout.ts';
 
-export type ServiceId = 'police' | 'hospital' | 'vipers' | 'kings';
-export const SERVICE_IDS: readonly ServiceId[] = ['police', 'hospital', 'vipers', 'kings'];
+export type ServiceId = 'police' | 'hospital' | 'vipers' | 'kings' | 'market';
+export const SERVICE_IDS: readonly ServiceId[] = [
+  'police',
+  'hospital',
+  'vipers',
+  'kings',
+  'market',
+];
 
 /** The rooms' surfaces (client public/assets/textures/room_*.webp). */
 export type RoomTexture =
@@ -49,7 +55,7 @@ export interface RoomLabel {
 }
 
 export interface RoomPoint {
-  kind: 'exit' | 'locker' | 'counter' | 'computer';
+  kind: 'exit' | 'locker' | 'counter' | 'computer' | 'till';
   x: number;
   z: number;
   yaw: number;
@@ -705,11 +711,44 @@ function gangHouse(id: 'vipers' | 'kings', x: number, z: number): Interior {
   );
 }
 
+/** Los Soles Market (Phase 17): aisles of stocked shelves, and a till where everything's sold. */
+function market(x: number, z: number): Interior {
+  const green = 0x2f9e5b;
+  const r = new Room(x, z, 24, 16, 3.4);
+  r.shell(0xf4f2ec, 'tile', 0xf8f7f2, green, 3).door(12);
+  // The till, to the left of the door as you come in.
+  r.block(2, 3.4, 8.5, 4.3, 0, 1.02, green).box(1.95, 3.35, 8.55, 4.35, 1.02, 1.07, 0xf2f2ee);
+  r.box(3.1, 3.7, 3.66, 3.75, 1.1, 1.44, DARK).glow(3.13, 3.68, 3.63, 3.7, 1.13, 1.41, SCREEN);
+  r.label('CHECKOUT', 5.25, 0.68, 4.37, 0, 3, 0.34, '#ffffff', '#1f6e40');
+  r.point('till', 5.25, 5.3, Math.PI, 'Los Soles Market', 2.4);
+  // Three aisles of shelves.
+  const goods = [0xd8504a, 0x3fa7d6, 0xf2c14e, 0x6abf69, 0xf08a3c];
+  for (const [i, sz] of [8.2, 10.6, 13].entries()) {
+    r.block(5, sz, 20, sz + 0.7, 0, 1.9, 0xdfe3e0);
+    for (const y of [0.5, 1.0, 1.5])
+      for (let sx = 5.2; sx < 19.7; sx += 0.62) {
+        const c = goods[((sx * 5 + y * 3 + i) | 0) % goods.length]!;
+        r.box(sx, sz - 0.04, sx + 0.46, sz, y, y + 0.32, c);
+        r.box(sx, sz + 0.7, sx + 0.46, sz + 0.74, y, y + 0.32, c);
+      }
+  }
+  r.label('LOS SOLES MARKET', 12, 2.75, 15.95, Math.PI, 7, 0.6, '#ffffff', '#1f6e40');
+  r.prop('plant', 1.1, 1.1, 0).prop('plant', 22.9, 1.1, 1);
+  r.stop(0.8, 0.8, 1.4, 1.4, 1).stop(22.6, 0.8, 23.2, 1.4, 1);
+  return r.done(
+    'market',
+    'Los Soles Market',
+    { x: 12, z: DOOR.spawnZ, yaw: 0 },
+    { safe: true, members: false, accent: 0x7def06 },
+  );
+}
+
 export const INTERIORS: Record<ServiceId, Interior> = {
   police: policeStation(ORIGIN_X, ORIGIN_Z),
   hospital: hospital(ORIGIN_X + SPACING, ORIGIN_Z),
   vipers: gangHouse('vipers', ORIGIN_X + SPACING * 2, ORIGIN_Z),
   kings: gangHouse('kings', ORIGIN_X + SPACING * 3, ORIGIN_Z),
+  market: market(ORIGIN_X + SPACING * 4, ORIGIN_Z),
 };
 
 const ROOMS = Object.values(INTERIORS);

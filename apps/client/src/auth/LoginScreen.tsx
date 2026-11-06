@@ -8,7 +8,7 @@
  * server verifies.
  */
 import { useGuestAccounts, useLoginWithOAuth, usePrivy, type User } from '@privy-io/react-auth';
-import { useCreateWallet, useWallets } from '@privy-io/react-auth/solana';
+import { useCreateWallet, useSignRawHash } from '@privy-io/react-auth/extended-chains';
 import { decodeAppearance, decodeGear } from '@fr33world/shared';
 import { useEffect, useRef, useState } from 'react';
 import type { GameSession } from '../game/Game.ts';
@@ -43,8 +43,10 @@ type Joined = {
 
 export interface LoginResult extends GameSession {
   guest: boolean;
-  /** The account's embedded Solana wallet address, once created. */
+  /** The account's embedded NEAR wallet address, once created. */
   wallet: string | null;
+  /** Signs a transaction hash on this device, for the player's own USDC (usdc.ts). */
+  signHash?: (hash: `0x${string}`) => Promise<string>;
 }
 
 function displayName(user: User | null): string {
@@ -74,8 +76,8 @@ export function LoginScreen({ onReady }: { onReady: (r: LoginResult) => void }) 
   } = usePrivy();
   const { createGuestAccount } = useGuestAccounts();
   const { initOAuth } = useLoginWithOAuth();
-  const { wallets } = useWallets();
   const { createWallet } = useCreateWallet();
+  const { signRawHash } = useSignRawHash();
   const walletAsked = useRef(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -90,7 +92,10 @@ export function LoginScreen({ onReady }: { onReady: (r: LoginResult) => void }) 
   // Returning players: the main menu, with the ticket and when it was issued.
   const [menu, setMenu] = useState<(Joined & { at: number }) | null>(null);
   const guest = user?.isGuest ?? false;
-  const wallet = wallets[0]?.address ?? null;
+  const nearAccount = user?.linkedAccounts.find(
+    (a) => a.type === 'wallet' && 'chainType' in a && a.chainType === 'near',
+  ) as { address: string } | undefined;
+  const wallet = nearAccount?.address ?? null;
 
   const privyToken = async () => {
     // Privy has been seen to never settle (a failed wallet setup); don't spin forever.
@@ -104,12 +109,14 @@ export function LoginScreen({ onReady }: { onReady: (r: LoginResult) => void }) 
     return token;
   };
 
-  // Real accounts get their Solana wallet (car certificates) in the background; guests don't.
+  // Real accounts get their NEAR wallet (USDC) in the background; guests don't.
   useEffect(() => {
-    if (!ready || !authenticated || guest || walletAsked.current || wallets.length > 0) return;
+    if (!ready || !authenticated || guest || walletAsked.current || wallet) return;
     walletAsked.current = true;
-    createWallet().catch((e: unknown) => console.warn('could not create the Solana wallet', e));
-  }, [ready, authenticated, guest, wallets.length]);
+    createWallet({ chainType: 'near' }).catch((e: unknown) =>
+      console.warn('could not create the NEAR wallet', e),
+    );
+  }, [ready, authenticated, guest, wallet]);
 
   /**
    * Privy login → game session: a world ticket, or the onboarding still needed. The API may be
@@ -146,6 +153,10 @@ export function LoginScreen({ onReady }: { onReady: (r: LoginResult) => void }) 
       ...j,
       guest,
       wallet,
+      signHash: wallet
+        ? async (hash) =>
+            (await signRawHash({ address: wallet, chainType: 'near', hash })).signature
+        : undefined,
       renew: async () => {
         const s = await session();
         if ('needs' in s) throw new Error('Please log in again');
