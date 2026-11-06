@@ -24,7 +24,7 @@ fr33world existed before this work, as a game with a Solana integration. **Only 
 Needs Node 24, pnpm and PostgreSQL. No NEAR account is needed for steps 1 to 3.
 
 1. **Do:** `cd contracts/business-wallet && cargo test`. **See:** 28 tests pass, including a stolen admin key failing to pay itself.
-2. **Do:** `pnpm install && pnpm db:start && pnpm --filter @fr33world/api economy:week`. **See:** a simulated week, ending in `No USDC created: it all adds up.`
+2. **Do:** `pnpm install && pnpm db:start && createdb fr33world_test && pnpm --filter @fr33world/api economy:week`. **See:** a simulated week, ending in `No USDC created: it all adds up.`
 3. **Do:** read a live wallet from the chain:
    `curl -s https://test.rpc.fastnear.com -H 'content-type: application/json' -d '{"jsonrpc":"2.0","id":1,"method":"query","params":{"request_type":"call_function","finality":"final","account_id":"soles-market.fr33world.testnet","method_name":"summary","args_base64":"e30="}}'`
    **See:** a result whose bytes decode to the Market's balance, limits and suppliers. Or open [the account on NearBlocks](https://testnet.nearblocks.io/address/soles-market.fr33world.testnet).
