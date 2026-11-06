@@ -1,23 +1,21 @@
-# Car certificates: switching from Devnet to Mainnet
+# The economy: switching from NEAR Testnet to Mainnet
 
-Cars are certificates on Solana **Devnet** (D-09). Moving to **Mainnet** is a configuration change in the API's environment, plus everything below. Do it only after legal review (Phase 12) and the security review.
+The economy runs on NEAR **Testnet** (D-41), on `usdc.fakes.testnet`, a community test token. Moving to Mainnet means real money, so every item below is required first. It is not only a configuration change.
 
 ## Before
 
-1. **A new authority key for Mainnet.** Never reuse the Devnet key: it has been in local `.env` files and chats. Generate it offline, keep the only copy in a password manager and in Render's environment (`CHAIN_AUTHORITY_SECRET` on `fr33world-api`), and write down who can reach it.
-2. **Fund the fee payer.** The authority pays every mint and transfer: about 0.003 SOL a car to mint (rent and fee), a fraction of that to transfer. Fund it for the next month's sales, and add an alert below 0.5 SOL.
-3. **A paid RPC.** Public Mainnet RPC rate-limits hard. Set `SOLANA_RPC_URL` to a paid provider (Helius, Triton, QuickNode).
-4. **Metadata host.** Certificates point at `https://<client>/nft/cars/<model>.json`. Mainnet assets are permanent: put the metadata on the final domain first.
-5. **Security review** of `apps/api/src/chain.ts`, `apps/api/src/market.ts` and `packages/chain`: the authority holds the freeze and transfer delegates for every car.
-6. **Legal:** whether tradable on-chain items are allowed in each launch country (D-22), and the Terms.
+1. **Legal review.** Money transmission, tax on what players earn, sanctions, age and identity checks, and whether businesses that earn while their owner is away count as investments (D-45), for each country served. Terms and Privacy reviewed for real money.
+2. **Outside contract audit** of `contracts/business-wallet`. It holds real USDC and has not been audited.
+3. **Keys.** New operator and admin keys, never reused from testnet. The admin key offline, ideally a multisig. The operator key in a key manager, not a plain environment variable.
+4. **Lock the wallets:** `deploy.ts --lock` removes each business account's keys so its code can't change. Upgrades then mean new accounts.
+5. **Paid hosting and database** (D-36), and a paid RPC.
+6. **Gas for players.** Testnet gives each new player 0.08 NEAR. Mainnet should use a relayer (NEP-366) instead.
+7. **Abuse limits** reviewed against real money: identity, job caps, and `$` payment limits that could feed outside sales of `$`.
 
 ## The switch
 
-1. Render → `fr33world-api` → Environment: `SOLANA_CLUSTER=mainnet-beta`, `CHAIN_ALLOW_MAINNET=yes`, `SOLANA_RPC_URL=<paid>`, `CHAIN_AUTHORITY_SECRET=<new key>`. Save (it redeploys).
-2. The API log says `car certificates on mainnet-beta: <authority>`. Check it's the new key.
-3. Existing Devnet certificates stay on Devnet. Re-queue the cars that should be on Mainnet: `update car_chain set status = 'mint', asset = null, attempts = 0, next_at = now()`.
-4. Watch `/v1/admin/economy` alerts (kind `chain`) for the first day: reconciliation flags any car whose chain owner differs from the game.
+Set `NEAR_NETWORK=mainnet`, `CHAIN_ALLOW_MAINNET=yes`, `NEAR_ROOT_ACCOUNT`, and `NEAR_USDC=17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1` (Circle's USDC on NEAR), then deploy new wallets. Watch `economy` alerts: reconciliation flags any wallet that disagrees with the game.
 
 ## Rolling back
 
-Unset `CHAIN_AUTHORITY_SECRET`: the queue stops and waits; the game keeps working. Certificates already minted stay where they are.
+Unset `NEAR_OPERATOR_KEY`: the worker stops and USDC routes say so. Players keep their USDC, which is in their own accounts.

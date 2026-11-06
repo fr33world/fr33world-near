@@ -7,7 +7,7 @@ export function PerfOverlay({
   wallet = null,
 }: {
   game: Game;
-  /** The account's Solana wallet (Privy spike check), shortened. */
+  /** The account's NEAR wallet, shortened. */
   wallet?: string | null;
 }) {
   const [, setTick] = useState(0);

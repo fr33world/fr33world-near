@@ -1,7 +1,6 @@
 import { carPrice, CAR_MODELS, MARKET } from '@fr33world/shared';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { BankError } from './bank.ts';
-import { type ChainWriter, reconcile, runChainQueue } from './chain.ts';
 import type { Db } from './db.ts';
 import { buyCar } from './garage.ts';
 import { balanceOf, systemAccount, transfer, walletOf } from './ledger.ts';
@@ -52,14 +51,11 @@ const fails = async (p: Promise<unknown>, status: number) => {
 };
 
 describe('the car market', () => {
-  it('sells a car between players for $, less the fee, and its certificate follows', async () => {
+  it('sells a car between players for $, less the fee', async () => {
     const sedan = model('sedan');
     const seller = await person(carPrice(sedan) as number);
     const buyer = await person(5_000_000);
     const { car } = await buyCar(db, seller.privy, { model: sedan, key: `k-${Date.now()}-${n}` });
-    // Bought by a full account: its certificate is queued.
-    const queued = await db.query('select status from car_chain where car_id = $1', [car.id]);
-    expect(queued.rows[0]).toMatchObject({ status: 'mint' });
     const { min, max } = priceBounds(sedan);
     await fails(listCar(db, seller.privy, { car: car.id, price: min - 1 }), 400);
     await fails(listCar(db, seller.privy, { car: car.id, price: max + 1 }), 400);
@@ -125,78 +121,5 @@ describe('market exploits', () => {
       [car.id],
     );
     expect(buyers.map((b) => b.id)).toContain(owner.rows[0]?.account_id);
-  });
-});
-
-describe('car certificates', () => {
-  it('mints to the owner’s wallet, moves on a sale, backs off on failure, and flags mismatches', async () => {
-    const seller = await person(carPrice(model('coupe')) as number);
-    const buyer = await person(10_000_000);
-    const { car } = await buyCar(db, seller.privy, {
-      model: model('coupe'),
-      key: `k-${Date.now()}-${n}`,
-    });
-    const wallets: Record<string, string> = {
-      [seller.privy]: 'WalletSeller',
-      [buyer.privy]: 'WalletBuyer',
-    };
-    const owners: Record<string, string> = {};
-    let broken = true;
-    const chain: ChainWriter = {
-      mint: (c) => {
-        if (broken) return Promise.reject(new Error('rpc down'));
-        owners[c.carId] = c.owner;
-        return Promise.resolve({ asset: `asset-${c.carId}` });
-      },
-      transfer: (carId, to) => {
-        owners[carId] = to;
-        return Promise.resolve({ asset: `asset-${carId}` });
-      },
-      read: (carId) => Promise.resolve(owners[carId] ? { owner: owners[carId] } : null),
-    };
-    const alerts: string[] = [];
-    const deps = {
-      db,
-      chain,
-      walletOf: (privy: string) => Promise.resolve(wallets[privy] ?? null),
-      alert: (t: string) => alerts.push(t),
-      uri: (m: string) => `https://x/${m}.json`,
-    };
-    const row = async () =>
-      (
-        await db.query('select status, wallet, attempts, asset from car_chain where car_id = $1', [
-          car.id,
-        ])
-      ).rows[0] as {
-        status: string;
-        wallet: string | null;
-        attempts: number;
-        asset: string | null;
-      };
-    await runChainQueue(deps, 50);
-    expect(await row()).toMatchObject({ status: 'mint', attempts: 1 });
-    broken = false;
-    await db.query('update car_chain set next_at = now() where car_id = $1', [car.id]);
-    await runChainQueue(deps, 50);
-    expect(await row()).toMatchObject({
-      status: 'done',
-      wallet: 'WalletSeller',
-      asset: `asset-${car.id}`,
-    });
-    // Sold on the market: the certificate moves to the buyer.
-    const { id } = await listCar(db, seller.privy, { car: car.id, price: 6_000_000 });
-    await buyListed(db, buyer.privy, { id });
-    expect((await row()).status).toBe('transfer');
-    await runChainQueue(deps, 50);
-    expect(await row()).toMatchObject({ status: 'done', wallet: 'WalletBuyer' });
-    expect(owners[String(car.id)]).toBe('WalletBuyer');
-    // Someone moves it behind the game's back: reconciliation flags it.
-    owners[String(car.id)] = 'SomeoneElse';
-    await db.query("update car_chain set updated_at = now() - interval '1 day' where car_id = $1", [
-      car.id,
-    ]);
-    expect(await reconcile(deps, 50)).toBeGreaterThan(0);
-    expect((await row()).status).toBe('mismatch');
-    expect(alerts.some((a) => a.includes(String(car.id)))).toBe(true);
   });
 });

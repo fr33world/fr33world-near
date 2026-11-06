@@ -99,9 +99,9 @@ createRoot(root).render(
       config={{
         loginMethods: ['email', 'google', 'discord', 'twitter'],
         appearance: { theme: 'dark', accentColor: '#7def06', logo: '/brand/wordmark.webp' },
-        // Solana wallets for car certificates are created after login for real accounts only
-        // (LoginScreen): guests hold no on-chain assets (D-14), and Privy can't make guests
-        // a wallet anyway, which left their login hanging. No Ethereum wallets.
+        // NEAR wallets are created after login for real accounts only (LoginScreen): guests hold
+        // no real money, and Privy can't make guests a wallet anyway, which left their login
+        // hanging. No Ethereum or Solana wallets.
         embeddedWallets: {
           solana: { createOnLogin: 'off' },
           ethereum: { createOnLogin: 'off' },

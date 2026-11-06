@@ -9,23 +9,17 @@
  *   SIGNUP_BONUS_CENTS   default 500000 ($5,000)
  *   ADMIN_TOKEN          enables /v1/admin/* (Bearer token); unset = off
  *   ALERT_WEBHOOK_URL    optional: economy alerts are also posted there (Discord or Slack)
- *   CHAIN_AUTHORITY_SECRET, SOLANA_CLUSTER, SOLANA_RPC_URL   optional: car certificates on
- *                        Solana (chain.ts); unset = the queue waits
+ *   NEAR_OPERATOR_KEY, NEAR_NETWORK, NEAR_USDC   optional: the economy on NEAR (business.ts,
+ *                        usdc.ts); unset = USDC routes say it's off
+ *   NEAR_AI_KEY, NEAR_AI_MODEL   optional: the AI advisor (advisor.ts)
  * Applies pending migrations on start, then runs the economy's invariant monitor.
  */
-import {
-  assertSecret,
-  privyGuestCheck,
-  privyNearWallet,
-  privyVerifier,
-  privyWallet,
-} from '@fr33world/auth';
-import { economyFromEnv, prepareSpend, registryFromEnv, submitSigned } from '@fr33world/chain';
+import { assertSecret, privyGuestCheck, privyNearWallet, privyVerifier } from '@fr33world/auth';
+import { economyFromEnv, prepareSpend, submitSigned } from '@fr33world/chain';
 import { DEFAULT_MODEL, nearAi } from './advisor.ts';
 import { buildApp } from './app.ts';
 import { createDb } from './db.ts';
 import { migrate } from './migrate.ts';
-import { reconcile, runChainQueue } from './chain.ts';
 import { alert, startMonitor } from './monitor.ts';
 
 const { PRIVY_APP_ID, PRIVY_APP_SECRET, WORLD_TICKET_SECRET, NEAR_AI_KEY, NEAR_AI_MODEL } =
@@ -75,30 +69,6 @@ const app = buildApp({
 });
 await app.listen({ port: Number(process.env.PORT ?? 7410), host: '0.0.0.0' });
 startMonitor(db);
-
-// Car certificates: the queue every 30 s, a few cars checked against the chain every 10 min.
-const registry = registryFromEnv();
-if (registry) {
-  const chain = {
-    db,
-    chain: registry,
-    walletOf: privyWallet(PRIVY_APP_ID, PRIVY_APP_SECRET),
-    alert: (text: string) => void alert(db, 'chain', { text }),
-    uri: (model: string) => `https://fr33worldgame.xyz/nft/cars/${model}.json`,
-  };
-  let busy = false;
-  setInterval(() => {
-    if (busy) return;
-    busy = true;
-    runChainQueue(chain)
-      .catch((e: unknown) => app.log.error(e, 'chain queue'))
-      .finally(() => (busy = false));
-  }, 30_000);
-  setInterval(() => void reconcile(chain).catch(() => {}), 10 * 60_000);
-  app.log.info(
-    `car certificates on ${process.env.SOLANA_CLUSTER ?? 'devnet'}: ${registry.authorityAddress}`,
-  );
-}
 
 process.on('unhandledRejection', (e) => app.log.error(e, 'unhandled rejection'));
 

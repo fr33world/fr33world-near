@@ -2,7 +2,7 @@
  * The Terms and Privacy Policy version players accept (decision D-23). Bump it when either
  * document changes: everyone is asked to accept again on their next login.
  */
-export const TERMS_VERSION = '2026-11-02';
+export const TERMS_VERSION = '2026-11-06';
 export const MIN_AGE = 18;
 
 /** Whole years between `birth` (YYYY-MM-DD) and `today` (YYYY-MM-DD), by calendar date. */

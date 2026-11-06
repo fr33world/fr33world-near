@@ -8,16 +8,11 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "spike": "node --env-file-if-exists=../../.env src/spike.ts",
     "deploy:near": "node --env-file=../../.env src/deploy.ts",
     "smoke:near": "node --env-file=../../.env src/smoke.ts"
   },
   "dependencies": {
     "@fr33world/shared": "workspace:*",
-    "@metaplex-foundation/mpl-core": "1.10.0",
-    "@metaplex-foundation/umi": "1.6.0",
-    "@metaplex-foundation/umi-bundle-defaults": "1.6.0",
-    "@noble/hashes": "^1.8.0",
     "near-api-js": "7.4.0"
   }
 }

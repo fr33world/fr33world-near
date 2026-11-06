@@ -3,8 +3,7 @@
  * guest after a plain account of what that means (technical review C9: on this device only,
  * 30 days, can't be merged into an existing account later). A guest who makes a character is
  * offered to keep it by linking an account (Privy upgrades the same user), and is warned
- * before logging out. A Solana wallet is created behind the scenes for real accounts (decision
- * D-09); the player never sees wallet jargon here. Hands the game an access token the world
+ * before logging out. A NEAR wallet is created behind the scenes for real accounts (D-41); the player never sees wallet jargon here. Hands the game an access token the world
  * server verifies.
  */
 import { useGuestAccounts, useLoginWithOAuth, usePrivy, type User } from '@privy-io/react-auth';

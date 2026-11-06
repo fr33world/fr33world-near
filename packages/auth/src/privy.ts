@@ -24,28 +24,6 @@ export function privyGuestCheck(
   };
 }
 
-/** The user's embedded Solana wallet address (their car certificates go there), or null. */
-export function privyWallet(
-  appId: string,
-  appSecret: string,
-): (userId: string) => Promise<string | null> {
-  const privy = new PrivyClient({ appId, appSecret });
-  return async (userId) => {
-    try {
-      const user = await privy.users()._get(userId);
-      for (const a of user.linked_accounts as {
-        type?: string;
-        chain_type?: string;
-        address?: string;
-      }[])
-        if (a.type === 'wallet' && a.chain_type === 'solana' && a.address) return a.address;
-      return null;
-    } catch {
-      return null;
-    }
-  };
-}
-
 /** The user's embedded NEAR wallet (an implicit account), read from Privy, never the client. */
 export function privyNearWallet(
   appId: string,

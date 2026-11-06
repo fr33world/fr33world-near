@@ -9,7 +9,6 @@
 import { CAR_MODELS, carPrice, DEALER, RENTAL } from '@fr33world/shared';
 import { BankError } from './bank.ts';
 import { type Db, inTx, type Tx } from './db.ts';
-import { queueMint } from './chain.ts';
 import { spend } from './economy.ts';
 import {
   AccountFrozen,
@@ -137,8 +136,6 @@ export async function buyCar(
       const car = await tx.query<Row>(`select ${COLUMNS} from owned_cars where purchase_tx = $1`, [
         paid.txId,
       ]);
-      // Its certificate follows (Phase 11): full accounts only; guests' cars stay in the game.
-      if (!me.guest) await queueMint(tx, (car.rows[0] as Row).id);
       return {
         status: paid.status,
         car: named(car.rows[0] as Row),

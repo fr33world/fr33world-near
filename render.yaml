@@ -74,6 +74,15 @@ services:
       # power and appoint admins in game (/admin add "First Last" kick,teleport).
       - key: SUPER_ADMINS
         sync: false
+      # The economy on NEAR (Phase 17). The operator can pay only within each wallet's limits.
+      # Never put NEAR_ROOT_KEY here: it's only for deploying contracts.
+      - key: NEAR_NETWORK
+        value: testnet
+      - key: NEAR_OPERATOR_KEY
+        sync: false
+      # Optional: the AI advisor (cloud.near.ai). Unset, businesses keep to their rules.
+      - key: NEAR_AI_KEY
+        sync: false
       # Optional: a Discord or Slack webhook the economy's alerts are posted to.
       - key: ALERT_WEBHOOK_URL
         sync: false

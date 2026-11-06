@@ -1,12 +1,10 @@
 /**
  * The car market (Phase 11; shared MARKET): full accounts list their own cars for `$` and buy
  * others'. A sale is one ledger transaction (the price less the fee to the seller, the fee to
- * the fees sink), the car changes owner in the same database transaction, and its certificate,
- * if minted, is queued to move on-chain (chain.ts). The newcomer's rental can't be sold.
+ * the fees sink), the car changes owner in the same database transaction,. The newcomer's rental can't be sold.
  */
 import { CAR_MODELS, carPrice, DEALER, MARKET } from '@fr33world/shared';
 import { BankError } from './bank.ts';
-import { queueTransfer } from './chain.ts';
 import { type Db, inTx } from './db.ts';
 import {
   AccountFrozen,
@@ -118,7 +116,7 @@ export async function withdraw(db: Db, privyUser: string, input: { id?: unknown 
   return { withdrawn: true };
 }
 
-/** Buys a listed car: paid, moved, and its certificate queued to follow (one transaction). */
+/** Buys a listed car: paid and moved in one transaction. */
 export async function buyListed(
   db: Db,
   privyUser: string,
@@ -164,7 +162,6 @@ export async function buyListed(
         "update car_listings set status = 'sold', buyer = $2, closed_at = now() where id = $1",
         [id, me.id],
       );
-      await queueTransfer(tx, l.car_id);
       return { car: l.car_id, price };
     });
   } catch (e) {
