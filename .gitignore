@@ -21,3 +21,6 @@ apps/client/public/assets/rbtest/
 
 # Personal Claude Code settings (not shared)
 .claude/settings.local.json
+
+# Rust build output
+target/
