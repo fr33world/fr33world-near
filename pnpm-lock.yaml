@@ -182,6 +182,9 @@ importers:
 
   packages/chain:
     dependencies:
+      '@fr33world/shared':
+        specifier: workspace:*
+        version: link:../shared
       '@metaplex-foundation/mpl-core':
         specifier: 1.10.0
         version: 1.10.0(@metaplex-foundation/umi@1.6.0)(@noble/hashes@1.8.0)
@@ -194,6 +197,9 @@ importers:
       '@noble/hashes':
         specifier: ^1.8.0
         version: 1.8.0
+      near-api-js:
+        specifier: 7.4.0
+        version: 7.4.0
 
   packages/city: {}
 
@@ -1094,6 +1100,10 @@ packages:
     resolution: {integrity: sha512-2I0gnIVPtfnMw9ee9h1dJG7tp81+8Ob3OJb3Mv37rx5L40/b0i7djjCVvGOVqc9AEIQyvyu1i6ypKdFw8R8gQw==}
     engines: {node: ^14.21.3 || >=16}
 
+  '@noble/ciphers@2.2.0':
+    resolution: {integrity: sha512-Z6pjIZ/8IJcCGzb2S/0Px5J81yij85xASuk1teLNeg75bfT07MV3a/O2Mtn1I2se43k3lkVEcFaR10N4cgQcZA==}
+    engines: {node: '>= 20.19.0'}
+
   '@noble/curves@1.4.2':
     resolution: {integrity: sha512-TavHr8qycMChk8UwMld0ZDRvatedkzWfH8IiaeGCfymOP5i0hSCozz9vHOL0nkwk7HRMlFnAiKpS2jrUmSybcw==}
 
@@ -1117,6 +1127,10 @@ packages:
     resolution: {integrity: sha512-gbKGcRUYIjA3/zCCNaWDciTMFI0dCkvou3TL8Zmy5Nc7sJ47a0jtOeZoTaMxkuqRo9cRhjOdZJXegxYE5FN/xw==}
     engines: {node: ^14.21.3 || >=16}
 
+  '@noble/curves@2.2.0':
+    resolution: {integrity: sha512-T/BoHgFXirb0ENSPBquzX0rcjXeM6Lo892a2jlYJkqk83LqZx0l1Of7DzlKJ6jkpvMrkHSnAcgb5JegL8SeIkQ==}
+    engines: {node: '>= 20.19.0'}
+
   '@noble/hashes@1.3.3':
     resolution: {integrity: sha512-V7/fPHgl+jsVPXqqeOzT8egNj2iBIVt+ECeMMG8TdcnTikP3oaBtUVqpT/gYCR68aEBJSF+XbYUxStjbFMqIIA==}
     engines: {node: '>= 16'}
@@ -1136,6 +1150,14 @@ packages:
   '@noble/hashes@1.8.0':
     resolution: {integrity: sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A==}
     engines: {node: ^14.21.3 || >=16}
+
+  '@noble/hashes@2.2.0':
+    resolution: {integrity: sha512-IYqDGiTXab6FniAgnSdZwgWbomxpy9FtYvLKs7wCUs2a8RkITG+DFGO1DM9cr+E3/RgADRpFjrKVaJ1z6sjtEg==}
+    engines: {node: '>= 20.19.0'}
+
+  '@noble/post-quantum@0.6.1':
+    resolution: {integrity: sha512-+pormrDZwjRw05U8ADK4JpHejo87+gBd+muRBB/ozztH5yhDLMDF4jHQWN3NQQAsu1zBNPWTG0ZwVI0CR29H0A==}
+    engines: {node: '>= 20.19.0'}
 
   '@oxc-project/types@0.155.0':
     resolution: {integrity: sha512-SeE8JPwW1xs1tHeNycjUtUBdhorRa8o4jlvjwk49R7/Z291i+4DQa7JJIgOm/TaYQZx+QrPQbVJ/9c8dMIZN8Q==}
@@ -1447,6 +1469,9 @@ packages:
 
   '@scure/base@1.2.6':
     resolution: {integrity: sha512-g/nm5FgUa//MCj1gV09zTJTaM6KBAHqLN907YVQqf7zC49+DcO4B1so4ZX07Ef10Twr6nuqYEH9GEggFXA4Fmg==}
+
+  '@scure/base@2.2.0':
+    resolution: {integrity: sha512-b8XEupJibegiXV+tDUseI8oLQc8ei3d/4Jkb2RpbHh3MfE054ov3uIz2dhFkB3FI8iwYkEh0gGCApkrYggkPNg==}
 
   '@scure/bip32@1.4.0':
     resolution: {integrity: sha512-sVUpc0Vq3tXCkDGYVWGIZTRfnvu8LoTDaev7vbwh0omSvVORONr960MQWdKqJDCReIEmTj3PAr73O3aoxz7OPg==}
@@ -2388,6 +2413,9 @@ packages:
   '@types/ndarray@1.1.0':
     resolution: {integrity: sha512-go+C6vHBUuO9jH6Tj6qEZ63JEGoMSxFdmd+6QAtthGD6xumBfIz3RbNDDs2aoRVLf9naH8lk5jnWy2UHHKgYQQ==}
 
+  '@types/node@11.11.6':
+    resolution: {integrity: sha512-Exw4yUWMBXM3X+8oqzJNRqZSwUAaS4+7NdvHqQuFi/d+synz++xmX3QIf+BFqneW8N31R8Ky+sikfZUXq07ggQ==}
+
   '@types/node@12.20.55':
     resolution: {integrity: sha512-J8xLz7q2OFulZ2cyGTLE1TbbZcjpno7FaN6zdJNrgAdrJ+DZzh/uFR6YrTb4C+nXakvud8Q4+rbhoIWlYQbUFQ==}
 
@@ -2880,6 +2908,12 @@ packages:
   big.js@6.2.2:
     resolution: {integrity: sha512-y/ie+Faknx7sZA5MfGA2xKlu0GDv8RWrXGsmlteyJQ2lvoKv9GBK/fpRMc2qlSoBAgNxrixICFCBefIq8WCQpQ==}
 
+  bip39-light@1.0.7:
+    resolution: {integrity: sha512-WDTmLRQUsiioBdTs9BmSEmkJza+8xfJmptsNJjxnoq3EydSa/ZBXT6rm66KoT3PJIRYMnhSKNR7S9YL1l7R40Q==}
+
+  bip39@3.0.2:
+    resolution: {integrity: sha512-J4E1r2N0tUylTKt07ibXvhpT2c5pyAFgvuA5q1H9uDy6dEGpjV8jmymh3MTYJDLCNbIVClSB9FbND49I6N24MQ==}
+
   blake3-wasm@2.1.5:
     resolution: {integrity: sha512-F1+K8EbfOZE49dtoPtmxUQrpXaBIl3ICvasLh+nJta0xkz+9kF/7uet9fLnwKqhDrmj6g+6K3Tw9yQPUg2ka5g==}
 
@@ -2891,6 +2925,9 @@ packages:
 
   borsh@0.7.0:
     resolution: {integrity: sha512-CLCsZGIBCFnPtkNnieW/a8wmreDmfUtjU2m9yHrzPXIlNbqVs0AQrSatSG6vdNYUqdc83tkQi2eHfF98ubzQLA==}
+
+  borsh@2.0.0:
+    resolution: {integrity: sha512-kc9+BgR3zz9+cjbwM8ODoUB4fs3X3I5A/HtX7LZKxCLaMrEeDFoBpnhZY//DTS1VZBSs6S5v46RZRbZjRFspEg==}
 
   bowser@2.15.0:
     resolution: {integrity: sha512-xic6KSZglg/I4ymp45fdM4GWfYpBK79Fxd/TOvJktlaPgQqqDxvmGwOPZl2V0dyeS3Lj5c180bLhXF43iyAjZQ==}
@@ -2960,6 +2997,10 @@ packages:
   chokidar@5.0.0:
     resolution: {integrity: sha512-TQMmc3w+5AxjpL8iIiwebF73dRDF4fBIieAqGn9RGCWaEVwQ6Fb2cGe31Yns0RRIzii5goJ1Y7xbMwo1TxMplw==}
     engines: {node: '>= 20.19.0'}
+
+  cipher-base@1.0.7:
+    resolution: {integrity: sha512-Mz9QMT5fJe7bKI7MH31UilT5cEK5EHHRCccw/YRFsRY47AuNgaV6HY3rscp0/I4Q+tTW/5zoqpSeRRI54TkDWA==}
+    engines: {node: '>= 0.10'}
 
   cli-cursor@5.0.0:
     resolution: {integrity: sha512-aCj4O5wKyszjMmDT4tZj93kxyydN/K5zPWSCe6/0AV/AA1pqe5ZBIw0a2ZfPQV7lL5/yb5HsUreJ6UFAF1tEQw==}
@@ -3049,6 +3090,12 @@ packages:
     resolution: {integrity: sha512-ROmzCKrTnOwybPcJApAA6WBWij23HVfGVNKqqrZpuyZOHqK2CwHSvpGuyt/UNNvaIjEd8X5IFGp4Mh+Ie1IHJQ==}
     engines: {node: '>=0.8'}
     hasBin: true
+
+  create-hash@1.2.0:
+    resolution: {integrity: sha512-z00bCGNHDG8mHAkP7CtT1qVu+bFQUPjYq/4Iv3C3kWjTFV10zIjfSoeqXo9Asws8gwSHDGj/hl2u4OGIjapeCg==}
+
+  create-hmac@1.1.7:
+    resolution: {integrity: sha512-MJG9liiZ+ogc4TzUwuvbER1JRdgvUFSB5+VR/g5h82fGaIRWMWddtKBHi7/sVhfjQZ6SehlyhvQYrcYkaUIpLg==}
 
   cross-fetch@3.2.0:
     resolution: {integrity: sha512-Q+xVJLoGOeIMXZmbUK4HYk+69cQH6LudR0Vu/pRm2YlU/hDV9CiS0gKUMaWY5f2NeUH9C1nV3bsTlCo0FsTV1Q==}
@@ -3468,6 +3515,12 @@ packages:
   function-bind@1.1.2:
     resolution: {integrity: sha512-7XHNxH7qX9xG5mIwxkhumTox/MIRNcOgDrxWsMt2pAr23WHp6MrRlN7FBSFpCpr+oVO0F744iUgR82nJMfG2SA==}
 
+  generate-function@2.3.1:
+    resolution: {integrity: sha512-eeB5GfMNeevm/GRYq20ShmsaGcmI81kIX2K9XQx5miC8KdHaC6Jm0qQ8ZNeGOi7wYB8OsdxKs+Y2oVuTFuVwKQ==}
+
+  generate-object-property@1.2.0:
+    resolution: {integrity: sha512-TuOwZWgJ2VAMEGJvAyPWvpqxSANF0LDpmyHauMjFYzaACvn+QTT/AZomvPCzVBV7yDN3OmwHQ5OvHaeLKre3JQ==}
+
   generator-function@2.0.1:
     resolution: {integrity: sha512-SFdFmIJi+ybC0vjlHN0ZGVGHc3lgE0DxPAT0djjVg+kjOnSqclqmj0KQ7ykTOLP6YxoqOvuAODGdcHJn+43q3g==}
     engines: {node: '>= 0.4'}
@@ -3525,6 +3578,10 @@ packages:
   has-tostringtag@1.0.2:
     resolution: {integrity: sha512-NqADB8VjPFLM2V0VvHUewwwsw0ZWBaIdgo+ieHtK3hasLz4qeCRjYcqfB6AQrBggRKppKF8L52/VqdVsO47Dlw==}
     engines: {node: '>= 0.4'}
+
+  hash-base@3.1.2:
+    resolution: {integrity: sha512-Bb33KbowVTIj5s7Ked1OsqHUeCpz//tPwR+E2zJgJKo9Z5XolZ9b6bdUgjmYlwnWhoOQKoTd1TYToZGn5mAYOg==}
+    engines: {node: '>= 0.8'}
 
   hashery@1.5.1:
     resolution: {integrity: sha512-iZyKG96/JwPz1N55vj2Ie2vXbhu440zfUfJvSwEqEbeLluk7NnapfGqa7LH0mOsnDxTF85Mx8/dyR6HfqcbmbQ==}
@@ -3627,9 +3684,18 @@ packages:
     resolution: {integrity: sha512-xelSayHH36ZgE7ZWhli7pW34hNbNl8Ojv5KVmkJD4hBdD3th8Tfk9vYasLM+mXWOZhFkgZfxhLSnrwRr4elSSg==}
     engines: {node: '>=0.10.0'}
 
+  is-my-ip-valid@1.0.1:
+    resolution: {integrity: sha512-jxc8cBcOWbNK2i2aTkCZP6i7wkHF1bqKFrwEHuN5Jtg5BSaZHUZQ/JTOJwoV41YvHnOaRyWWh72T/KvfNz9DJg==}
+
+  is-my-json-valid@2.20.6:
+    resolution: {integrity: sha512-1JQwulVNjx8UqkPE/bqDaxtH4PXCe/2VRh/y3p99heOV87HG4Id5/VfDswd+YiAfHcRTfDlWgISycnHuhZq1aw==}
+
   is-number@7.0.0:
     resolution: {integrity: sha512-41Cifkg6e8TylSpdtTpeLVMqvSBEVzTttHvERD741+pnZ8ANv0004MRL43QKPDlK9cGvNp6NZWZUBlbGXYxxng==}
     engines: {node: '>=0.12.0'}
+
+  is-property@1.0.2:
+    resolution: {integrity: sha512-Ks/IoX00TtClbGQr4TWXemAnktAQvYB7HzcCxDGqEZU6oCmb2INHuOoKxbtR+HFkmYWBKv/dOZtGRiAjDhj92g==}
 
   is-regex@1.2.1:
     resolution: {integrity: sha512-MjYsKHO5O7mCsmRGxWcLWheFqN9DJ/2TmngvjKXihe6efViPqc274+Fx/4fYj/r03+ESvBdTXK0V6tA3rgez1g==}
@@ -3716,6 +3782,10 @@ packages:
 
   json-stringify-safe@5.0.1:
     resolution: {integrity: sha512-ZClg6AaYvamvYEE82d3Iyd3vSSIjQ+odgjaTzRuO3s7toCdFKczob2i0zCh7JE8kWn17yvAWhUVxvqGwUalsRA==}
+
+  jsonpointer@5.0.1:
+    resolution: {integrity: sha512-p/nXbhSEcu3pZRdkW1OfJhpsVtW1gd4Wa1fnQc9YLiTfAjn0312eMKimbdIQzuZl9aa9xUGaRlP9T/CJE/ditQ==}
+    engines: {node: '>=0.10.0'}
 
   keccak@3.0.4:
     resolution: {integrity: sha512-3vKuW0jV8J3XNTzvfyicFR5qvxrSAGl7KIhvgOu5cmWwM7tZRj3fMbj/pfIf4be7aznbc+prBWGjywox/g2Y6Q==}
@@ -3901,6 +3971,9 @@ packages:
     resolution: {integrity: sha512-/IXtbwEk5HTPyEwyKX6hGkYXxM9nbj64B+ilVJnC/R6B0pH5G4V3b0pVbL7DBj4tkhBAppbQUlf6F6Xl9LHu1g==}
     engines: {node: '>= 0.4'}
 
+  md5.js@1.3.5:
+    resolution: {integrity: sha512-xitP+WxNPcTTOgnTJcrhM0xvdPepipPSf3I8EIpGKeFLjt3PlJLIDG3u8EX53ZIubkb+5U2+3rELYpEhHhzdkg==}
+
   md5@2.3.0:
     resolution: {integrity: sha512-T1GITYmFaKuO91vxyoQMFETst+O71VUPEU3ze5GNzDm0OWdP8v1ziTaAEPUr/3kLsY3Sftgz242A1SetQiDL7g==}
 
@@ -3987,6 +4060,16 @@ packages:
 
   ndarray@1.1.1:
     resolution: {integrity: sha512-AsE8w/M2MS+0pD3nP5qbRRtJFeJJJaJ+qXZaZr0XjVGXhy6LIj2TERTlkpdK2AI3WufoOP+pwPk3q2ilAJcZ9g==}
+
+  near-api-js@7.4.0:
+    resolution: {integrity: sha512-n5BDLKC8zEkSZpvDkcMifiJKTZBCR54lVL4qAP4WfP98raRb339YxncRV2kL+h3eDDqA/nVBDCTH8iNvzH5PfA==}
+    engines: {node: '>=22.22.2', pnpm: '>=10.4.1'}
+
+  near-hd-key@1.2.1:
+    resolution: {integrity: sha512-SIrthcL5Wc0sps+2e1xGj3zceEa68TgNZDLuCx0daxmfTP7sFTB3/mtE2pYhlFsCxWoMn+JfID5E1NlzvvbRJg==}
+
+  near-seed-phrase@0.2.1:
+    resolution: {integrity: sha512-feMuums+kVL3LSuPcP4ld07xHCb2mu6z48SGfP3W+8tl1Qm5xIcjiQzY2IDPBvFgajRDxWSb8GzsRHoInazByw==}
 
   node-addon-api@2.0.2:
     resolution: {integrity: sha512-Ntyt4AIXyaLIuMHF6IOoTakB3K+RWxwtsHNRxllEoA6vPwP9o4866g6YWDLUdnucilZhmkxiHwHr11gAENw+QA==}
@@ -4139,6 +4222,10 @@ packages:
 
   pathe@2.0.3:
     resolution: {integrity: sha512-WUjGcAqP1gQacoQe+OBJsFA7Ld4DyXuUIjZ5cc75cLHvJ7dtNsTugphxIADwspS+AraAUePCKrSVtPLFj/F88w==}
+
+  pbkdf2@3.1.7:
+    resolution: {integrity: sha512-nS4mvFgVwUrecPTRdpdseM2fwpdfnX0/HibA8DgBRQtihUAzHQYJFU2l+OlEtiXtpqkrMvCPDwyXMUnASDt6Qw==}
+    engines: {node: '>= 0.10'}
 
   pg-cloudflare@1.4.1:
     resolution: {integrity: sha512-6PQbsFWZcp9EmJEwy5cGQ2La+AMWpP46lgbb8X+U/XsHIUweYDNCpeuKck5RxL2MdVFi7krbbEi5nX4Zh7JhrQ==}
@@ -4372,6 +4459,9 @@ packages:
   radix3@1.1.2:
     resolution: {integrity: sha512-b484I/7b8rDEdSDKckSSBA8knMpcdsXudlE/LNL639wFoHKwLbEkQFZHWEYwDC0wa0FKUcCY+GAF73Z7wxNVFA==}
 
+  randombytes@2.1.0:
+    resolution: {integrity: sha512-vYl3iOX+4CKUWuxGi9Ukhie6fsqXqS9FE2Zaic4tNFD2N2QQaXOMFbuKK4QmDHC0JO6B1Zp41J0LpT0oR68amQ==}
+
   react-aria@3.53.1:
     resolution: {integrity: sha512-dikisyOjJd3D2fFrIDWmVWzqiLz5B86GzZv1zxs7xI4dVc0JIz/1Wa52I20gYvVL2WXeFXlygYsle/QcOMhtcg==}
     peerDependencies:
@@ -4452,6 +4542,10 @@ packages:
 
   rfdc@1.4.1:
     resolution: {integrity: sha512-q1b3N5QkRUWUl7iyylaaj3kOpIT0N2i9MqIEQXP73GVsN9cw3fdx8X63cEmWhJGi2PPCF23Ijp7ktmd39rawIA==}
+
+  ripemd160@2.0.3:
+    resolution: {integrity: sha512-5Di9UC0+8h1L6ZD2d7awM7E/T4uA1fJRlx6zk/NvdCCVEoAnFqvHmCuNeIKoCeIixBX/q8uM+6ycDvF8woqosA==}
+    engines: {node: '>= 0.8'}
 
   rolldown@1.2.15:
     resolution: {integrity: sha512-6odND+fel5zVw3I4Yc2e69gvguDnX0CAAGiNDZSq4ik5WUcaLrkD2GLuog0XcODbor31hZ5ayEMgVDno+KPV5g==}
@@ -4785,6 +4879,9 @@ packages:
   turbo@2.11.10:
     resolution: {integrity: sha512-3GJYwig8ygEI89oaOZdduJX8/aw6O9eRPYHoIt6T3FZl9hkKjiyIspufJoVgqXihPoJu8M5CSV0DlZvzfohBCw==}
     hasBin: true
+
+  tweetnacl@1.0.3:
+    resolution: {integrity: sha512-6rt+RN7aOi1nGMyC4Xa5DdYiukl2UWCbcJft7YhxReBGQD7OAM8Pbxw6YMo4r2diNEA8FEmu32YOn9rhaiE5yw==}
 
   type-check@0.4.0:
     resolution: {integrity: sha512-XleUoc9uwGXqjWwXaUTZAmzMcFZ5858QA2vvx1Ur5xIcixXIP+8LnFDgRplU30us6teqdlskFfu+ae4K79Ooew==}
@@ -6333,6 +6430,8 @@ snapshots:
 
   '@noble/ciphers@1.3.0': {}
 
+  '@noble/ciphers@2.2.0': {}
+
   '@noble/curves@1.4.2':
     dependencies:
       '@noble/hashes': 1.4.0
@@ -6357,6 +6456,10 @@ snapshots:
     dependencies:
       '@noble/hashes': 1.8.0
 
+  '@noble/curves@2.2.0':
+    dependencies:
+      '@noble/hashes': 2.2.0
+
   '@noble/hashes@1.3.3': {}
 
   '@noble/hashes@1.4.0': {}
@@ -6366,6 +6469,14 @@ snapshots:
   '@noble/hashes@1.7.1': {}
 
   '@noble/hashes@1.8.0': {}
+
+  '@noble/hashes@2.2.0': {}
+
+  '@noble/post-quantum@0.6.1':
+    dependencies:
+      '@noble/ciphers': 2.2.0
+      '@noble/curves': 2.2.0
+      '@noble/hashes': 2.2.0
 
   '@oxc-project/types@0.155.0': {}
 
@@ -7178,6 +7289,8 @@ snapshots:
   '@scure/base@1.1.9': {}
 
   '@scure/base@1.2.6': {}
+
+  '@scure/base@2.2.0': {}
 
   '@scure/bip32@1.4.0':
     dependencies:
@@ -8380,6 +8493,8 @@ snapshots:
   '@types/ms@2.1.0': {}
 
   '@types/ndarray@1.1.0': {}
+
+  '@types/node@11.11.6': {}
 
   '@types/node@12.20.55': {}
 
@@ -9774,6 +9889,18 @@ snapshots:
 
   big.js@6.2.2: {}
 
+  bip39-light@1.0.7:
+    dependencies:
+      create-hash: 1.2.0
+      pbkdf2: 3.1.7
+
+  bip39@3.0.2:
+    dependencies:
+      '@types/node': 11.11.6
+      create-hash: 1.2.0
+      pbkdf2: 3.1.7
+      randombytes: 2.1.0
+
   blake3-wasm@2.1.5: {}
 
   blakejs@1.2.1: {}
@@ -9785,6 +9912,8 @@ snapshots:
       bn.js: 5.2.5
       bs58: 4.0.1
       text-encoding-utf-8: 1.0.2
+
+  borsh@2.0.0: {}
 
   bowser@2.15.0: {}
 
@@ -9861,6 +9990,12 @@ snapshots:
     dependencies:
       readdirp: 5.1.1
 
+  cipher-base@1.0.7:
+    dependencies:
+      inherits: 2.0.4
+      safe-buffer: 5.2.1
+      to-buffer: 1.2.2
+
   cli-cursor@5.0.0:
     dependencies:
       restore-cursor: 5.1.0
@@ -9934,6 +10069,23 @@ snapshots:
   core-util-is@1.0.3: {}
 
   crc-32@1.2.2: {}
+
+  create-hash@1.2.0:
+    dependencies:
+      cipher-base: 1.0.7
+      inherits: 2.0.4
+      md5.js: 1.3.5
+      ripemd160: 2.0.3
+      sha.js: 2.4.12
+
+  create-hmac@1.1.7:
+    dependencies:
+      cipher-base: 1.0.7
+      create-hash: 1.2.0
+      inherits: 2.0.4
+      ripemd160: 2.0.3
+      safe-buffer: 5.2.1
+      sha.js: 2.4.12
 
   cross-fetch@3.2.0:
     dependencies:
@@ -10385,6 +10537,14 @@ snapshots:
 
   function-bind@1.1.2: {}
 
+  generate-function@2.3.1:
+    dependencies:
+      is-property: 1.0.2
+
+  generate-object-property@1.2.0:
+    dependencies:
+      is-property: 1.0.2
+
   generator-function@2.0.1: {}
 
   get-caller-file@2.0.5: {}
@@ -10451,6 +10611,13 @@ snapshots:
   has-tostringtag@1.0.2:
     dependencies:
       has-symbols: 1.1.0
+
+  hash-base@3.1.2:
+    dependencies:
+      inherits: 2.0.4
+      readable-stream: 2.3.8
+      safe-buffer: 5.2.1
+      to-buffer: 1.2.2
 
   hashery@1.5.1:
     dependencies:
@@ -10532,7 +10699,19 @@ snapshots:
     dependencies:
       is-extglob: 2.1.1
 
+  is-my-ip-valid@1.0.1: {}
+
+  is-my-json-valid@2.20.6:
+    dependencies:
+      generate-function: 2.3.1
+      generate-object-property: 1.2.0
+      is-my-ip-valid: 1.0.1
+      jsonpointer: 5.0.1
+      xtend: 4.0.2
+
   is-number@7.0.0: {}
+
+  is-property@1.0.2: {}
 
   is-regex@1.2.1:
     dependencies:
@@ -10628,6 +10807,8 @@ snapshots:
   json-stable-stringify-without-jsonify@1.0.1: {}
 
   json-stringify-safe@5.0.1: {}
+
+  jsonpointer@5.0.1: {}
 
   keccak@3.0.4:
     dependencies:
@@ -10812,6 +10993,12 @@ snapshots:
 
   math-intrinsics@1.1.0: {}
 
+  md5.js@1.3.5:
+    dependencies:
+      hash-base: 3.1.2
+      inherits: 2.0.4
+      safe-buffer: 5.2.1
+
   md5@2.3.0:
     dependencies:
       charenc: 0.0.2
@@ -10900,6 +11087,29 @@ snapshots:
     dependencies:
       iota-array: 1.0.0
       is-buffer: 1.1.6
+
+  near-api-js@7.4.0:
+    dependencies:
+      '@noble/curves': 2.2.0
+      '@noble/hashes': 2.2.0
+      '@noble/post-quantum': 0.6.1
+      '@scure/base': 2.2.0
+      borsh: 2.0.0
+      is-my-json-valid: 2.20.6
+      near-seed-phrase: 0.2.1
+
+  near-hd-key@1.2.1:
+    dependencies:
+      bip39: 3.0.2
+      create-hmac: 1.1.7
+      tweetnacl: 1.0.3
+
+  near-seed-phrase@0.2.1:
+    dependencies:
+      bip39-light: 1.0.7
+      bs58: 4.0.1
+      near-hd-key: 1.2.1
+      tweetnacl: 1.0.3
 
   node-addon-api@2.0.2: {}
 
@@ -11111,6 +11321,15 @@ snapshots:
   path-to-regexp@6.3.0: {}
 
   pathe@2.0.3: {}
+
+  pbkdf2@3.1.7:
+    dependencies:
+      create-hash: 1.2.0
+      create-hmac: 1.1.7
+      ripemd160: 2.0.3
+      safe-buffer: 5.2.1
+      sha.js: 2.4.12
+      to-buffer: 1.2.2
 
   pg-cloudflare@1.4.1:
     optional: true
@@ -11344,6 +11563,10 @@ snapshots:
 
   radix3@1.1.2: {}
 
+  randombytes@2.1.0:
+    dependencies:
+      safe-buffer: 5.2.1
+
   react-aria@3.53.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1):
     dependencies:
       '@internationalized/date': 3.12.4
@@ -11431,6 +11654,11 @@ snapshots:
   reusify@1.1.0: {}
 
   rfdc@1.4.1: {}
+
+  ripemd160@2.0.3:
+    dependencies:
+      hash-base: 3.1.2
+      inherits: 2.0.4
 
   rolldown@1.2.15:
     dependencies:
@@ -11790,6 +12018,8 @@ snapshots:
       '@turbo/linux-arm64': 2.11.10
       '@turbo/windows-64': 2.11.10
       '@turbo/windows-arm64': 2.11.10
+
+  tweetnacl@1.0.3: {}
 
   type-check@0.4.0:
     dependencies:
