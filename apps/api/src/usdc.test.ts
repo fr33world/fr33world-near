@@ -97,7 +97,12 @@ afterAll(async () => {
 });
 beforeEach(async () => {
   chain = new FakeChain();
-  d = { db, chain, walletOf: async () => `${'a'.repeat(62)}${String(n).padStart(2, '0')}` };
+  d = {
+    db,
+    chain,
+    confirmGapMs: 1,
+    walletOf: async () => `${'a'.repeat(62)}${String(n).padStart(2, '0')}`,
+  };
   await db.query('truncate business_sales, business_stock');
   for (const g of GOODS)
     await db.query("insert into business_stock (business, good, qty) values ('market', $1, 10)", [

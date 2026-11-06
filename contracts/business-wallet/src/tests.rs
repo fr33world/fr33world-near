@@ -248,3 +248,64 @@ fn a_new_supplier_can_be_paid_after_the_wait() {
     let _ = w.pay_supplier("o-1".into(), id("mill.testnet"), U128(10));
     assert_eq!(w.summary().balance.0, 490);
 }
+
+fn as_self() {
+    testing_env!(VMContextBuilder::new()
+        .current_account_id(id("market.testnet"))
+        .predecessor_account_id(id("market.testnet"))
+        .block_timestamp(5 * DAY_NS)
+        .build());
+}
+
+#[test]
+fn a_supplier_that_refused_part_gets_only_what_moved() {
+    let mut w = funded(500);
+    let _ = w.pay_supplier("o-1".into(), id("farm.testnet"), U128(80));
+    as_self();
+    w.on_order_paid("o-1".into(), Ok(U128(30)));
+    assert_eq!(w.summary().balance.0, 470);
+    assert_eq!(w.get_order("o-1".into()).unwrap().status, Status::Failed);
+}
+
+#[test]
+fn a_paid_order_is_marked_paid() {
+    let mut w = funded(500);
+    let _ = w.pay_supplier("o-1".into(), id("farm.testnet"), U128(80));
+    as_self();
+    w.on_order_paid("o-1".into(), Ok(U128(80)));
+    assert_eq!(w.get_order("o-1".into()).unwrap().status, Status::Paid);
+    assert_eq!(w.summary().balance.0, 420);
+}
+
+#[test]
+fn sync_counts_money_sent_without_a_message() {
+    let mut w = funded(500);
+    as_self();
+    w.on_synced(Ok(U128(700)));
+    assert_eq!(w.summary().balance.0, 700);
+}
+
+#[test]
+fn sync_never_lowers_the_books() {
+    let mut w = funded(500);
+    as_self();
+    w.on_synced(Ok(U128(100)));
+    assert_eq!(w.summary().balance.0, 500);
+}
+
+#[test]
+#[should_panic(expected = "a payment is in flight")]
+fn sync_waits_for_payments_in_flight() {
+    let mut w = funded(500);
+    let _ = w.pay_supplier("o-1".into(), id("farm.testnet"), U128(80));
+    let _ = w.sync();
+}
+
+#[test]
+fn sync_ignores_an_answer_overtaken_by_a_payment() {
+    let mut w = funded(500);
+    let _ = w.pay_supplier("o-1".into(), id("farm.testnet"), U128(80));
+    as_self();
+    w.on_synced(Ok(U128(500)));
+    assert_eq!(w.summary().balance.0, 420);
+}

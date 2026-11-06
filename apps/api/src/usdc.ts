@@ -37,6 +37,8 @@ export interface UsdcDeps {
   chain: PlayerChain;
   /** The player's NEAR wallet according to Privy (never the client's word). */
   walletOf: (privyUser: string) => Promise<string | null>;
+  /** Between looks for a payment on chain (ms). */
+  confirmGapMs?: number;
 }
 
 const MAX_CARRY = 5;
@@ -180,6 +182,16 @@ export async function startSale(d: UsdcDeps, privyUser: string, body: { good?: u
   return { sale: id, micro, ...prepared };
 }
 
+/** The sale on chain, allowing a node a few seconds to catch up with a payment just sent. */
+async function confirmed(d: UsdcDeps, wallet: string, sale: string): Promise<string | null> {
+  for (let i = 0; i < 5; i += 1) {
+    const paid = await d.chain.getSale(wallet, sale);
+    if (paid !== null) return paid;
+    await new Promise((r) => setTimeout(r, d.confirmGapMs ?? 1000));
+  }
+  return null;
+}
+
 /** Sends the signed payment, then hands over the goods only if the chain shows it paid in full. */
 export async function finishSale(
   d: UsdcDeps,
@@ -201,7 +213,7 @@ export async function finishSale(
   let sent: string | null = null;
   if (row.status !== 'confirmed' && !(await d.chain.getSale(wallet, sale)))
     sent = (await d.chain.submit(me.near, tx, signature)).tx;
-  const paid = await d.chain.getSale(wallet, sale);
+  const paid = await confirmed(d, wallet, sale);
   if (paid === null || BigInt(paid) !== BigInt(row.amount))
     throw new BankError('The payment didn’t arrive.', 402);
   return inTx(d.db, async (t) => {

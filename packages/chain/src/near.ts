@@ -19,6 +19,7 @@ import {
   baseEncode,
   decodeTransaction,
   encodeTransaction,
+  FailoverRpcProvider,
   JsonRpcProvider,
   type KeyPairString,
   KeyType,
@@ -39,6 +40,19 @@ export interface NearConfig {
 /** The test USDC testnet's faucet gives out. Circle's own testnet token has no open faucet. */
 export const TEST_USDC = 'usdc.fakes.testnet';
 const RPC = { testnet: 'https://test.rpc.fastnear.com', mainnet: 'https://free.rpc.fastnear.com' };
+/** A second endpoint: a public RPC resets connections now and then. */
+const BACKUP_RPC = {
+  testnet: 'https://rpc.testnet.near.org',
+  mainnet: 'https://rpc.mainnet.near.org',
+};
+
+/** The network's RPC with a fallback. */
+export function nearProvider(cfg: NearConfig): FailoverRpcProvider {
+  return new FailoverRpcProvider([
+    new JsonRpcProvider({ url: cfg.rpcUrl }),
+    new JsonRpcProvider({ url: BACKUP_RPC[cfg.network] }),
+  ]);
+}
 
 export function nearConfig(env: Record<string, string | undefined> = process.env): NearConfig {
   const network = (env.NEAR_NETWORK ?? 'testnet') as NearConfig['network'];
@@ -92,29 +106,32 @@ export interface Sent {
   tx: string;
 }
 
-const GAS = teraToGas('60');
+const GAS = teraToGas('120');
 const YOCTO = 1n;
 /** What the USDC contract charges to register an account (0.00125 NEAR). */
 const REGISTER = 1_250_000_000_000_000_000_000n;
-/** A new player's gas money: enough for many sends, and the game pays it, not them. */
-const PLAYER_GAS = '0.02';
+/**
+ * A new player's gas money, paid by the game. NEAR wants the whole prepaid gas up front and
+ * refunds what's unused, so this must cover the biggest call; a send really costs far less.
+ */
+const PLAYER_GAS = '0.08';
 
 export class NearEconomy {
   readonly cfg: NearConfig;
-  private readonly provider: JsonRpcProvider;
+  private readonly provider: FailoverRpcProvider;
   private readonly operator: Account | null;
   /** One at a time: an access key's nonce can't take two transactions at once. */
   private queue: Promise<unknown> = Promise.resolve();
 
   constructor(cfg: NearConfig, operatorKey?: string) {
     this.cfg = cfg;
-    this.provider = new JsonRpcProvider({ url: cfg.rpcUrl });
+    this.provider = nearProvider(cfg);
     this.operator = operatorKey
       ? new Account(cfg.operator, this.provider, operatorKey as KeyPairString)
       : null;
   }
 
-  rpc(): JsonRpcProvider {
+  rpc(): FailoverRpcProvider {
     return this.provider;
   }
 
@@ -128,7 +145,13 @@ export class NearEconomy {
     method: string,
     args: Record<string, unknown> = {},
   ): Promise<T> {
-    return this.provider.callFunction({ contractId, method, args }) as Promise<T>;
+    // Latest state: a write just confirmed must be visible to the next read.
+    return this.provider.callFunction({
+      contractId,
+      method,
+      args,
+      blockQuery: { finality: 'optimistic' },
+    }) as Promise<T>;
   }
 
   private call(
@@ -162,6 +185,11 @@ export class NearEconomy {
 
   getSale(wallet: string, saleId: string): Promise<string | null> {
     return this.view(wallet, 'get_sale', { sale_id: saleId });
+  }
+
+  /** Counts USDC sent to a wallet by a plain transfer. */
+  sync(wallet: string): Promise<Sent> {
+    return this.call(wallet, 'sync', {});
   }
 
   /** USDC an account holds at the token contract, in micro-USDC. */
@@ -259,7 +287,7 @@ export async function prepareSpend(
           amount: String(spend.amount),
           ...(spend.msg === undefined ? {} : { msg: spend.msg }),
         },
-        teraToGas('100'),
+        teraToGas(spend.method === 'ft_transfer' ? '20' : '70'),
         YOCTO,
       ),
     ],

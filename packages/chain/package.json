@@ -9,7 +9,8 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "spike": "node --env-file-if-exists=../../.env src/spike.ts",
-    "deploy:near": "node --env-file=../../.env src/deploy.ts"
+    "deploy:near": "node --env-file=../../.env src/deploy.ts",
+    "smoke:near": "node --env-file=../../.env src/smoke.ts"
   },
   "dependencies": {
     "@fr33world/shared": "workspace:*",

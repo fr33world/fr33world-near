@@ -21,6 +21,8 @@ const DAY_NS: u64 = 86_400_000_000_000;
 /// How long a supplier added after setup waits before it can be paid.
 const SUPPLIER_DELAY_NS: u64 = DAY_NS;
 const GAS_FT_TRANSFER: Gas = Gas::from_tgas(15);
+const GAS_FT_TRANSFER_CALL: Gas = Gas::from_tgas(50);
+const GAS_FT_BALANCE: Gas = Gas::from_tgas(5);
 const GAS_CALLBACK: Gas = Gas::from_tgas(10);
 const MAX_ID: usize = 64;
 
@@ -101,6 +103,8 @@ pub struct BusinessWallet {
     balance: u128,
     /// Held for open jobs; can't be spent on anything else.
     reserved: u128,
+    /// Sent to the token contract and not yet answered: `sync` waits while there is any.
+    in_flight: u128,
     day: u64,
     spent_today: u128,
     /// Each approved supplier, and when it can first be paid.
@@ -114,6 +118,14 @@ pub struct BusinessWallet {
 #[allow(dead_code)]
 trait FungibleToken {
     fn ft_transfer(&mut self, receiver_id: AccountId, amount: U128, memo: Option<String>);
+    fn ft_transfer_call(
+        &mut self,
+        receiver_id: AccountId,
+        amount: U128,
+        memo: Option<String>,
+        msg: String,
+    ) -> U128;
+    fn ft_balance_of(&self, account_id: AccountId) -> U128;
 }
 
 fn event(kind: &str, data: String) {
@@ -158,6 +170,7 @@ impl BusinessWallet {
             per_day: per_day.0,
             balance: 0,
             reserved: 0,
+            in_flight: 0,
             day: 0,
             spent_today: 0,
             suppliers: approved,
@@ -208,10 +221,11 @@ impl BusinessWallet {
             order_id.clone(),
             Order { to: to.clone(), amount, status: Status::Pending },
         );
+        // A call, not a plain transfer: the supplier's own wallet has to hear about the money.
         ext_ft::ext(self.usdc.clone())
             .with_attached_deposit(NearToken::from_yoctonear(1))
-            .with_static_gas(GAS_FT_TRANSFER)
-            .ft_transfer(to, amount, Some(order_id.clone()))
+            .with_static_gas(GAS_FT_TRANSFER_CALL)
+            .ft_transfer_call(to, amount, Some(order_id.clone()), order_id.clone())
             .then(
                 Self::ext(env::current_account_id())
                     .with_static_gas(GAS_CALLBACK)
@@ -288,10 +302,13 @@ impl BusinessWallet {
     pub fn on_order_paid(
         &mut self,
         order_id: String,
-        #[callback_result] result: Result<(), PromiseError>,
+        #[callback_result] result: Result<U128, PromiseError>,
     ) {
         let mut order = self.orders.get(&order_id).expect("no order").clone();
-        if result.is_ok() {
+        self.in_flight -= order.amount.0;
+        // What the token says it really moved: anything less comes back to this wallet.
+        let moved = result.map(|used| used.0).unwrap_or(0);
+        if moved == order.amount.0 {
             order.status = Status::Paid;
             event(
                 "order_paid",
@@ -302,7 +319,7 @@ impl BusinessWallet {
             );
         } else {
             order.status = Status::Failed;
-            self.refund(order.amount.0);
+            self.refund(order.amount.0 - moved);
             event("order_failed", format!("{{\"order\":\"{}\"}}", order_id));
         }
         self.orders.insert(order_id, order);
@@ -315,6 +332,7 @@ impl BusinessWallet {
         #[callback_result] result: Result<(), PromiseError>,
     ) {
         let mut job = self.job(&job_id);
+        self.in_flight -= job.amount.0;
         if result.is_ok() {
             job.status = JobStatus::Paid;
             event(
@@ -334,6 +352,31 @@ impl BusinessWallet {
             event("job_payment_failed", format!("{{\"job\":\"{}\"}}", job_id));
         }
         self.jobs.insert(job_id, job);
+    }
+
+    // ---- Money that arrived without a message --------------------------------------------
+
+    /// Counts USDC sent here by a plain transfer, which this wallet never hears about. Anyone
+    /// may call it: it only ever raises the books to what the token contract says is here.
+    pub fn sync(&mut self) -> Promise {
+        require!(self.in_flight == 0, "a payment is in flight");
+        ext_ft::ext(self.usdc.clone())
+            .with_static_gas(GAS_FT_BALANCE)
+            .ft_balance_of(env::current_account_id())
+            .then(Self::ext(env::current_account_id()).with_static_gas(GAS_CALLBACK).on_synced())
+    }
+
+    #[private]
+    pub fn on_synced(&mut self, #[callback_result] result: Result<U128, PromiseError>) {
+        let Ok(actual) = result else { return };
+        // A payment started since the question was asked would look like extra money.
+        if self.in_flight == 0 && actual.0 > self.balance {
+            event(
+                "synced",
+                format!("{{\"found\":\"{}\"}}", actual.0 - self.balance),
+            );
+            self.balance = actual.0;
+        }
     }
 
     // ---- The admin: limits and suppliers, never money --------------------------------------
@@ -430,6 +473,7 @@ impl BusinessWallet {
         self.day = today;
         self.spent_today = spent;
         self.balance -= amount;
+        self.in_flight += amount;
     }
 
     /// A payment that failed: the money never left, so it's back in the balance and allowance.

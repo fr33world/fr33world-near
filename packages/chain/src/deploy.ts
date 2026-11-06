@@ -3,6 +3,8 @@
  * wallet contract per business (shared BUSINESSES), each registered to hold USDC.
  *
  *   node --env-file=../../.env src/deploy.ts          create what's missing
+ *   node --env-file=../../.env src/deploy.ts --upgrade  new code on existing wallets, state kept
+ *   node --env-file=../../.env src/deploy.ts --reset    testnet: remake the wallets from nothing
  *   node --env-file=../../.env src/deploy.ts --lock   also remove the business accounts' keys,
  *                                                     so their code can never be changed
  *
@@ -10,8 +12,8 @@
  */
 import { appendFileSync, readFileSync } from 'node:fs';
 import { BUSINESSES, type Business } from '@fr33world/shared';
-import { Account, JsonRpcProvider, KeyPair, type KeyPairString, nearToYocto } from 'near-api-js';
-import { nearConfig } from './near.ts';
+import { Account, KeyPair, type KeyPairString, nearToYocto } from 'near-api-js';
+import { nearConfig, nearProvider } from './near.ts';
 
 const WASM = new URL(
   '../../../contracts/business-wallet/target/near/business_wallet.wasm',
@@ -19,7 +21,7 @@ const WASM = new URL(
 );
 const ENV = new URL('../../../.env', import.meta.url);
 const cfg = nearConfig();
-const provider = new JsonRpcProvider({ url: cfg.rpcUrl });
+const provider = nearProvider(cfg);
 const rootKey = process.env.NEAR_ROOT_KEY as KeyPairString | undefined;
 if (!rootKey) throw new Error('NEAR_ROOT_KEY is not set');
 const root = new Account(cfg.root, provider, rootKey);
@@ -50,17 +52,26 @@ async function makeOperator() {
 
 async function makeBusiness(b: Business, code: Uint8Array) {
   const id = `${b.account}.${cfg.root}`;
+  if (process.argv.includes('--reset') && (await exists(id))) {
+    if (cfg.network !== 'testnet') throw new Error('--reset is for testnet');
+    await new Account(id, provider, rootKey).deleteAccount(cfg.root);
+    console.log(`removed ${id}`);
+  }
   if (!(await exists(id))) {
     await root.createSubAccount({
       accountOrPrefix: b.account,
       publicKey: rootPublic,
-      nearToTransfer: nearToYocto('2.2'),
+      nearToTransfer: nearToYocto('2.7'),
     });
     console.log(`made ${id}`);
   }
   const wallet = new Account(id, provider, rootKey);
   const state = await wallet.getState();
   if (/^1+$/.test(String(state.codeHash))) {
+    // The contract's storage needs about 2.4 NEAR held on the account.
+    const need = nearToYocto('2.7');
+    const has = BigInt(String(state.balance.total));
+    if (has < need) await root.transfer({ receiverId: id, amount: need - has });
     await wallet.deployContract(code);
     const supplier = BUSINESSES.find((s) => s.id === b.supplier);
     await wallet.callFunction({
@@ -77,6 +88,9 @@ async function makeBusiness(b: Business, code: Uint8Array) {
       },
     });
     console.log(`deployed ${id}`);
+  } else if (process.argv.includes('--upgrade')) {
+    await wallet.deployContract(code);
+    console.log(`upgraded ${id}`);
   }
   const registered = await provider.callFunction({
     contractId: cfg.usdc,

@@ -45,6 +45,8 @@ export interface EconomyDeps {
   /** Somewhere to say the chain and the database disagree. */
   alert: (text: string) => void;
   now?: () => number;
+  /** Between looks for a payment's answer on chain (ms). */
+  confirmGapMs?: number;
   /** The AI advisor (advisor.ts); without one, businesses simply keep to their rules. */
   ask?: Ask;
 }
@@ -188,6 +190,16 @@ const failed = (db: Db, table: string, id: string, attempts: number, e: unknown)
     [id, (e instanceof Error ? e.message : String(e)).slice(0, 300), backoff(attempts)],
   );
 
+/** Waits a few seconds for the token contract's answer to reach the wallet. */
+async function answered(d: EconomyDeps, wallet: string, id: string) {
+  let chain = await d.chain.getOrder(wallet, id);
+  for (let i = 0; i < 5 && chain?.status === 'pending'; i += 1) {
+    await new Promise((r) => setTimeout(r, d.confirmGapMs ?? 1500));
+    chain = await d.chain.getOrder(wallet, id);
+  }
+  return chain;
+}
+
 /** Pays queued orders. Asks the chain first, so a retry after a timeout never pays twice. */
 async function payOrders(d: EconomyDeps, all: Business[]): Promise<number> {
   const due = await d.db.query<{
@@ -217,8 +229,8 @@ async function payOrders(d: EconomyDeps, all: Business[]): Promise<number> {
             Number(o.amount),
           )
         ).tx;
-        chain = await d.chain.getOrder(wallet, o.id);
-      }
+        chain = await answered(d, wallet, o.id);
+      } else if (chain.status === 'pending') chain = await answered(d, wallet, o.id);
       if (chain?.status === 'paid') {
         await d.db.query(
           `update business_orders set status = 'paid', tx = coalesce($2, tx), last_error = null,
