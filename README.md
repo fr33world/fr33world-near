@@ -32,6 +32,7 @@ Needs Node 24, pnpm and PostgreSQL. No NEAR account is needed for steps 1 to 3.
 
 ## Honest limits
 
+- This public copy leaves out the character animation files, whose licence doesn't allow sharing them on their own. Steps 1 to 4 don't need them. To play with animations, use the hosted game.
 - It runs on NEAR Testnet with `usdc.fakes.testnet`, a community test token from the public faucet, not Circle's USDC. Test USDC has no value. Mainnet needs everything in [docs/mainnet-checklist.md](docs/mainnet-checklist.md).
 - The chain can't see a delivery happen: the game server reports it. That's why limits live in the contract: a compromised server can only do what those allow.
 - Contracts are unaudited. Player-owned businesses are designed for but not built.

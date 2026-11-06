@@ -335,6 +335,9 @@ export class Game {
   tutorial: Tutorial | null = null;
   /** Luz, the city's guide, by the plaza kiosk. */
   private luz: Character | null = null;
+  /** Sunny's clerk: loaded the first time anyone walks in, animated only while they're there. */
+  private clerk: Character | null = null;
+  private clerkAsked = false;
   /** Opens the mining swing for a point (set by the HUD). */
   onTiming: (point: number) => void = () => {};
   /** Opens the city guide (set by the HUD). */
@@ -662,6 +665,18 @@ export class Game {
     luz.root.rotation.y = 0.35;
     this.scene.add(luz.root);
     this.luz = luz;
+  }
+
+  private async addClerk(room: ServiceId, at: { x: number; z: number; yaw: number }) {
+    if (this.clerkAsked) return;
+    this.clerkAsked = true;
+    const look = { ...DEFAULT_APPEARANCE, body: 'female' as const, face: 2, outfit: 4, skin: 2 };
+    const clerk = await Character.load(look, 1).catch(() => null);
+    if (!clerk) return;
+    clerk.root.position.set(at.x, FOOT_LIFT, at.z);
+    clerk.root.rotation.y = at.yaw;
+    this.interiors.place(room, clerk.root);
+    this.clerk = clerk;
   }
 
   /** Saves the tutorial's step (logged in); finishing shows its reward. */
@@ -1840,6 +1855,7 @@ export class Game {
     if (id === this.indoors) return;
     this.indoors = id;
     this.interiors.show(id);
+    if (room?.clerk) void this.addClerk(room.id, room.clerk);
     this.city.group.visible = !room;
     this.hud.indoors = room?.name ?? null;
     this.doorInside = this.layout.points.findIndex(
@@ -2337,6 +2353,7 @@ export class Game {
     // Luz idles, when she's near enough to see.
     if (this.luz && this.luz.root.position.distanceTo(this.camera.position) < 80)
       this.luz.update(dt, 0);
+    if (this.clerk && this.indoors === 'market') this.clerk.update(dt, 0);
     // Blocked players who've come into view since: mute them too (a few times a second).
     if (this.blocked.size > 0 && this.frameNo % 15 === 0) this.applyBlocks();
     this.hud.ping = Math.round(this.net.rtt);

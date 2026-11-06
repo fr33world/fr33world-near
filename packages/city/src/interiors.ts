@@ -99,6 +99,8 @@ export interface Interior {
   props: RoomProp[];
   /** Where you arrive, just inside the door. */
   spawn: { x: number; z: number; yaw: number };
+  /** Someone who works here, standing at the till (world coordinates). */
+  clerk?: { x: number; z: number; yaw: number };
   /** No shooting in here. */
   safe: boolean;
   /** Only this faction's members may go in. */
@@ -721,26 +723,69 @@ function market(x: number, z: number): Interior {
   r.box(3.1, 3.7, 3.66, 3.75, 1.1, 1.44, DARK).glow(3.13, 3.68, 3.63, 3.7, 1.13, 1.41, SCREEN);
   r.label('CHECKOUT', 5.25, 0.68, 4.37, 0, 3, 0.34, '#ffffff', '#1f6e40');
   r.point('till', 5.25, 5.3, Math.PI, "Sunny's Grocery", 2.4);
-  // Three aisles of shelves.
-  const goods = [0xd8504a, 0x3fa7d6, 0xf2c14e, 0x6abf69, 0xf08a3c];
-  for (const [i, sz] of [8.2, 10.6, 13].entries()) {
-    r.block(5, sz, 20, sz + 0.7, 0, 1.9, 0xdfe3e0);
-    for (const y of [0.5, 1.0, 1.5])
-      for (let sx = 5.2; sx < 19.7; sx += 0.62) {
-        const c = goods[((sx * 5 + y * 3 + i) | 0) % goods.length]!;
-        r.box(sx, sz - 0.04, sx + 0.46, sz, y, y + 0.32, c);
-        r.box(sx, sz + 0.7, sx + 0.46, sz + 0.74, y, y + 0.32, c);
+  // Three aisles: shelf boards, and goods of different sizes on both faces.
+  const goods = [0xd8504a, 0x3fa7d6, 0xf2c14e, 0x6abf69, 0xf08a3c, 0xe9e4d8, 0x8a5fbf];
+  const AISLES: [number, string][] = [
+    [8.2, 'DRINKS'],
+    [10.6, 'PANTRY'],
+    [13, 'BAKERY'],
+  ];
+  for (const [i, [sz, name]] of AISLES.entries()) {
+    r.block(5, sz, 20, sz + 0.7, 0, 1.9, 0xc9cec9);
+    r.box(4.95, sz - 0.05, 20.05, sz + 0.75, 1.9, 1.95, 0x8f9692);
+    for (const y of [0.12, 0.72, 1.32]) {
+      r.box(5, sz - 0.14, 20, sz, y - 0.03, y, 0xeef0ee);
+      r.box(5, sz + 0.7, 20, sz + 0.84, y - 0.03, y, 0xeef0ee);
+      for (const [side, z0, z1] of [
+        [0, sz - 0.11, sz],
+        [1, sz + 0.7, sz + 0.81],
+      ] as const) {
+        let sx = 5.1;
+        let n = i * 7 + Math.round(y * 10) + side * 3;
+        while (sx < 19.6) {
+          n = (n * 37 + 11) % 101;
+          const w = 0.14 + (n % 5) * 0.07;
+          const h = 0.2 + (n % 4) * 0.07;
+          r.box(sx, z0, sx + w, z1, y, y + h, goods[n % goods.length]!);
+          sx += w + 0.03 + (n % 3) * 0.02;
+        }
       }
+    }
+    r.label(name, 12.5, 2.72, sz + 0.35, 0, 2.2, 0.4, '#ffffff', '#1f6e40');
   }
-  r.label("SUNNY'S GROCERY", 12, 2.75, 15.95, Math.PI, 7, 0.6, '#ffffff', '#1f6e40');
+  // Fridges along the back wall, lit from inside.
+  r.block(5, 15.2, 20, 15.9, 0, 2.3, 0x3a4044);
+  for (let fx = 5.2; fx < 19.6; fx += 2.4) {
+    r.glow(fx, 15.16, fx + 2.2, 15.2, 0.2, 2.1, 0xdcecf2);
+    for (const y of [0.55, 1.05, 1.55])
+      for (let k = 0; k < 7; k += 1)
+        r.box(
+          fx + 0.1 + k * 0.3,
+          15.08,
+          fx + 0.32 + k * 0.3,
+          15.16,
+          y,
+          y + 0.3,
+          goods[(k + Math.round(y * 2)) % goods.length]!,
+        );
+  }
+  // Fruit and vegetables by the door.
+  for (const [i, bx] of [14.6, 17, 19.4].entries()) {
+    r.block(bx, 3, bx + 2.2, 4.4, 0, 0.72, 0x8a6a45, 'wood');
+    r.box(bx + 0.08, 3.08, bx + 2.12, 4.32, 0.72, 0.86, [0xd8504a, 0xf2c14e, 0x6abf69][i]!);
+  }
+  r.label('FRESH PRODUCE', 18, 1.5, 4.42, 0, 3.4, 0.4, '#ffffff', '#2f9e5b');
   r.prop('plant', 1.1, 1.1, 0).prop('plant', 22.9, 1.1, 1);
   r.stop(0.8, 0.8, 1.4, 1.4, 1).stop(22.6, 0.8, 23.2, 1.4, 1);
-  return r.done(
-    'market',
-    "Sunny's Grocery",
-    { x: 12, z: DOOR.spawnZ, yaw: 0 },
-    { safe: true, members: false, accent: 0x7def06 },
-  );
+  return {
+    ...r.done(
+      'market',
+      "Sunny's Grocery",
+      { x: 12, z: DOOR.spawnZ, yaw: 0 },
+      { safe: true, members: false, accent: 0x7def06 },
+    ),
+    clerk: { x: r.x + 5.25, z: r.z + 2.6, yaw: 0 },
+  };
 }
 
 export const INTERIORS: Record<ServiceId, Interior> = {

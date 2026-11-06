@@ -313,6 +313,11 @@ export class InteriorsView {
     this.group.name = 'interiors';
   }
 
+  /** Puts something in a room, so it shows and hides with it. */
+  place(id: ServiceId, thing: THREE.Object3D): void {
+    this.built.get(id)?.add(thing);
+  }
+
   /** Shows one room (built the first time), or none. */
   show(id: ServiceId | null): void {
     if (id === this.shown) return;
