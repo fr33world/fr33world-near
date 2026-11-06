@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Los Soles Economy</title>
+    <link rel="stylesheet" href="/economy.css" />
+  </head>
+  <body>
+    <main>
+      <h1>The Los Soles economy</h1>
+      <p class="lead">
+        Every business here runs itself and holds its own wallet on NEAR. All USDC comes from
+        players: the game adds none, and nobody can sweep a wallet. Balances below are read from the
+        chain. This is testnet: test USDC has no real value.
+      </p>
+      <p id="state" class="note">Loading…</p>
+      <section id="businesses" class="cards"></section>
+      <h2>Why they did it</h2>
+      <ul id="decisions" class="list"></ul>
+      <h2>Payments between businesses</h2>
+      <ul id="orders" class="list"></ul>
+      <h2>Delivery jobs for players</h2>
+      <ul id="jobs" class="list"></ul>
+    </main>
+    <script type="module" src="/economy.js"></script>
+  </body>
+</html>

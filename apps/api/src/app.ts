@@ -513,7 +513,10 @@ export function buildApp(deps: AppDeps): FastifyInstance {
     if (deps.economy) await settleJobs(deps.economy);
     return { ok: true };
   });
-  app.get('/v1/economy', () => economyView(deps.db));
+  app.get('/v1/economy', () => {
+    const chain = deps.economy?.chain;
+    return economyView(deps.db, chain ? (account) => chain.summary(account) : undefined);
+  });
   app.get('/v1/market/shelf', () => shelf(deps.db));
   app.post('/v1/economy/tick', async (req, reply) => {
     if (limited(req.ip, 'tick', 6)) return reply.code(429).send();

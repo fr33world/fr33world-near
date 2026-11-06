@@ -21,6 +21,7 @@ import {
   unitPrice,
   VAN_AFTER_MS,
 } from '@fr33world/shared';
+import { advise, type Ask } from './advisor.ts';
 import { BankError } from './bank.ts';
 import type { Db, Tx } from './db.ts';
 import { inTx } from './db.ts';
@@ -44,6 +45,8 @@ export interface EconomyDeps {
   /** Somewhere to say the chain and the database disagree. */
   alert: (text: string) => void;
   now?: () => number;
+  /** The AI advisor (advisor.ts); without one, businesses simply keep to their rules. */
+  ask?: Ask;
 }
 
 const byId = (id: string) => BUSINESSES.find((b) => b.id === id) as Business;
@@ -404,6 +407,20 @@ export async function reconcile(d: EconomyDeps): Promise<number> {
   return bad;
 }
 
+/** Asks the advisor once a day at most: it's for slow changes, not routine work. */
+async function adviseDaily(d: EconomyDeps): Promise<void> {
+  if (!d.ask) return;
+  const r = await d.db.query(
+    `select 1 from business_decisions
+     where source = 'ai' and at > now() - interval '1 day' limit 1`,
+  );
+  if (r.rowCount) return;
+  await advise(d.db, d.ask, async (b) => {
+    const s = await d.chain.summary(d.chain.accountOf(b.account));
+    return Number(BigInt(s.balance) - BigInt(s.reserved));
+  });
+}
+
 export interface TickResult {
   ran: boolean;
   ordered: number;
@@ -433,6 +450,7 @@ export async function tick(d: EconomyDeps, minGapS = 600): Promise<TickResult> {
   const offered = await offerJobs(d, all);
   await runJobs(d, all);
   const mismatches = await reconcile(d);
+  await adviseDaily(d);
   await d.db.query('update businesses set last_tick = now()');
   return { ran: true, ordered, paid, offered, vans: late, mismatches };
 }

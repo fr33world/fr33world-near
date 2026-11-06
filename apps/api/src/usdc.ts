@@ -292,7 +292,10 @@ export async function finishSend(
 }
 
 /** The public view of the economy: no login, so anyone can check it against the chain. */
-export async function economyView(db: Db) {
+export async function economyView(
+  db: Db,
+  summary?: (account: string) => Promise<{ balance: string; reserved: string }>,
+) {
   const [businesses, stock, orders, jobs, decisions] = await Promise.all([
     db.query('select id, account, name, markup, target, last_tick from businesses order by id'),
     db.query('select business, good, qty from business_stock order by business, good'),
@@ -309,8 +312,15 @@ export async function economyView(db: Db) {
        order by id desc limit 30`,
     ),
   ]);
+  // Balances are the chain's, read now: the page never shows the game's own opinion of them.
+  const withBalances = await Promise.all(
+    businesses.rows.map(async (b: { account: string }) => ({
+      ...b,
+      wallet: summary ? await summary(b.account).catch(() => null) : null,
+    })),
+  );
   return {
-    businesses: businesses.rows,
+    businesses: withBalances,
     stock: stock.rows,
     orders: orders.rows,
     jobs: jobs.rows,

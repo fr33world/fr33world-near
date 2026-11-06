@@ -21,13 +21,15 @@ import {
   privyWallet,
 } from '@fr33world/auth';
 import { economyFromEnv, prepareSpend, registryFromEnv, submitSigned } from '@fr33world/chain';
+import { DEFAULT_MODEL, nearAi } from './advisor.ts';
 import { buildApp } from './app.ts';
 import { createDb } from './db.ts';
 import { migrate } from './migrate.ts';
 import { reconcile, runChainQueue } from './chain.ts';
 import { alert, startMonitor } from './monitor.ts';
 
-const { PRIVY_APP_ID, PRIVY_APP_SECRET, WORLD_TICKET_SECRET } = process.env;
+const { PRIVY_APP_ID, PRIVY_APP_SECRET, WORLD_TICKET_SECRET, NEAR_AI_KEY, NEAR_AI_MODEL } =
+  process.env;
 
 /** The economy on NEAR, when this server has the operator's key. */
 function nearDeps() {
@@ -40,7 +42,12 @@ function nearDeps() {
       submitSigned(near, account, tx, signature),
   });
   return {
-    economy: { db, chain, alert: (text: string) => void alert(db, 'economy', { text }) },
+    economy: {
+      db,
+      chain,
+      alert: (text: string) => void alert(db, 'economy', { text }),
+      ask: NEAR_AI_KEY ? nearAi(NEAR_AI_KEY, NEAR_AI_MODEL ?? DEFAULT_MODEL) : undefined,
+    },
     usdc: { db, chain, walletOf: privyNearWallet(PRIVY_APP_ID!, PRIVY_APP_SECRET!) },
   };
 }
