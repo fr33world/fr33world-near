@@ -165,3 +165,131 @@ export function parkingLots(
   );
   return { lots, replaced };
 }
+
+/** A place people go that should have parking close by. */
+export interface ParkingTarget {
+  x: number;
+  z: number;
+  name: string;
+}
+
+/** A target this close to a lot is served already (m). */
+const SERVED_M = 120;
+/** How far a building may be from the target, the slice it gives up, and what it keeps (m). */
+const NEAR_TARGET_M = 130;
+const SLICE_M = 24;
+const KEEP_M = 22;
+
+/**
+ * Parking beside the places people go (owner, 2026-11-06). Runs after every point in the city is
+ * placed: a nearby long building gives up the end nearest the target, shortened rather than
+ * removed, so no door, shop or public building moves. An end with a point on it is left alone.
+ */
+export function placeLots(
+  roads: Road[],
+  buildings: Building[],
+  targets: readonly ParkingTarget[],
+  taken: readonly { x: number; z: number }[],
+  have: readonly ParkingLot[],
+): ParkingLot[] {
+  const made: ParkingLot[] = [];
+  for (const t of targets) {
+    const lots = [...have, ...made];
+    if (lots.some((l) => Math.hypot(l.entrance.x - t.x, l.entrance.z - t.z) < SERVED_M)) continue;
+    const near = buildings
+      .filter(
+        (b) =>
+          !b.service &&
+          b.y === undefined &&
+          !b.drive &&
+          !NO_LOT_STYLES.has(b.style) &&
+          Math.hypot(b.x - t.x, b.z - t.z) < NEAR_TARGET_M,
+      )
+      .sort((a, b) => Math.hypot(a.x - t.x, a.z - t.z) - Math.hypot(b.x - t.x, b.z - t.z));
+    for (const b of near) {
+      const f = frontage(b, roads);
+      if (!f) continue;
+      const ns = f.r.axis === 'ns';
+      const length = ns ? b.d : b.w;
+      if (length < SLICE_M + KEEP_M) continue;
+      // The end nearest the target, along the street.
+      const end = (ns ? t.z - b.z : t.x - b.x) >= 0 ? 1 : -1;
+      const far = (ns ? b.z : b.x) + (end * length) / 2;
+      const near_ = far - end * SLICE_M;
+      const lo = Math.min(far, near_);
+      const hi = Math.max(far, near_);
+      const rect = ns
+        ? { x0: b.x - b.w / 2, x1: b.x + b.w / 2, z0: lo, z1: hi }
+        : { x0: lo, x1: hi, z0: b.z - b.d / 2, z1: b.z + b.d / 2 };
+      const pad = 3;
+      const clash = taken.some(
+        (p) =>
+          p.x > rect.x0 - pad && p.x < rect.x1 + pad && p.z > rect.z0 - pad && p.z < rect.z1 + pad,
+      );
+      if (clash) continue;
+      if (ns) {
+        b.d -= SLICE_M;
+        b.z -= (end * SLICE_M) / 2;
+      } else {
+        b.w -= SLICE_M;
+        b.x -= (end * SLICE_M) / 2;
+      }
+      const street = ns ? (f.side > 0 ? 'x0' : 'x1') : f.side > 0 ? 'z0' : 'z1';
+      made.push(lotOn(`${t.name} parking`, rect, street));
+      break;
+    }
+    if (made.at(-1)?.name === `${t.name} parking`) continue;
+    const lot = onHouses(roads, buildings, t, taken);
+    if (lot) made.push(lot);
+  }
+  return made;
+}
+
+/**
+ * Where a street of small houses leaves nothing to trim: two neighbours with nobody's door on them
+ * make way. Safe here because every point is already placed, so nothing else moves.
+ */
+function onHouses(
+  roads: Road[],
+  buildings: Building[],
+  t: ParkingTarget,
+  taken: readonly { x: number; z: number }[],
+): ParkingLot | null {
+  const houses = buildings
+    .filter((b) => b.style === 'house' && Math.hypot(b.x - t.x, b.z - t.z) < NEAR_TARGET_M)
+    .sort((a, b) => Math.hypot(a.x - t.x, a.z - t.z) - Math.hypot(b.x - t.x, b.z - t.z));
+  for (const a of houses) {
+    const f = frontage(a, roads);
+    if (!f) continue;
+    const ns = f.r.axis === 'ns';
+    for (const b of houses) {
+      if (b === a || frontage(b, roads)?.r !== f.r) continue;
+      const gap = ns
+        ? Math.abs(a.z - b.z) - (a.d + b.d) / 2
+        : Math.abs(a.x - b.x) - (a.w + b.w) / 2;
+      if (gap < 0 || gap > 6) continue;
+      const rect = {
+        x0: Math.min(a.x - a.w / 2, b.x - b.w / 2),
+        x1: Math.max(a.x + a.w / 2, b.x + b.w / 2),
+        z0: Math.min(a.z - a.d / 2, b.z - b.d / 2),
+        z1: Math.max(a.z + a.d / 2, b.z + b.d / 2),
+      };
+      if ((ns ? rect.z1 - rect.z0 : rect.x1 - rect.x0) < 2 * BAY_L + AISLE + 1) continue;
+      const pad = 3;
+      if (
+        taken.some(
+          (p) =>
+            p.x > rect.x0 - pad &&
+            p.x < rect.x1 + pad &&
+            p.z > rect.z0 - pad &&
+            p.z < rect.z1 + pad,
+        )
+      )
+        continue;
+      for (const gone of [a, b]) buildings.splice(buildings.indexOf(gone), 1);
+      const street = ns ? (f.side > 0 ? 'x0' : 'x1') : f.side > 0 ? 'z0' : 'z1';
+      return lotOn(`${t.name} parking`, rect, street);
+    }
+  }
+  return null;
+}

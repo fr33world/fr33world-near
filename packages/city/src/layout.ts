@@ -36,7 +36,7 @@ import {
 } from './landmarks.ts';
 import { type GuardRail, guardRails, HILL_HALF, type HillRoad } from './hillroads.ts';
 import { type Dealership, dealership } from './dealership.ts';
-import { type ParkingLot, parkingLots } from './parking.ts';
+import { type ParkingLot, parkingLots, placeLots } from './parking.ts';
 import { cityPoints, type InteractionPoint } from './points.ts';
 import { makeRamps, type Ramp, type RampPoint, rampHeightAt } from './ramps.ts';
 import { hillRoads, hillVillas, terrainHeight } from './terrain.ts';
@@ -333,6 +333,27 @@ export function generateCity(seed = CITY_SEED): CityLayout {
   buildings.push(...kept);
   const points = cityPoints(plaza, roads, buildings, seed, lots, dealer?.lot);
   solids.push(...points.solids);
+  // Parking beside the places people go. New points go last, so older ones keep their index.
+  const nearLots = placeLots(
+    roads,
+    buildings,
+    points.points.flatMap((p) => {
+      const name =
+        p.kind === 'entrance' || p.kind === 'dock' || p.kind === 'buyer'
+          ? p.name
+          : p.kind === 'black_market'
+            ? 'Container Yard'
+            : p.kind === 'dealer'
+              ? 'Dealership'
+              : undefined;
+      return name ? [{ x: p.x, z: p.z, name }] : [];
+    }),
+    points.points.filter((p) => p.x < 3000),
+    lots,
+  );
+  lots.push(...nearLots);
+  for (const lot of nearLots)
+    points.points.push({ kind: 'parking', ...lot.entrance, radius: 5, name: lot.name });
   plantPlaza(plaza, seed, palms);
   plantBoulevards(roads, seed, palms);
   plantPalmHeights(roads, seed, palms);
@@ -345,7 +366,14 @@ export function generateCity(seed = CITY_SEED): CityLayout {
     plaza,
     buildings,
     palms,
-    lights: [...placeLights(roads), ...hillLights(hillRoads())],
+    // Nothing stands in a doorway or across the way into a car park.
+    lights: [...placeLights(roads), ...hillLights(hillRoads())].filter(
+      (l) =>
+        !points.points.some(
+          (p) =>
+            (p.kind === 'entrance' || p.kind === 'parking') && Math.hypot(p.x - l.x, p.z - l.z) < 6,
+        ),
+    ),
     freeways,
     ramps,
     hillRoads: hillRoads(),

@@ -90,6 +90,32 @@ describe('city layout', () => {
     }
   });
 
+  it('has parking close to the places people go', () => {
+    const lots = city.points.filter((p) => p.kind === 'parking');
+    const places = city.points.filter((p) =>
+      ['entrance', 'dock', 'buyer', 'black_market'].includes(p.kind),
+    );
+    for (const p of places) {
+      const nearest = Math.min(...lots.map((l) => Math.hypot(l.x - p.x, l.z - p.z)));
+      expect(nearest, p.name).toBeLessThan(150);
+    }
+    for (const lot of city.parking) expect(lot.bays.length, lot.name).toBeGreaterThan(5);
+  });
+
+  it('keeps every public place where players know it', () => {
+    const at = (kind: string, service?: string) => {
+      const p = city.points.find((q) => q.kind === kind && (!service || q.service === service));
+      return p && [Math.round(p.x), Math.round(p.z)];
+    };
+    expect(at('entrance', 'police')).toEqual([250, -302]);
+    expect(at('entrance', 'hospital')).toEqual([1068, -180]);
+    expect(at('entrance', 'vipers')).toEqual([1000, -368]);
+    expect(at('entrance', 'kings')).toEqual([-322, 1094]);
+    expect(at('entrance', 'market')).toEqual([18, -180]);
+    expect(at('gunstore')).toEqual([-605, 250]);
+    expect(at('dealer')).toEqual([-38, 267]);
+  });
+
   it('places the landmarks: city hall facing the plaza, the observatory, sign and pier wheel', () => {
     const civic = city.buildings.filter((b) => b.style === 'civic' && !b.service);
     expect(civic).toHaveLength(3);
