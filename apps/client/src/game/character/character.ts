@@ -19,7 +19,7 @@ import {
 } from '@fr33world/shared';
 import * as THREE from 'three';
 import { instantiate } from '../assets.ts';
-import { measureHead, wear } from './accessories.ts';
+import { measureHead, trimHair, wear } from './accessories.ts';
 import { Animator, loadAnimationPack } from './animator.ts';
 import { CARE_SECONDS, type CareGesture, CareProps } from './patchup.ts';
 
@@ -109,6 +109,7 @@ export class Character {
     dress(root, head, look, { face, outfit, tones });
     // The face's own head, measured before it joins the outfit, for fitting hats and glasses.
     const fit = measureHead(head);
+    if (fit && gear.head > 0) trimHair(head, fit);
     attachToSkeleton(root, head);
     wear(root, gear, fit, look.body === 'female');
     let hipsRestY = 0;

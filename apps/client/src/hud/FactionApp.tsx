@@ -344,7 +344,7 @@ export function FactionApp({ game }: { game: Game }) {
         <div className="bank-sub">
           Radio: /f message.{' '}
           {f.kind === 'police' ? 'Officers: /id and /fine “Name” 250 reason. ' : ''}
-          {f.kind !== 'gang' ? 'On duty: /vehicle for a service vehicle. ' : ''}
+          {f.kind !== 'gang' ? `On duty: your service vehicle is at the ${place} door. ` : ''}
           {canRecruit ? 'Ranks: /promote, /demote, /dismiss “Name”.' : ''}
         </div>
         <button type="button" className="btn" onClick={() => void run(game.leaveFaction())}>

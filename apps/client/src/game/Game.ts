@@ -1681,6 +1681,21 @@ export class Game {
         return distance <= p.radius ? { p, distance } : null;
       };
       const offers: Interaction[] = [];
+      // On duty at their own building's door: their cruiser or ambulance.
+      const service =
+        this.duty === 'police' ? 'police' : this.duty === 'medical' ? 'hospital' : null;
+      const door = service
+        ? this.layout.points.find((q) => q.kind === 'entrance' && q.service === service)
+        : undefined;
+      if (door && Math.hypot(door.x - reach.x, door.z - reach.z) < 8)
+        offers.push({
+          key: 'service-car',
+          label: this.duty === 'police' ? 'Get your cruiser' : 'Get your ambulance',
+          icon: 'car',
+          at: { x: door.x, y: this.groundAt(door.x, door.z) + 2.4, z: door.z },
+          distance: Math.hypot(door.x - reach.x, door.z - reach.z) + 1,
+          run: () => this.command('/vehicle'),
+        });
       if (this.job) {
         for (const a of this.job.actions) {
           const n = near(a.point);

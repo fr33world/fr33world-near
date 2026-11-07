@@ -76,11 +76,13 @@ export function measureHead(face: THREE.Object3D): HeadFit | null {
   face.traverse((o) => {
     const m = o as THREE.SkinnedMesh;
     if (!m.isSkinnedMesh) return;
+    const hair = /_opacity$/.test((m.material as THREE.Material).name);
     const p = m.geometry.attributes.position as THREE.BufferAttribute;
     for (let i = 0; i < p.count; i += 1) {
       toModel(v.fromBufferAttribute(p, i).applyMatrix4(m.bindMatrix).applyMatrix4(inv));
-      // The crown: near the middle, from above.
-      if (Math.abs(v.x) < 0.04 && Math.abs(v.z - b.z + 0.09) < 0.06)
+      // The crown: near the middle, from above, on the head itself. Hair under a hat is
+      // trimmed (trimHair), so a tuft shouldn't make the hat stand tall.
+      if (!hair && Math.abs(v.x) < 0.04 && Math.abs(v.z - b.z + 0.09) < 0.06)
         fit.top = Math.max(fit.top, v.y);
       // Temples and back, around the hat band's height (long hair hanging lower is left out).
       if (v.y > b.y - 0.02 && v.y < b.y + 0.05) {
@@ -92,8 +94,52 @@ export function measureHead(face: THREE.Object3D): HeadFit | null {
   // Clamped: a big bun or loose hair shouldn't make a sombrero.
   fit.half = Math.min(fit.half, 0.105);
   fit.back = Math.max(back, fit.front - 0.25);
-  fit.top = Math.min(fit.top, b.y + 0.15);
+  fit.top = Math.min(fit.top, b.y + 0.12);
   return fit;
+}
+
+/**
+ * Under a hat: drops the hair above the hat's band, or it pokes through the crown. Hair lower
+ * down stays. The face's geometry is shared between characters, so this one gets its own
+ * index over the same vertices.
+ */
+export function trimHair(face: THREE.Object3D, fit: HeadFit): void {
+  face.updateMatrixWorld(true);
+  let head: THREE.Object3D | undefined;
+  face.traverse((o) => {
+    if (!head && /Head$/.test(o.name) && (o as THREE.Bone).isBone) head = o;
+  });
+  if (!head) return;
+  const inv = head.matrixWorld.clone().invert();
+  const v = new THREE.Vector3();
+  face.traverse((o) => {
+    const m = o as THREE.SkinnedMesh;
+    if (!m.isSkinnedMesh) return;
+    // The cut-out hair goes from the band up. The head's own shell, which carries hair volume
+    // of its own, goes a little higher, so nothing shows between it and the hat's edge.
+    const name = (m.material as THREE.Material).name;
+    const limit = /_opacity$/.test(name) ? fit.brow - 0.005 : fit.brow + 0.035;
+    if (!/_(opacity|head)$/.test(name)) return;
+    const source = m.geometry;
+    const p = source.attributes.position as THREE.BufferAttribute;
+    const index = source.index;
+    if (!index) return;
+    // Bone frame x is up: the same height measureHead calls y.
+    const height = (i: number) =>
+      v.fromBufferAttribute(p, i).applyMatrix4(m.bindMatrix).applyMatrix4(inv).x;
+    const kept: number[] = [];
+    for (let t = 0; t < index.count; t += 3) {
+      const [a, b, c] = [index.getX(t), index.getX(t + 1), index.getX(t + 2)];
+      if ((height(a) + height(b) + height(c)) / 3 < limit) kept.push(a, b, c);
+    }
+    const trimmed = new THREE.BufferGeometry();
+    for (const [name, attribute] of Object.entries(source.attributes))
+      trimmed.setAttribute(name, attribute);
+    trimmed.setIndex(kept);
+    trimmed.boundingSphere = source.boundingSphere;
+    trimmed.boundingBox = source.boundingBox;
+    m.geometry = trimmed;
+  });
 }
 
 // ---- materials ----------------------------------------------------------------------------
@@ -259,9 +305,9 @@ function beanie(fit: HeadFit, colour: string): THREE.Group {
   const band = fit.brow + 0.01;
   const backBand = fit.brow - 0.045;
   // A soft crown with a little slouch, and a deep turned-up cuff a few millimetres proud of it.
-  const c = crown(fit, band, backBand, 0.013, 0.022);
+  const c = crown(fit, band, backBand, 0.012, 0.006);
   g.add(new THREE.Mesh(c.geometry, knit));
-  const cuff = crown(fit, band - 0.002, backBand - 0.002, 0.02, 0.022, 0.048);
+  const cuff = crown(fit, band - 0.002, backBand - 0.002, 0.018, 0.006, 0.042);
   g.add(new THREE.Mesh(cuff.geometry, knit));
   return g;
 }
@@ -292,7 +338,7 @@ function bucket(fit: HeadFit, colour: string): THREE.Group {
   const m = fabric(colour);
   m.side = THREE.DoubleSide;
   const band = fit.brow + 0.02;
-  const c = crown(fit, band, fit.brow - 0.01, 0.016, 0.01, Infinity, 0.86);
+  const c = crown(fit, band, fit.brow - 0.01, 0.012, -0.004, Infinity, 0.8);
   g.add(new THREE.Mesh(c.geometry, m));
   const pos: number[] = [];
   const idx: number[] = [];
@@ -301,9 +347,9 @@ function bucket(fit: HeadFit, colour: string): THREE.Group {
     const a = (i / seg) * Math.PI * 2;
     const front = (1 + Math.cos(a)) / 2;
     const inner = rim(c, fit.brow - 0.01 + (band - fit.brow + 0.01) * front, a);
-    const out = new THREE.Vector3(Math.sin(a), 0, Math.cos(a)).multiplyScalar(0.042);
+    const out = new THREE.Vector3(Math.sin(a), 0, Math.cos(a)).multiplyScalar(0.038);
     const outer = inner.clone().add(out);
-    outer.y -= 0.03;
+    outer.y -= 0.024;
     pos.push(inner.x, inner.y, inner.z, outer.x, outer.y, outer.z);
   }
   for (let i = 0; i < seg; i += 1) {
@@ -614,7 +660,7 @@ function sling(colour: string, female: boolean): THREE.Group {
   const dark = new THREE.MeshStandardMaterial({ color: 0x1c1d20, roughness: 0.8 });
   const k = female ? 0.92 : 1;
   const front = 0.17 * k;
-  const pouch = new THREE.Mesh(roundedBox(0.24, 0.12, 0.07, 0.035), m);
+  const pouch = new THREE.Mesh(roundedBox(0.19, 0.095, 0.05, 0.026), m);
   pouch.position.set(0.04, -0.08, front + 0.03);
   pouch.rotation.z = -0.45;
   g.add(pouch);
