@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CollisionIndex } from './collision.ts';
-import { INTERIORS, interiorSolids } from './interiors.ts';
+import { INTERIORS, interiorAt, interiorSolids, type ServiceId } from './interiors.ts';
 import { generateCity, roadHalfWidth } from './layout.ts';
 import { canReach } from './points.ts';
 import { dropOff } from './taxi.ts';
@@ -367,5 +367,21 @@ describe('collision index', () => {
     for (const p of city.points) expect(collision.pointBlocked(p.x, p.z, 0.4), p.name).toBe(false);
     // Same points every time (client and server name them by index).
     expect(generateCity().points).toEqual(city.points);
+  });
+});
+
+describe('join points', () => {
+  it('tells outsiders how to join every faction, where they can reach it', () => {
+    const joins = generateCity().points.filter((p) => p.kind === 'join');
+    expect(joins.map((p) => p.service).sort()).toEqual(['hospital', 'kings', 'police', 'vipers']);
+    for (const p of joins) {
+      const room = interiorAt(p.x, p.z);
+      // A gang's room is shut to outsiders, so theirs must be out in the street.
+      expect(room === null).toBe(INTERIORS[p.service as ServiceId].members);
+      if (!room) continue;
+      const [x, z] = [p.x - room.rect.x0, p.z - room.rect.z0];
+      for (const b of room.boxes.filter((q) => q.solid))
+        expect(x > b.x0 && x < b.x1 && z > b.z0 && z < b.z1).toBe(false);
+    }
   });
 });

@@ -51,6 +51,7 @@ import {
   type FactionId,
   isFactionId,
   uniformOf,
+  factionOfBuilding,
   enginePower,
   decodeGear,
   DEFAULT_APPEARANCE,
@@ -358,6 +359,10 @@ export class Game {
   /** Sunny's till. */
   onTill: () => void = () => {};
   onComputer: (service: ServiceId) => void = () => {};
+  /** A join point: how to join this faction. */
+  onJoin: (faction: FactionId) => void = () => {};
+  /** Opens the phone on a screen (set by the phone). */
+  onPhone: (screen: string) => void = () => {};
   /** Opens the dealership's showroom (its desk's point). */
   onDealer: (point: number) => void = () => {};
   /** The car park marker the player is standing in (it opened the picker), or -1. */
@@ -1606,12 +1611,17 @@ export class Game {
           p.kind !== 'locker' &&
           p.kind !== 'counter' &&
           p.kind !== 'computer' &&
-          p.kind !== 'till'
+          p.kind !== 'till' &&
+          p.kind !== 'join'
         )
           return;
         const n = near(i);
         if (!n) return;
         const kind = p.kind;
+        const joins = factionOfBuilding(p.service);
+        // A gang's own members walk straight in.
+        if (kind === 'join' && joins && this.memberOf === joins && INTERIORS[p.service!].members)
+          return;
         offers.push({
           key: `${kind}:${i}`,
           label:
@@ -1623,16 +1633,22 @@ export class Game {
                 ? 'Counter'
                 : kind === 'till'
                   ? 'Shop and jobs'
-                  : 'Applications',
-          icon: kind === 'counter' || kind === 'till' ? 'talk' : 'door',
-          at: { x: p.x, y: 2.2, z: p.z },
+                  : kind === 'join'
+                    ? INTERIORS[p.service!].members
+                      ? 'Members only: how to join'
+                      : 'How to join'
+                    : 'Applications',
+          icon: kind === 'counter' || kind === 'till' || kind === 'join' ? 'talk' : 'door',
+          at: { x: p.x, y: (interiorAt(p.x, p.z) ? 0 : this.groundAt(p.x, p.z)) + 2.2, z: p.z },
           distance: n.distance,
           run: () => {
             if (kind === 'locker') {
               if (this.net.connected) this.net.send({ type: 'act', what: ACT.LOCKER, arg: i });
             } else if (kind === 'counter') this.onCounter();
             else if (kind === 'till') this.onTill();
-            else this.onComputer(p.service ?? 'police');
+            else if (kind === 'join') {
+              if (joins) this.onJoin(joins);
+            } else this.onComputer(p.service ?? 'police');
           },
         });
       });

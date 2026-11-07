@@ -20,6 +20,7 @@
  *   locker         police and EMS go on and off duty here
  *   counter        the Hospital's counter: medicine and bandages
  *   computer       recruiters read applications and set interviews here
+ *   join           how to join: a board in the Station and Hospital, a gang's shut door
  */
 import { districtAt, inside, QUARRY } from './plan.ts';
 import { DOOR, INTERIORS, interiorSolids, SERVICE_IDS, type ServiceId } from './interiors.ts';
@@ -49,6 +50,7 @@ export type PointKind =
   | 'counter'
   | 'computer'
   | 'till'
+  | 'join'
   | 'dock'
   | 'bay';
 
@@ -359,6 +361,10 @@ export function cityPoints(
       });
       break;
     }
+    // A gang's door is shut to outsiders, so how to join is told at the door itself.
+    for (const d of sites)
+      if (INTERIORS[d.service as ServiceId].members)
+        points.push({ ...d, kind: 'join', radius: 3.4, name: 'How to join' });
   }
   solids.push(...interiorSolids());
   return { points, solids };

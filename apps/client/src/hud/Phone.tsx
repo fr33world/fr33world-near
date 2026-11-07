@@ -75,6 +75,16 @@ export function Phone({ game, clock }: { game: Game; clock: string }) {
   );
 
   useEffect(() => {
+    game.onPhone = (to) => {
+      toggle(true);
+      setScreen(to as Screen);
+    };
+    return () => {
+      game.onPhone = () => {};
+    };
+  }, [game, toggle]);
+
+  useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
       if (target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA') return;

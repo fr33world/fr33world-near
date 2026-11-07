@@ -55,7 +55,7 @@ export interface RoomLabel {
 }
 
 export interface RoomPoint {
-  kind: 'exit' | 'locker' | 'counter' | 'computer' | 'till';
+  kind: 'exit' | 'locker' | 'counter' | 'computer' | 'till' | 'join';
   x: number;
   z: number;
   yaw: number;
@@ -296,6 +296,19 @@ class Room {
     return this;
   }
 
+  /** A freestanding board facing the door, with the join point on the floor in front of it. */
+  joinBoard(x: number, z: number, title: string, colour: number, ink: string, back: string) {
+    this.block(x - 1.3, z, x + 1.3, z + 0.12, 0.3, 2.5, colour);
+    this.box(x - 1.3, z - 0.02, x - 1.22, z + 0.14, 0, 0.3, STEEL);
+    this.box(x + 1.22, z - 0.02, x + 1.3, z + 0.14, 0, 0.3, STEEL);
+    this.glow(x - 1.3, z - 0.02, x + 1.3, z, 2.46, 2.5, 0x7def06);
+    this.label(title, x, 2.08, z - 0.03, Math.PI, 2.3, 0.5, ink, back);
+    this.label('HOW TO JOIN', x, 1.5, z - 0.03, Math.PI, 2.3, 0.42, '#14202e', '#7def06');
+    this.label('APPLY · TRAIN · INTERVIEW', x, 1, z - 0.03, Math.PI, 2.3, 0.26, ink, back);
+    this.point('join', x, z - 1.3, Math.PI, 'How to join', 2);
+    return this;
+  }
+
   /** A plate on a wall. `side`: which wall it faces out from. */
   label(
     text: string,
@@ -498,6 +511,7 @@ function policeStation(x: number, z: number): Interior {
   }
   r.prop('plant', 0.8, 8, 0).prop('plant', 25.2, 8, 2);
   r.stop(0.5, 7.7, 1.1, 8.3, 1).stop(24.9, 7.7, 25.5, 8.3, 1);
+  r.joinBoard(7.6, 4.2, 'JOIN THE POLICE', navy, '#ffffff', '#1f3a63');
   r.partition(9, 4.7, 7.7, inner);
   r.label('OFFICE', 6.2, 2.86, 8.88, Math.PI, 2.4, 0.5, '#ffffff', '#1f3a63');
   r.label('POLICE STATION', 15, 2.92, 8.88, Math.PI, 5.4, 0.56, '#ffffff', '#1f3a63');
@@ -605,6 +619,7 @@ function hospital(x: number, z: number): Interior {
   r.label('WAITING ROOM', 26.1, 1.55, 0.04, 0, 3, 0.34, '#ffffff', '#1f8a8c');
   r.point('counter', 9, 5.2, Math.PI, 'Counter', 2.4);
   r.point('computer', 4.6, 5.2, Math.PI, 'Applications', 1.6);
+  r.joinBoard(17.6, 5.2, 'JOIN EMS', teal, '#ffffff', '#14505a');
   r.chairs(24.4, 28.8, 7.6, 'south', 0x3b8c8e);
   r.chairs(23.8, 28.8, 0.42, 'north', 0x3b8c8e);
   r.box(25, 3.4, 27.6, 4.4, 0.36, 0.4, WOOD, 'wood').stop(25, 3.4, 27.6, 4.4, 0.4);

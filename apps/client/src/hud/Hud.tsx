@@ -8,6 +8,7 @@ import { DealerSheet } from './Dealer.tsx';
 import { DispatchCard } from './Dispatch.tsx';
 import { Guide } from './Guide.tsx';
 import { ComputerSheet } from './Computer.tsx';
+import { JoinSheet } from './Join.tsx';
 import { Bag } from './Bag.tsx';
 import { CounterSheet } from './Counter.tsx';
 import { TillSheet } from './Till.tsx';
@@ -145,6 +146,7 @@ export function Hud({ game }: { game: Game }) {
       <CounterSheet game={game} />
       <TillSheet game={game} />
       <ComputerSheet game={game} />
+      <JoinSheet game={game} />
       <DispatchCard game={game} />
       <RideCard game={game} />
       {!touch && (

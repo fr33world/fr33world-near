@@ -7,6 +7,7 @@
  */
 import {
   FACTION_BUILDING,
+  FACTION_GUIDE,
   FACTION_IDS,
   type FactionId,
   FACTIONS,
@@ -428,10 +429,7 @@ export function FactionApp({ game }: { game: Game }) {
             </span>
             <span className="bank-what">
               <b>{f.name}</b>
-              <small>
-                {f.kind === 'gang' ? 'A gang · no salary · black market by rank' : 'Paid on duty'} ·
-                apply
-              </small>
+              <small>{FACTION_GUIDE[id].tagline} Apply</small>
             </span>
             <span className="bank-amount in">›</span>
           </button>
