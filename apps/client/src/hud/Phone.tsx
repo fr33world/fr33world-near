@@ -28,6 +28,7 @@ import type { Game } from '../game/Game.ts';
 import { isTouchDevice } from '../game/quality.ts';
 import { EmergencyApp, FactionApp, InboxApp } from './FactionApp.tsx';
 import { MarketApp } from './MarketApp.tsx';
+import { MessagesApp } from './Messages.tsx';
 import { RewardsApp } from './Rewards.tsx';
 import { listed } from './Minimap.tsx';
 
@@ -35,6 +36,7 @@ type App =
   | 'bank'
   | 'progress'
   | 'rewards'
+  | 'messages'
   | 'jobs'
   | 'garage'
   | 'taxi'
@@ -44,12 +46,13 @@ type App =
   | 'market';
 type Screen = 'home' | 'send' | App;
 /** On the home screen, greyed out: what a phone has that Los Soles doesn't yet. */
-type Soon = 'calls' | 'messages' | 'contacts';
+type Soon = 'calls' | 'contacts';
 const TITLES: Partial<Record<Screen, string>> = {
   bank: 'Bank',
   send: 'Send money',
   progress: 'Progress',
   rewards: 'Rewards',
+  messages: 'Messages',
   jobs: 'Jobs',
   garage: 'Garage',
   taxi: 'Taxi',
@@ -79,6 +82,7 @@ export function Phone({ game, clock }: { game: Game; clock: string }) {
         // How many notices wait (the Inbox's badge).
         if (next) void game.inbox().catch(() => {});
         if (next) void game.daily().catch(() => {});
+        if (next) void game.conversations().catch(() => {});
         if (!next) setScreen('home');
         return next;
       });
@@ -156,12 +160,19 @@ export function Phone({ game, clock }: { game: Game; clock: string }) {
           )}
           <div className="phone-screen">
             {screen === 'home' && (
-              <Home clock={clock} onApp={setScreen} unread={unread} ready={game.hud.dailyReady} />
+              <Home
+                clock={clock}
+                onApp={setScreen}
+                unread={unread}
+                ready={game.hud.dailyReady}
+                messages={game.hud.unreadMessages}
+              />
             )}
             {screen === 'bank' && <Bank game={game} onSend={() => setScreen('send')} />}
             {screen === 'send' && <Send game={game} onDone={() => setScreen('bank')} />}
             {screen === 'progress' && <ProgressApp game={game} />}
             {screen === 'rewards' && <RewardsApp game={game} />}
+            {screen === 'messages' && <MessagesApp game={game} />}
             {screen === 'jobs' && <JobsApp game={game} onGo={() => toggle(false)} />}
             {screen === 'garage' && <GarageApp game={game} onGo={() => toggle(false)} />}
             {screen === 'taxi' && <TaxiApp game={game} onGo={() => toggle(false)} />}
@@ -188,11 +199,13 @@ function Home({
   onApp,
   unread,
   ready,
+  messages,
 }: {
   clock: string;
   onApp: (app: App) => void;
   unread: number;
   ready: number;
+  messages: number;
 }) {
   const [soonSaid, setSoonSaid] = useState<string | null>(null);
   useEffect(() => {
@@ -204,6 +217,7 @@ function Home({
     <button key={app} type="button" className="phone-app" onClick={() => onApp(app)}>
       <span className={`app-icon app-${app}`}>
         <Glyph />
+        {app === 'messages' && messages > 0 && <i className="app-badge">{messages}</i>}
       </span>
       {!dock && label}
     </button>
@@ -244,7 +258,7 @@ function Home({
       {soonSaid && <div className="phone-soon">{soonSaid} is coming soon</div>}
       <div className="phone-dock">
         {soon('calls', 'Phone', CallIcon, true)}
-        {soon('messages', 'Messages', BubbleIcon, true)}
+        {icon('messages', messages ? `Messages · ${messages}` : 'Messages', BubbleIcon, true)}
         {icon('bank', 'Bank', BankIcon, true)}
       </div>
     </div>

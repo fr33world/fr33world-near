@@ -3873,16 +3873,6 @@ body.driving .chat-button {
 .join-actions .btn {
   flex: 1;
 }
-.join-sheet .field {
-  width: 100%;
-  padding: 9px 12px;
-  border: 1px solid rgb(255 255 255 / 16%);
-  border-radius: 10px;
-  background: rgb(255 255 255 / 8%);
-  color: inherit;
-  font: inherit;
-  font-size: 13px;
-}
 
 /* The Emergency app. */
 .call-who {
@@ -4041,4 +4031,159 @@ body.driving .chat-button {
   min-height: 34px;
   padding: 0 14px;
   font-size: 15px;
+}
+
+/* The phone's Messages app. */
+.dm {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  gap: 6px;
+}
+.dm-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.dm-back {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 9%);
+  color: inherit;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+.dm-menu {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.dm-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 4px 0;
+}
+.dm-bubble {
+  align-self: flex-start;
+  max-width: 82%;
+  padding: 7px 10px;
+  border-radius: 14px 14px 14px 4px;
+  background: rgb(255 255 255 / 11%);
+  font-size: 13.5px;
+  overflow-wrap: anywhere;
+}
+.dm-bubble.mine {
+  align-self: flex-end;
+  border-radius: 14px 14px 4px;
+  background: #7def06;
+  color: #10160a;
+}
+.dm-bubble small {
+  display: block;
+  margin-top: 2px;
+  font-size: 10px;
+  opacity: 0.6;
+}
+.dm-send {
+  display: flex;
+  gap: 6px;
+}
+.dm-send input {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 12px;
+  border: 1px solid rgb(255 255 255 / 16%);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 8%);
+  color: inherit;
+  font: inherit;
+  font-size: 13.5px;
+}
+.dm-send .btn {
+  flex: none;
+  min-height: 38px;
+  padding: 0 14px;
+  font-size: 15px;
+}
+.dm-row {
+  width: 100%;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.dm-face {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgb(125 239 6 / 20%);
+  color: #bdf76f;
+  font-weight: 700;
+}
+.dm-row .bank-what small {
+  display: block;
+  max-width: 150px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.dm-side {
+  margin-left: auto;
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+  font-size: 10px;
+  opacity: 0.85;
+}
+.dm-side i {
+  min-width: 18px;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: #7def06;
+  color: #10160a;
+  font-style: normal;
+  font-weight: 700;
+  text-align: center;
+}
+.app-icon {
+  position: relative;
+}
+.app-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  min-width: 18px;
+  padding: 1px 4px;
+  border-radius: 999px;
+  background: #e5342b;
+  color: #fff;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+}
+input.field {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid rgb(255 255 255 / 16%);
+  border-radius: 10px;
+  background: rgb(255 255 255 / 8%);
+  color: inherit;
+  font: inherit;
+  font-size: 13.5px;
 }

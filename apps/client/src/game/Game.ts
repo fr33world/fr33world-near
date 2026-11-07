@@ -94,6 +94,9 @@ import { SHOW_ALL_TILES } from './city/tiles.ts';
 import {
   applyFaction,
   claimDaily,
+  fetchConversations,
+  fetchThread,
+  sendDirectMessage,
   type DailyPaid,
   type DailyStatus,
   fetchDaily,
@@ -221,6 +224,8 @@ export interface HudState {
   unread: number;
   /** Daily rewards waiting to be claimed. */
   dailyReady: number;
+  /** Private messages unread. */
+  unreadMessages: number;
   /** `$` balance in cents, or null when unknown (no login, API unreachable). */
   money: number | null;
   /** Experience, or null without a character (shared `levelOf` makes the level). */
@@ -292,6 +297,7 @@ export class Game {
     ownsWeapon: false,
     unread: 0,
     dailyReady: 0,
+    unreadMessages: 0,
     aiming: false,
     money: null,
     xp: null,
@@ -875,6 +881,24 @@ export class Game {
     const s = await fetchStatement(await this.session.apiToken(), before);
     this.hud.money = s.balance;
     return s;
+  }
+
+  /** The Messages app; keeps count of what's unread for the phone's badge. */
+  async conversations() {
+    if (!this.session.apiToken) throw new Error('Log in for messages.');
+    const r = await fetchConversations(await this.session.apiToken());
+    this.hud.unreadMessages = r.unread;
+    return r;
+  }
+
+  async thread(name: string) {
+    if (!this.session.apiToken) throw new Error('Log in for messages.');
+    return fetchThread(await this.session.apiToken(), name);
+  }
+
+  async sendMessage(to: string, text: string) {
+    if (!this.session.apiToken) throw new Error('Log in for messages.');
+    return sendDirectMessage(await this.session.apiToken(), to, text);
   }
 
   /** The Rewards app; keeps count of what's waiting for the phone's badge. */

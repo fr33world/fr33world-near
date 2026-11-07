@@ -255,6 +255,38 @@ export function buyCar(
   return bankCall(privyToken, '/v1/dealer/buy', { model, key });
 }
 
+export interface Conversation {
+  name: string;
+  text: string;
+  at: string;
+  mine: boolean;
+  unread: number;
+}
+
+export interface DirectMessage {
+  id: number;
+  text: string;
+  at: string;
+  mine: boolean;
+}
+
+export function fetchConversations(
+  privyToken: string,
+): Promise<{ conversations: Conversation[]; unread: number }> {
+  return bankCall(privyToken, '/v1/messages');
+}
+
+export function fetchThread(
+  privyToken: string,
+  name: string,
+): Promise<{ name: string; messages: DirectMessage[] }> {
+  return bankCall(privyToken, `/v1/messages/thread?name=${encodeURIComponent(name)}`);
+}
+
+export function sendDirectMessage(privyToken: string, to: string, text: string) {
+  return bankCall<DirectMessage>(privyToken, '/v1/messages', { to, text });
+}
+
 /** The login streak, the spin, today's tasks and unclaimed level bonuses. */
 export interface DailyStatus {
   day: string;

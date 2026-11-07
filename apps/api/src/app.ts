@@ -14,6 +14,7 @@
  *   GET  /v1/bank?before=  same auth: balance, frozen, and a page of history (newest first)
  *   POST /v1/bank/pay  same auth, body {to, cents, note?, key}: pays another character
  *   GET  /v1/progress  same auth: level, XP and the latest rewards
+ *   GET  /v1/messages, /v1/messages/thread?name=, POST /v1/messages  same auth: private messages
  *   GET  /v1/daily, POST /v1/daily/claim  same auth: login streak, spin, tasks, level bonuses
  *   GET  /v1/garage    same auth: the cars this account owns (a starter car the first time)
  *   POST /v1/internal/garage  the world server: a player's cars, when they call one
@@ -83,6 +84,7 @@ import { openFlags, reviewFlag } from './anomalies.ts';
 import { BankError, pay, statement } from './bank.ts';
 import { correct, freeze, lookUp, reverse } from './corrections.ts';
 import { claimDaily, dailyStatus } from './daily.ts';
+import { conversations, sendMessage, thread } from './messages.ts';
 import { progress, reward, RewardError } from './rewards.ts';
 import { advanceTutorial, TutorialError } from './tutorial.ts';
 import {
@@ -678,6 +680,16 @@ export function buildApp(deps: AppDeps): FastifyInstance {
     return bank(req, reply, (u) => buyCar(deps.db, u, req.body ?? {}));
   });
 
+  app.get('/v1/messages', (req, reply) => bank(req, reply, (u) => conversations(deps.db, u)));
+  app.get('/v1/messages/thread', (req, reply) =>
+    bank(req, reply, (u) => thread(deps.db, u, (req.query as { name?: unknown }).name)),
+  );
+  app.post('/v1/messages', (req, reply) => {
+    if (limited(req.ip, 'messages', 30)) return reply.code(429).send({ error: 'Slow down.' });
+    return bank(req, reply, (u) =>
+      sendMessage(deps.db, u, (req.body ?? {})),
+    );
+  });
   app.get('/v1/daily', (req, reply) => bank(req, reply, (u) => dailyStatus(deps.db, u)));
   app.post('/v1/daily/claim', (req, reply) =>
     bank(req, reply, (u) => claimDaily(deps.db, u, req.body ?? {})),
