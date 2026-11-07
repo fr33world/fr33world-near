@@ -405,6 +405,12 @@ describe('vehicles', () => {
     expect(v.pose.x).toBeCloseTo(to);
     expect(inner.players.get(riders[1]!.id)?.pose.x).toBeCloseTo(to);
 
+    // The car stays in a passenger's view, though a driver's own car leaves theirs.
+    riders[1]!.conn.take('leave');
+    advance(500);
+    world.step();
+    expect(riders[1]!.conn.take('leave').map((m) => m.id)).not.toContain(id);
+
     // A passenger gets out; the car keeps its driver.
     send(riders[0]!.conn, { type: 'exit_vehicle' });
     expect(riders[0]!.conn.take('passenger').at(-1)).toMatchObject({ seat: 0, vehicle: NO_ENTITY });

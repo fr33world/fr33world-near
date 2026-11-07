@@ -1604,21 +1604,19 @@ export class Game {
         VEHICLE_ENTER_RADIUS - 0.5,
         (c) => !c.remote?.name || c.remote.name === mine,
       );
-      if (!car) {
-        const driven = v.nearestDriven(at, VEHICLE_ENTER_RADIUS - 0.5, this.net.you);
-        if (!driven) return null;
-        return {
-          key: `ride:${driven.id}`,
-          label: 'Ride along',
-          icon: 'car',
-          at: { x: driven.pos.x, y: driven.pos.y + 1.7, z: driven.pos.z },
-          distance: Math.hypot(driven.pos.x - reach.x, driven.pos.z - reach.z),
-          run: () => this.net.send({ type: 'act', what: ACT.RIDE, arg: driven.id }),
-        };
-      }
+      const driven = v.nearestDriven(at, VEHICLE_ENTER_RADIUS - 0.5, this.net.you);
+      const ride: Interaction | null = driven && {
+        key: `ride:${driven.id}`,
+        label: 'Ride along',
+        icon: 'car',
+        at: { x: driven.pos.x, y: driven.pos.y + 1.7, z: driven.pos.z },
+        distance: Math.hypot(driven.pos.x - reach.x, driven.pos.z - reach.z),
+        run: () => this.net.send({ type: 'act', what: ACT.RIDE, arg: driven.id }),
+      };
+      if (!car) return ride;
       // Getting in needs the car clips: fetched now, while the player walks up.
       this.player?.character?.animator?.preloadCar();
-      return {
+      const enter: Interaction = {
         key: `car:${car.id}`,
         label: 'Enter car',
         icon: 'car',
@@ -1626,6 +1624,7 @@ export class Game {
         distance: Math.hypot(car.pos.x - reach.x, car.pos.z - reach.z),
         run: () => this.enterCar(car.id),
       };
+      return ride ? [enter, ride] : enter;
     });
     // A medic on duty beside someone down: hold to revive them (the server checks it all).
     this.interactions.add((reach) => {

@@ -3210,7 +3210,8 @@ export class World {
     const pz = p.pose.z;
     let n = 0;
     for (const id of this.grid.query(px, pz, keepR, this.candidates)) {
-      if (id === p.id || evisible[id] === 0 || id === p.vehicle) continue;
+      // A driver simulates their own car; a passenger watches it like anyone else.
+      if (id === p.id || evisible[id] === 0 || (id === p.vehicle && !p.passengerSeat)) continue;
       const dx = (ex[id] as number) - px;
       const dz = (ez[id] as number) - pz;
       const d2 = dx * dx + dz * dz;
