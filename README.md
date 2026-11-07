@@ -29,6 +29,7 @@ Needs Node 24, pnpm and PostgreSQL. No NEAR account is needed for steps 1 to 3.
    `curl -s https://test.rpc.fastnear.com -H 'content-type: application/json' -d '{"jsonrpc":"2.0","id":1,"method":"query","params":{"request_type":"call_function","finality":"final","account_id":"sunnys-grocery.fr33world.testnet","method_name":"summary","args_base64":"e30="}}'`
    **See:** a result whose bytes decode to Sunny's balance, limits and suppliers. Or open [the account on NearBlocks](https://testnet.nearblocks.io/address/sunnys-grocery.fr33world.testnet).
 4. **Do (needs testnet keys in `.env`):** `pnpm --filter @fr33world/chain smoke:near`. **See:** a sale, a supplier payment and a delivery paid on the real chain, then each attack refused with its reason. Ends in `All good.`
+5. **Do (needs testnet keys in `.env`):** `pnpm --filter @fr33world/api economy:live`. **See:** one player's whole story through the real API routes and the real chain: wallet linked, a Hot Meal bought with USDC, Sunny's reordering and paying its supplier, the delivery paid to the player, USDC sent on, with a NearBlocks link for each payment. Only Privy is stood in for, by a local key signing the same hash. Ends in `All good.`
 
 ## Honest limits
 

@@ -38,13 +38,20 @@ async function load() {
   const e = await r.json();
   state.textContent = e.businesses.length ? '' : 'The economy has not started yet.';
 
+  const names = new Map(e.businesses.map((b) => [b.id, b.name]));
+  const nameOf = (id) => names.get(id) ?? id;
+  const goods = { water: 'Water', sandwich: 'Sandwich', meal: 'Hot Meal' };
+  const goodOf = (id) => goods[id] ?? id;
+
   const cards = document.getElementById('businesses');
   for (const b of e.businesses) {
     const c = el('article', 'card');
     c.append(el('h3', '', b.name));
     c.append(el('div', 'balance', b.wallet ? usdc(b.wallet.balance) : 'unavailable'));
     if (b.wallet) c.append(el('div', 'small', `${usdc(b.wallet.reserved)} held for jobs`));
-    const stock = e.stock.filter((s) => s.business === b.id).map((s) => `${s.good} ${s.qty}`);
+    const stock = e.stock
+      .filter((s) => s.business === b.id)
+      .map((s) => `${goodOf(s.good)} ${s.qty}`);
     c.append(el('div', 'small', `Stock: ${stock.join(', ')}`));
     c.append(el('div', 'small', `Markup ${Math.round(b.markup * 100)}%, target ${b.target}`));
     const a = el('div', 'small');
@@ -57,7 +64,7 @@ async function load() {
   for (const d of e.decisions)
     row(decisions, [
       el('span', `tag ${d.source === 'ai' ? 'ai' : ''}`, d.source === 'ai' ? 'AI' : 'Rule'),
-      `${d.business}: ${d.summary} `,
+      `${nameOf(d.business)}: ${d.summary} `,
       el('span', 'small', when(d.at)),
     ]);
 
@@ -66,7 +73,7 @@ async function load() {
     row(
       orders,
       [
-        `${o.buyer} paid ${o.seller} ${usdc(o.amount)} for ${o.qty} ${o.good} `,
+        `${nameOf(o.buyer)} paid ${nameOf(o.seller)} ${usdc(o.amount)} for ${o.qty} ${goodOf(o.good)} `,
         el('span', 'small', o.status),
       ],
       o.tx,
@@ -74,7 +81,7 @@ async function load() {
 
   const jobs = document.getElementById('jobs');
   for (const j of e.jobs)
-    row(jobs, [`${j.business}: ${usdc(j.amount)} `, el('span', 'small', j.status)], j.tx);
+    row(jobs, [`${nameOf(j.business)}: ${usdc(j.amount)} `, el('span', 'small', j.status)], j.tx);
 }
 
 load().catch((err) => {
