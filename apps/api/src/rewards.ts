@@ -34,6 +34,7 @@ const FAUCET_OF: Record<XpSource, FaucetName> = {
   jobs: 'jobs',
   tutorial: 'tutorial',
   faction: 'salary',
+  daily: 'daily',
 };
 
 export async function reward(

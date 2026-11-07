@@ -23,9 +23,9 @@ import {
   decodeAppearance,
   decodeGear,
   type FactionId,
-  factionOfCode,
-  ON_DUTY_BIT,
+  readFactionTag,
   uniformOf,
+  uniformOutfit,
   type Gear,
   FALL,
 } from '@fr33world/shared';
@@ -115,6 +115,12 @@ export interface RemoteBody {
   smoother: Smoother | null;
 }
 
+/** What a faction member wears: a real uniform at their rank, or their faction's colours. */
+function clothesOf(body: 'male' | 'female', tag: ReturnType<typeof readFactionTag>) {
+  const dress = uniformOutfit(tag.faction, tag.rank, tag.onDuty, body);
+  return { dress, uniform: dress ? null : uniformOf(tag.faction, tag.onDuty) };
+}
+
 export class RemoteWorld {
   readonly bodies = new Map<number, RemoteBody>();
   /** Called when a vehicle body appears or a seat changes (vehicles are drawn elsewhere). */
@@ -159,6 +165,7 @@ export class RemoteWorld {
   }): void {
     const existing = this.bodies.get(m.id);
     if (existing) this.remove(m.id);
+    const tag = readFactionTag(m.faction ?? 0);
     const body: RemoteBody = {
       ...m,
       pos: new THREE.Vector3(),
@@ -175,17 +182,14 @@ export class RemoteWorld {
       loadingLevel: -1,
       look: {
         ...decodeAppearance(m.look),
-        uniform: uniformOf(
-          factionOfCode((m.faction ?? 0) & ~ON_DUTY_BIT),
-          ((m.faction ?? 0) & ON_DUTY_BIT) !== 0,
-        ),
+        ...clothesOf(decodeAppearance(m.look).body, tag),
       },
       lookCode: m.look,
-      onDuty: ((m.faction ?? 0) & ON_DUTY_BIT) !== 0,
+      onDuty: tag.onDuty,
       // Out of step with everyone else.
       crowdPhase: (m.id * 0.37) % 1,
       gear: decodeGear(m.gear),
-      faction: factionOfCode((m.faction ?? 0) & ~ON_DUTY_BIT),
+      faction: tag.faction,
       level: m.level ?? 0,
       lastMode: MODE.IDLE,
       distance: Infinity,
@@ -205,6 +209,16 @@ export class RemoteWorld {
 
   leave(id: number): void {
     this.remove(id);
+  }
+
+  /** Who rides where: player id to their car and seat. */
+  readonly passengers = new Map<number, { vehicle: number; seat: number }>();
+  /** A car by id, as a passenger sits in it (set by the Game). */
+  carById: (id: number) => SeatCar | null = () => null;
+
+  passenger(player: number, vehicle: number, seat: number): void {
+    if (seat === 0) this.passengers.delete(player);
+    else this.passengers.set(player, { vehicle, seat });
   }
 
   seat(vehicle: number, driver: number): void {
@@ -371,17 +385,24 @@ export class RemoteWorld {
   private atWheel(b: RemoteBody, c: Character, dt: number): boolean {
     const a = c.animator;
     const seated = modeOf(b.state) === MODE.SEATED;
-    const car = seated ? this.carOf(b.id) : null;
+    const riding = this.passengers.get(b.id);
+    const car = !seated ? null : riding ? this.carById(riding.vehicle) : this.carOf(b.id);
     if (seated && car) {
       if (!b.seatShown) {
         b.seatShown = true;
         b.leftCar = null;
         // Sitting down now (they were on foot in view), or already at the wheel when first seen.
-        void (b.footSeen ? a?.getIn() : a?.drive());
+        void (riding ? a?.ride() : b.footSeen ? a?.getIn() : a?.drive());
       }
       b.lastMode = MODE.SEATED;
       b.leftCar = { pos: car.pos.clone(), yaw: car.yaw, id: car.id };
-      seatCharacter(c.root, car, a?.seat === 'enter' ? 'enter' : 'drive', a?.hipsRestY ?? 0.9);
+      seatCharacter(
+        c.root,
+        car,
+        a?.seat === 'enter' ? 'enter' : 'drive',
+        a?.hipsRestY ?? 0.9,
+        riding?.seat ?? 0,
+      );
       c.update(dt, 0);
       return true;
     }

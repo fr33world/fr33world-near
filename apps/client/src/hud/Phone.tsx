@@ -28,10 +28,20 @@ import type { Game } from '../game/Game.ts';
 import { isTouchDevice } from '../game/quality.ts';
 import { EmergencyApp, FactionApp, InboxApp } from './FactionApp.tsx';
 import { MarketApp } from './MarketApp.tsx';
+import { RewardsApp } from './Rewards.tsx';
 import { listed } from './Minimap.tsx';
 
 type App =
-  'bank' | 'progress' | 'jobs' | 'garage' | 'taxi' | 'faction' | 'emergency' | 'inbox' | 'market';
+  | 'bank'
+  | 'progress'
+  | 'rewards'
+  | 'jobs'
+  | 'garage'
+  | 'taxi'
+  | 'faction'
+  | 'emergency'
+  | 'inbox'
+  | 'market';
 type Screen = 'home' | 'send' | App;
 /** On the home screen, greyed out: what a phone has that Los Soles doesn't yet. */
 type Soon = 'calls' | 'messages' | 'contacts';
@@ -39,6 +49,7 @@ const TITLES: Partial<Record<Screen, string>> = {
   bank: 'Bank',
   send: 'Send money',
   progress: 'Progress',
+  rewards: 'Rewards',
   jobs: 'Jobs',
   garage: 'Garage',
   taxi: 'Taxi',
@@ -67,6 +78,7 @@ export function Phone({ game, clock }: { game: Game; clock: string }) {
         if (next) game.note('phone');
         // How many notices wait (the Inbox's badge).
         if (next) void game.inbox().catch(() => {});
+        if (next) void game.daily().catch(() => {});
         if (!next) setScreen('home');
         return next;
       });
@@ -143,15 +155,18 @@ export function Phone({ game, clock }: { game: Game; clock: string }) {
             </div>
           )}
           <div className="phone-screen">
-            {screen === 'home' && <Home clock={clock} onApp={setScreen} unread={unread} />}
+            {screen === 'home' && (
+              <Home clock={clock} onApp={setScreen} unread={unread} ready={game.hud.dailyReady} />
+            )}
             {screen === 'bank' && <Bank game={game} onSend={() => setScreen('send')} />}
             {screen === 'send' && <Send game={game} onDone={() => setScreen('bank')} />}
             {screen === 'progress' && <ProgressApp game={game} />}
+            {screen === 'rewards' && <RewardsApp game={game} />}
             {screen === 'jobs' && <JobsApp game={game} onGo={() => toggle(false)} />}
             {screen === 'garage' && <GarageApp game={game} onGo={() => toggle(false)} />}
             {screen === 'taxi' && <TaxiApp game={game} onGo={() => toggle(false)} />}
             {screen === 'faction' && <FactionApp game={game} />}
-            {screen === 'emergency' && <EmergencyApp game={game} onGo={() => toggle(false)} />}
+            {screen === 'emergency' && <EmergencyApp game={game} />}
             {screen === 'inbox' && <InboxApp game={game} />}
             {screen === 'market' && <MarketApp game={game} />}
           </div>
@@ -172,10 +187,12 @@ function Home({
   clock,
   onApp,
   unread,
+  ready,
 }: {
   clock: string;
   onApp: (app: App) => void;
   unread: number;
+  ready: number;
 }) {
   const [soonSaid, setSoonSaid] = useState<string | null>(null);
   useEffect(() => {
@@ -217,6 +234,7 @@ function Home({
         {icon('market', 'Market', TagIcon)}
         {/* Taxis are off for launch (shared TAXI). */}
         {TAXI.enabled && icon('taxi', 'Taxi', TaxiIcon)}
+        {icon('rewards', ready ? `Rewards · ${ready}` : 'Rewards', GiftIcon)}
         {icon('progress', 'Progress', StarIcon)}
         {icon('faction', 'Faction', BadgeIcon)}
         {icon('emergency', '911', SirenIcon)}
@@ -728,6 +746,23 @@ function ProgressApp({ game }: { game: Game }) {
         ))}
       </div>
     </div>
+  );
+}
+
+function GiftIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="24"
+      height="24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      aria-hidden="true"
+    >
+      <path d="M4 11h16v9H4zM3 7h18v4H3zM12 7v13" />
+      <path d="M12 7C9 7 7.5 5.8 7.5 4.5S9 2.6 10.2 3.6 12 7 12 7Zm0 0c3 0 4.5-1.2 4.5-2.5S15 2.6 13.8 3.6 12 7 12 7Z" />
+    </svg>
   );
 }
 

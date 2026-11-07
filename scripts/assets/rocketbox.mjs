@@ -12,12 +12,13 @@
  * with characters/rocketbox.json (each avatar's skin colour and clothes luminance, for the
  * shader). The four animation packs are retargeted onto the first male outfit's skeleton (they
  * share one configuration). Rewrites the Rocketbox section of assets/registry.yaml. --masks
- * only redraws the masks (and rocketbox.json).
+ * only redraws the masks (and rocketbox.json); --no-animations leaves the packs as they are.
  */
 import { spawnSync } from 'node:child_process';
 import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { ROCKETBOX_FACES, ROCKETBOX_OUTFITS } from '../../packages/shared/src/character.ts';
+import { UNIFORM_AVATARS } from '../../packages/shared/src/factions.ts';
 
 const root = resolve(import.meta.dirname, '../..');
 const raw = join(root, '.raw/rocketbox');
@@ -27,6 +28,7 @@ const anims = join(root, 'apps/client/public/assets/animations');
 const blender = process.env.BLENDER ?? '/Applications/Blender.app/Contents/MacOS/Blender';
 const force = process.argv.includes('--force');
 const masksOnly = process.argv.includes('--masks');
+const noAnimations = process.argv.includes('--no-animations');
 const only = process.argv.slice(2).filter((a) => !a.startsWith('--'));
 
 /** Where each outfit shows skin besides hands and neck (from the avatars' pictures). */
@@ -43,10 +45,22 @@ const BARE = {
   f13: 'arms',
   f15: 'legs',
   f17: 'arms',
+  // The uniforms (shared UNIFORM_AVATARS).
+  pm5: 'arms',
+  pm6: 'arms',
+  pm7: 'arms',
+  lf1: 'arms',
+  em1: 'arms',
+  em4: 'arms',
+  ef1: 'arms',
 };
-const avatarName = (id) => `${id[0] === 'm' ? 'Male' : 'Female'}_Adult_${id.slice(1)}`;
+const avatarName = (id) =>
+  UNIFORM_AVATARS[id] ?? `${id[0] === 'm' ? 'Male' : 'Female'}_Adult_${id.slice(1)}`;
 const faces = new Set(Object.values(ROCKETBOX_FACES).flat());
-const outfits = new Set(Object.values(ROCKETBOX_OUTFITS).flat());
+const outfits = new Set([
+  ...Object.values(ROCKETBOX_OUTFITS).flat(),
+  ...Object.keys(UNIFORM_AVATARS),
+]);
 const ids = [...new Set([...faces, ...outfits])].filter((id) => !only.length || only.includes(id));
 
 function run(cmd, args) {
@@ -90,7 +104,7 @@ for (const id of ids) {
     for (const p of parts) shipped.push(`rb_${id}_${p}`);
     continue;
   }
-  py('convert_rocketbox.py', [fbx, work, id]);
+  py('convert_rocketbox.py', [fbx, work, id, ...(UNIFORM_AVATARS[id] ? ['outfit'] : [])]);
   py('rocketbox_masks.py', [fbx, work, id, BARE[id] ?? 'none']);
   for (const p of parts) {
     for (const suffix of ['', '.lod1', '.lod2']) {
@@ -123,7 +137,7 @@ run('pnpm', ['exec', 'prettier', '--write', join(chars, 'rocketbox.json')]);
 // The animation packs, onto the first male outfit's skeleton (from the work copy: the shipped
 // one is compressed).
 const rig = join(work, `rb_${ROCKETBOX_OUTFITS.male[0]}_outfit.glb`);
-if (!masksOnly && (!only.length || force)) {
+if (!masksOnly && !noAnimations && (!only.length || force)) {
   for (const pack of [
     'core',
     'combat',
@@ -171,7 +185,7 @@ const section = [
       name,
       `characters/${name}.glb`,
       'character',
-      `https://github.com/microsoft/Microsoft-Rocketbox/tree/master/Assets/Avatars/Adults/${avatarName(id)}`,
+      `https://github.com/microsoft/Microsoft-Rocketbox/tree/master/Assets/Avatars/${UNIFORM_AVATARS[id] ? 'Professions' : 'Adults'}/${avatarName(id)}`,
       `The ${part} of ${avatarName(id)} (scripts/blender/convert_rocketbox.py): LODs .lod1/.lod2, KTX2 textures, recolouring mask ${name}.mask.png.`,
     );
   }),

@@ -24,7 +24,11 @@ import { Animator, loadAnimationPack } from './animator.ts';
 import { CARE_SECONDS, type CareGesture, CareProps } from './patchup.ts';
 
 /** How a character looks (the shared appearance), and a faction's clothes over it. */
-export type Look = Appearance & { uniform?: readonly [string, string, string] | null };
+export type Look = Appearance & {
+  uniform?: readonly [string, string, string] | null;
+  /** A real uniform (shared RANK_UNIFORMS) in place of their outfit. */
+  dress?: string | null;
+};
 
 /**
  * How far to raise a character above the body position it's drawn at: the physics capsule
@@ -95,7 +99,7 @@ export class Character {
   ): Promise<Character> {
     const suffix = lodSuffix(level);
     const face = pick(ROCKETBOX_FACES[look.body], look.face);
-    const outfit = pick(ROCKETBOX_OUTFITS[look.body], look.outfit);
+    const outfit = look.dress ?? pick(ROCKETBOX_OUTFITS[look.body], look.outfit);
     const [root, head, pack, tones] = await Promise.all([
       instantiate(`characters/rb_${outfit}_outfit${suffix}.glb`, priority),
       instantiate(`characters/rb_${face}_face${suffix}.glb`, priority),

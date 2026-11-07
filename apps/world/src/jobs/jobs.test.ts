@@ -6,6 +6,7 @@ import { COURIER_PAY, courier, type CourierState } from './courier.ts';
 import { type JobHost, type JobPlayer, Jobs, type JobView, type Pay, type Saved } from './jobs.ts';
 import { MINING, mining, type MiningState } from './mining.ts';
 import { collect, type CollectState } from './collect.ts';
+import { PATROL, patrol, type PatrolState } from './patrol.ts';
 import { taxi, type TaxiState } from './taxi.ts';
 
 const city = generateCity();
@@ -329,5 +330,65 @@ describe('collections', () => {
     jobs.handle(member(hideout), JOB_OP.USE, hideout);
     await settle();
     expect(paid).toEqual([expect.objectContaining({ cents: 18_000, reason: 'Collections' })]);
+  });
+});
+
+describe('patrol', () => {
+  const board = index('patrol');
+  const officer = (extra: Partial<JobPlayer> = {}) =>
+    player(board, { faction: 'police', onDuty: true, ...extra });
+  const start = (p: JobPlayer) => {
+    jobs.handle(p, JOB_OP.START, board);
+    return jobs.current(p.id)?.state as PatrolState;
+  };
+
+  beforeEach(() => {
+    jobs = new Jobs(host(), [patrol] as never);
+  });
+
+  it('is only for police on duty', () => {
+    jobs.handle(player(board, { id: 1 }), JOB_OP.START, board);
+    jobs.handle(officer({ id: 2, onDuty: false }), JOB_OP.START, board);
+    jobs.handle(officer({ id: 3, faction: 'medical' }), JOB_OP.START, board);
+    expect(said.filter((t) => t.includes('police on duty'))).toHaveLength(3);
+    expect(jobs.current(1)).toBeNull();
+  });
+
+  it('checks stops off by arriving, in order, and pays at the end', async () => {
+    const p = officer();
+    const s = start(p);
+    expect(s.stops).toHaveLength(PATROL.stops);
+    for (const [i, a] of s.stops.entries())
+      for (const b of s.stops.slice(i + 1))
+        expect(Math.hypot(at(a).x - at(b).x, at(a).z - at(b).z)).toBeGreaterThan(PATROL.apart);
+    // The wrong stop does nothing.
+    clock += 600_000;
+    jobs.tick([{ ...p, ...at(s.stops[2]!) }]);
+    expect((jobs.current(1)?.state as PatrolState).done).toBe(0);
+    for (const stop of s.stops) {
+      clock += 60_000;
+      jobs.tick([{ ...p, ...at(stop) }]);
+    }
+    await settle();
+    expect(jobs.current(1)).toBeNull();
+    expect(paid.at(-1)).toMatchObject({
+      cents: PATROL.perStop * PATROL.stops,
+      xp: PATROL.xpPerStop * PATROL.stops,
+    });
+  });
+
+  it('refuses a stop reached faster than any car could', () => {
+    const p = officer();
+    const s = start(p);
+    jobs.tick([{ ...p, ...at(s.stops[0]!) }]);
+    expect((jobs.current(1)?.state as PatrolState).done).toBe(0);
+  });
+
+  it('ends when the officer goes off duty', () => {
+    const p = officer();
+    start(p);
+    jobs.tick([{ ...p, onDuty: false }]);
+    expect(jobs.current(1)).toBeNull();
+    expect(paid).toHaveLength(0);
   });
 });

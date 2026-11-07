@@ -47,6 +47,14 @@ export const FAUCETS = {
     perHour: 150_000,
     perDay: 800_000,
   },
+  /** The login streak, the free spin, daily tasks and level bonuses (daily.ts). */
+  daily: {
+    account: 'faucet:daily',
+    about: 'Daily rewards',
+    maxPayment: 400_000,
+    perHour: 500_000,
+    perDay: 800_000,
+  },
   /** Faction pay for each 10 minutes on duty (D-26). */
   salary: {
     account: 'faucet:salary',

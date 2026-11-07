@@ -23,6 +23,8 @@ export interface JobPlayer {
   xp: number;
   /** Their faction (shared FactionId), for jobs only some may take (gang collections). */
   faction?: string | null;
+  /** On duty in that faction (patrols). */
+  onDuty?: boolean;
 }
 
 export interface Pay {
@@ -66,6 +68,8 @@ export interface JobDef<S> {
   /** Using `point` during the shift: the outcome, or why not (shown to the player). */
   use(ctx: JobContext, s: S, p: JobPlayer, point: number): Outcome<S> | string;
   view(ctx: JobContext, s: S): JobView;
+  /** Once a second: something that happens by being somewhere, with no button (patrol.ts). */
+  near?(ctx: JobContext, s: S, p: JobPlayer): Outcome<S> | null;
   /** Over by itself (too long, idle)? Then this is said. */
   expired?(ctx: JobContext, s: S): string | null;
   /** What keeps the shift going, for the warning before it ends ("mine or sell ore"). */
@@ -303,6 +307,11 @@ export class Jobs {
       if (why) {
         this.end(p, a, 'expired', why);
         continue;
+      }
+      const arrived = a.def.near?.(ctx, a.state, p);
+      if (arrived) {
+        this.apply(p, a, arrived, ctx);
+        if (arrived.state === null) continue;
       }
       this.push(p.id, a, ctx);
       // A warning before a shift ends by itself, so it doesn't come as a surprise.

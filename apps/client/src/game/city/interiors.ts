@@ -261,6 +261,7 @@ const GLYPHS: Record<RoomPoint['kind'], string> = {
   computer: 'A',
   till: '$',
   join: '?',
+  patrol: 'P',
 };
 
 function markers(room: Interior): THREE.Group {

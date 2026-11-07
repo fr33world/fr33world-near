@@ -190,6 +190,15 @@ export const HANDLING: Record<string, Handling> = {
 };
 
 /** A car's handling by model id, the sedan's for anything unlisted. */
+/** Seats beside the driver: three in most cars, one in a two-seat sports car. */
+export const PASSENGER_SEATS = { default: 3, sport: 1 } as const;
+export const passengerSeats = (id: string | undefined): number =>
+  id === 'sport' ? PASSENGER_SEATS.sport : PASSENGER_SEATS.default;
+
+/** How far back of the front seats the rear ones sit, and the top speed to climb in at (m/s). */
+export const REAR_ROW = 0.85;
+export const BOARD_SPEED = 3;
+
 export function handlingOf(id: string | undefined): Handling {
   return HANDLING[id ?? ''] ?? (HANDLING.sedan as Handling);
 }

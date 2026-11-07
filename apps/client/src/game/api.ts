@@ -255,6 +255,36 @@ export function buyCar(
   return bankCall(privyToken, '/v1/dealer/buy', { model, key });
 }
 
+/** The login streak, the spin, today's tasks and unclaimed level bonuses. */
+export interface DailyStatus {
+  day: string;
+  login: { claimed: boolean; streak: number };
+  spin: { claimed: boolean };
+  tasks: { id: string; done: number; claimed: boolean }[];
+  levels: number[];
+}
+
+export interface DailyPaid {
+  label: string;
+  cents: number;
+  xp: number;
+  item?: string;
+  totalXp: number;
+  /** A spin: the wheel's slice. */
+  slice?: number;
+}
+
+export function fetchDaily(privyToken: string): Promise<DailyStatus> {
+  return bankCall(privyToken, '/v1/daily');
+}
+
+export function claimDaily(
+  privyToken: string,
+  body: { what: string; level?: number },
+): Promise<DailyPaid> {
+  return bankCall(privyToken, '/v1/daily/claim', body);
+}
+
 /** Level, XP and the latest rewards. */
 export function fetchProgress(privyToken: string): Promise<Progress> {
   return bankCall(privyToken, '/v1/progress');

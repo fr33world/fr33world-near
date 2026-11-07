@@ -51,6 +51,7 @@ import {
   type FactionId,
   isFactionId,
   uniformOf,
+  uniformOutfit,
   factionOfBuilding,
   enginePower,
   decodeGear,
@@ -92,6 +93,10 @@ import { GameSounds } from './sounds.ts';
 import { SHOW_ALL_TILES } from './city/tiles.ts';
 import {
   applyFaction,
+  claimDaily,
+  type DailyPaid,
+  type DailyStatus,
+  fetchDaily,
   fetchDesk,
   fetchGangs,
   type FactionDesk,
@@ -118,6 +123,7 @@ import {
   setBlock,
   type Statement,
 } from './api.ts';
+import { waiting } from '../hud/Rewards.tsx';
 import { type Interaction, type InteractionIcon, Interactions } from './interactions.ts';
 import { Tutorial } from './tutorial.ts';
 import { Waypoints } from './waypoint.ts';
@@ -186,6 +192,8 @@ export interface HudState {
   ping: number;
   nearby: number;
   driving: boolean;
+  /** Riding beside someone else's driving. */
+  passenger: boolean;
   /** Speedometer, km/h. */
   speedKmh: number;
   /** Drive, reverse, or standing in neutral. */
@@ -211,6 +219,8 @@ export interface HudState {
   ownsWeapon: boolean;
   /** Unread notices in the inbox (the phone's badge). */
   unread: number;
+  /** Daily rewards waiting to be claimed. */
+  dailyReady: number;
   /** `$` balance in cents, or null when unknown (no login, API unreachable). */
   money: number | null;
   /** Experience, or null without a character (shared `levelOf` makes the level). */
@@ -240,6 +250,14 @@ const DOOR_FADE_MS = 500;
 const INDOOR_HOUR = 13;
 /** How long after entering the city the frame rate starts to count (ms). */
 const ENTRY_SETTLE_MS = 8000;
+/** Our open 911 call, as the world server tells it. */
+export interface EmergencyCall {
+  id: number;
+  kind: 'police' | 'medical';
+  onDuty: number;
+  responders: string[];
+}
+
 /** How long the aim stays up after the last shot (ms). */
 const AIM_HOLD_MS = 1_200;
 
@@ -259,6 +277,7 @@ export class Game {
     ping: 0,
     nearby: 0,
     driving: false,
+    passenger: false,
     speedKmh: 0,
     gear: 'N',
     fuel: 1,
@@ -272,6 +291,7 @@ export class Game {
     aimOnPerson: false,
     ownsWeapon: false,
     unread: 0,
+    dailyReady: 0,
     aiming: false,
     money: null,
     xp: null,
@@ -554,6 +574,10 @@ export class Game {
       for (const c of this.vehicles?.cars.values() ?? [])
         if (c.driver === driver) return { pos: c.pos, yaw: c.yaw, id: c.model.spec.id };
       return null;
+    };
+    this.remote.carById = (id) => {
+      const c = this.vehicles?.cars.get(id);
+      return c ? { pos: c.pos, yaw: c.yaw, id: c.model.spec.id } : null;
     };
     this.remote.onVehicleGone = (id) => this.vehicles?.remove(id);
     if (this.fly) {
@@ -853,6 +877,22 @@ export class Game {
     return s;
   }
 
+  /** The Rewards app; keeps count of what's waiting for the phone's badge. */
+  async daily(): Promise<DailyStatus> {
+    if (!this.session.apiToken) throw new Error('Log in for daily rewards.');
+    const s = await fetchDaily(await this.session.apiToken());
+    this.hud.dailyReady = waiting(s);
+    return s;
+  }
+
+  async claimDaily(body: { what: string; level?: number }): Promise<DailyPaid> {
+    if (!this.session.apiToken) throw new Error('Log in for daily rewards.');
+    const r = await claimDaily(await this.session.apiToken(), body);
+    if (r.cents > 0 || r.xp > 0) void this.statement().catch(() => {});
+    this.hud.xp = r.totalXp;
+    return r;
+  }
+
   /** Level, XP and recent rewards (the phone's progress app); updates the HUD's XP. */
   async progress(): Promise<Progress> {
     if (import.meta.env.DEV && !this.session.apiToken && location.search.includes('phone=')) {
@@ -952,6 +992,8 @@ export class Game {
   private fadeUntil = 0;
   /** Our faction (the server's word), for doors we can't use. */
   memberOf: string | null = null;
+  /** The 911 call we're waiting on. */
+  call: EmergencyCall | null = null;
   /** performance.now() until which the aim stays up after firing. */
   private aimHoldUntil = 0;
 
@@ -1361,6 +1403,10 @@ export class Game {
         }
         break;
       }
+      case 'passenger':
+        this.remote.passenger(m.player, m.vehicle, m.seat);
+        if (m.player === this.net.you) this.setRide(m.seat ? m : null);
+        break;
       case 'correction': {
         // Driving, it's the car the server turned down: back to where it last accepted it.
         // Ignored, the car drove on where the server never saw it, and getting out put the
@@ -1429,6 +1475,8 @@ export class Game {
       case 'arms': {
         const state = JSON.parse(m.state) as Parameters<Combat['setArms']>[0] & {
           faction?: string | null;
+          rank?: number;
+          call?: EmergencyCall | null;
           downedMs?: number;
           emsCalled?: boolean;
           bed?: Bed | null;
@@ -1437,11 +1485,12 @@ export class Game {
         };
         this.combat?.setArms(state);
         this.memberOf = state.faction ?? null;
+        this.call = state.call ?? null;
         this.downedEnd = performance.now() + (state.downedMs ?? 0);
         this.hud.emsCalled = state.emsCalled === true;
         this.setBed(state.bed ?? null);
         this.setChair(state.seat ?? null);
-        this.dress(state.faction ?? null, state.duty ?? null);
+        this.dress(state.faction ?? null, state.duty ?? null, state.rank ?? 0);
         break;
       }
       case 'ride':
@@ -1537,6 +1586,14 @@ export class Game {
     this.interactions.add((reach) => {
       const v = this.vehicles;
       if (!v) return null;
+      if (this.ride)
+        return {
+          key: 'exit',
+          label: 'Get out',
+          icon: 'exit',
+          distance: 0,
+          run: () => this.net.send({ type: 'exit_vehicle' }),
+        };
       if (reach.driving)
         return { key: 'exit', label: 'Exit', icon: 'exit', distance: 0, run: () => this.exitCar() };
       const at = new THREE.Vector3(reach.x, reach.y, reach.z);
@@ -1547,7 +1604,18 @@ export class Game {
         VEHICLE_ENTER_RADIUS - 0.5,
         (c) => !c.remote?.name || c.remote.name === mine,
       );
-      if (!car) return null;
+      if (!car) {
+        const driven = v.nearestDriven(at, VEHICLE_ENTER_RADIUS - 0.5, this.net.you);
+        if (!driven) return null;
+        return {
+          key: `ride:${driven.id}`,
+          label: 'Ride along',
+          icon: 'car',
+          at: { x: driven.pos.x, y: driven.pos.y + 1.7, z: driven.pos.z },
+          distance: Math.hypot(driven.pos.x - reach.x, driven.pos.z - reach.z),
+          run: () => this.net.send({ type: 'act', what: ACT.RIDE, arg: driven.id }),
+        };
+      }
       // Getting in needs the car clips: fetched now, while the player walks up.
       this.player?.character?.animator?.preloadCar();
       return {
@@ -1685,11 +1753,12 @@ export class Game {
         const offer = JOB_OFFERS[p.kind];
         const n = offer && near(i);
         if (!offer || !n) return;
+        if (offer.job === 'patrol' && this.duty !== 'police') return;
         offers.push({
           key: `offer:${i}`,
           label: offer.label,
           icon: 'job',
-          at: { x: p.x, y: this.groundAt(p.x, p.z) + 2.4, z: p.z },
+          at: { x: p.x, y: (interiorAt(p.x, p.z) ? 0 : this.groundAt(p.x, p.z)) + 2.4, z: p.z },
           distance: n.distance,
           run: () =>
             this.net.connected && this.net.send({ type: 'job', op: JOB_OP.START, point: i }),
@@ -1928,20 +1997,20 @@ export class Game {
   }
 
   /** Our own uniform: swapped in when the faction or duty changes. */
-  private dress(faction: string | null, duty: string | null) {
-    const key = `${faction}:${duty !== null}`;
+  private dress(faction: string | null, duty: string | null, rank: number) {
+    const key = `${faction}:${duty !== null}:${rank}`;
     if (key === this.wearing) return;
-    const dressed = uniformOf(isFactionId(faction) ? faction : null, duty !== null);
+    const appearance = decodeAppearance(this.session.look ?? encodeAppearance(DEFAULT_APPEARANCE));
+    const member = isFactionId(faction) ? faction : null;
+    const real = uniformOutfit(member, rank, duty !== null, appearance.body);
+    const dressed = real ? null : uniformOf(member, duty !== null);
     // The first word from the server, nothing to change into: stay as we are.
-    const first = this.wearing === null && !dressed;
+    const first = this.wearing === null && !dressed && !real;
     this.wearing = key;
     const player = this.player;
     const combat = this.combat;
     if (first || !player || !combat) return;
-    const look: Look = {
-      ...decodeAppearance(this.session.look ?? encodeAppearance(DEFAULT_APPEARANCE)),
-      uniform: dressed,
-    };
+    const look: Look = { ...appearance, uniform: dressed, dress: real };
     void Character.load(look, 0, 0, decodeGear(this.session.gear ?? 0)).then((next) => {
       if (this.wearing !== key) return;
       const old = player.character;
@@ -2047,6 +2116,27 @@ export class Game {
     // Our character gets in at the driver's door and stays at the wheel (drawn each frame).
     this.leftCar = null;
     void this.player.character?.animator?.getIn();
+  }
+
+  /** Riding in someone else's car: which, and which seat. */
+  private ride: { vehicle: number; seat: number } | null = null;
+
+  /** In beside a driver, or out again (the server's correction places us beside the car). */
+  private setRide(ride: { vehicle: number; seat: number } | null) {
+    const player = this.player;
+    if (!player || !this.follow) return;
+    const anim = player.character?.animator;
+    if (ride && !this.ride) {
+      player.setEnabled(false);
+      this.follow.inCar = true;
+      void anim?.ride();
+    } else if (!ride && this.ride) {
+      player.setEnabled(true);
+      this.follow.inCar = false;
+      anim?.stop();
+    }
+    this.ride = ride;
+    this.hud.passenger = ride !== null;
   }
 
   /** The car we just got out of, while our character climbs out of it. */
@@ -2184,10 +2274,16 @@ export class Game {
       const at = inCar ? inCar.position : player.position;
       const pressed = this.input.consume('KeyE', 'KeyF', 'interact');
       const held = this.input.held('KeyE', 'KeyF', 'interact');
-      const reach = { x: at.x, y: at.y, z: at.z, yaw: player.yaw, driving: !!inCar };
+      const reach = {
+        x: at.x,
+        y: at.y,
+        z: at.z,
+        yaw: player.yaw,
+        driving: !!inCar || this.ride !== null,
+      };
       if (downed) this.interactions.current = null;
       else this.interactions.update(reach, pressed, held, performance.now());
-      if (!inCar && !downed && !this.chair) {
+      if (!inCar && !downed && !this.chair && !this.ride) {
         this.checkParking(at.x, at.z);
         this.checkDoors(at.x, at.z);
       }
@@ -2276,6 +2372,7 @@ export class Game {
     }
     if (steps === 5) this.accumulator = 0;
     follow.zoomBy(this.input.zoom);
+    const riding = this.ride ? this.vehicles?.cars.get(this.ride.vehicle) : null;
     if (car) {
       car.sync(this.accumulator / PHYSICS_DT);
       // Only drift behind the car while it is really moving forward.
@@ -2291,6 +2388,22 @@ export class Game {
         const seat = me.animator?.seat === 'enter' ? 'enter' : 'drive';
         const at = { pos: car.position, yaw: car.yaw, quat: car.quaternion, id: car.spec.id };
         seatCharacter(me.root, at, seat, me.animator?.hipsRestY ?? 0.9);
+        me.update(dt, 0);
+      }
+    } else if (riding) {
+      // The driver's car carries us: the body waits, and everything else follows the car.
+      player.position.copy(riding.pos);
+      follow.update(dt, this.input.look, riding.pos);
+      const me = player.character;
+      if (me) {
+        me.root.visible = true;
+        seatCharacter(
+          me.root,
+          { pos: riding.pos, yaw: riding.yaw, id: riding.model.spec.id },
+          'drive',
+          me.animator?.hipsRestY ?? 0.9,
+          this.ride?.seat ?? 1,
+        );
         me.update(dt, 0);
       }
     } else {

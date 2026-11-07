@@ -371,6 +371,54 @@ export const UNIFORMS: Record<FactionId, readonly [string, string, string]> = {
   kings: ['#e0b73c', '#1d1d1f', '#1d1d1f'],
 };
 
+/**
+ * The real uniforms at the lockers: Rocketbox's own Police and Medical avatars, one per rank.
+ * Each id is the outfit's file (`rb_<id>_outfit`), and its avatar in the library.
+ */
+export const UNIFORM_AVATARS: Record<string, string> = {
+  pm1: 'Police_Male_01',
+  pm3: 'Police_Male_03',
+  pm5: 'Police_Male_05',
+  pm6: 'Police_Male_06',
+  pm7: 'Police_Male_07',
+  pf1: 'Police_Female_01',
+  sf1: 'Security_Female_01',
+  lf1: 'Pilot_Female_01',
+  em1: 'Medical_Male_01',
+  em2: 'Medical_Male_02',
+  em3: 'Medical_Male_03',
+  em4: 'Medical_Male_04',
+  ef1: 'Medical_Female_01',
+  ef2: 'Medical_Female_02',
+  ef3: 'Medical_Female_03',
+};
+
+/** Which uniform each rank wears, lowest rank first. */
+export const RANK_UNIFORMS: Partial<
+  Record<FactionId, Record<'male' | 'female', readonly string[]>>
+> = {
+  police: {
+    male: ['pm1', 'pm3', 'pm6', 'pm7', 'pm5'],
+    female: ['sf1', 'sf1', 'pf1', 'pf1', 'lf1'],
+  },
+  medical: {
+    male: ['em4', 'em2', 'em2', 'em1', 'em3'],
+    female: ['ef1', 'ef3', 'ef3', 'ef2', 'ef2'],
+  },
+};
+
+/** The uniform this member changes into at the lockers, if their faction has real ones. */
+export function uniformOutfit(
+  faction: FactionId | null | undefined,
+  rank: number,
+  onDuty: boolean,
+  body: 'male' | 'female',
+): string | null {
+  if (!faction || !onDuty) return null;
+  const list = RANK_UNIFORMS[faction]?.[body];
+  return list ? (list[Math.min(Math.max(rank, 1), list.length) - 1] ?? null) : null;
+}
+
 /** The clothes this faction member wears now, if the faction dresses them. */
 export function uniformOf(
   faction: FactionId | null | undefined,
@@ -383,3 +431,19 @@ export function uniformOf(
 export const factionCode = (f: FactionId | null | undefined): number =>
   f ? FACTION_IDS.indexOf(f) + 1 : 0;
 export const factionOfCode = (n: number): FactionId | null => FACTION_IDS[n - 1] ?? null;
+
+/** `enter`'s faction byte: the faction in the low 3 bits, the rank above, on duty on top. */
+export function factionTag(m: Membership | null | undefined, onDuty: boolean): number {
+  return factionCode(m?.faction) | ((m?.rank ?? 0) << 3) | (onDuty ? ON_DUTY_BIT : 0);
+}
+export function readFactionTag(tag: number): {
+  faction: FactionId | null;
+  rank: number;
+  onDuty: boolean;
+} {
+  return {
+    faction: factionOfCode(tag & 7),
+    rank: (tag >> 3) & 15,
+    onDuty: (tag & ON_DUTY_BIT) !== 0,
+  };
+}

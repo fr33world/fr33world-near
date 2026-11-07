@@ -156,6 +156,31 @@ describe('factions in the world', () => {
     expect(after.weapons).not.toContain(WEAPON.HEAVY_PISTOL);
   });
 
+  it('tells a caller how their call is going, and lets them hang up', async () => {
+    const t = setup({ cop: { faction: 'police', rank: 1 } });
+    const cop = await t.join('cop');
+    const civ = await t.join('civ');
+    await t.duty(cop);
+    const call = () =>
+      (
+        JSON.parse(civ.conn.take('arms').at(-1)?.state ?? '{}') as {
+          call: { id: number; onDuty: number; responders: string[] } | null;
+        }
+      ).call;
+    await t.say(civ.conn, '/911 Robbery');
+    const open = call();
+    expect(open).toMatchObject({ kind: 'police', onDuty: 1, responders: [] });
+    await t.say(civ.conn, '/911 Robbery again');
+    expect(civ.conn.told().at(-1)).toMatch(/still open/);
+    await t.say(cop.conn, `/respond ${open?.id}`);
+    expect(call()?.responders).toEqual(['cop Player']);
+    await t.say(civ.conn, '/hangup');
+    expect(call()).toBeNull();
+    expect(JSON.parse(cop.conn.take('dispatch').at(-1)?.state ?? '[1]')).toEqual([]);
+    await t.say(civ.conn, '/hangup');
+    expect(civ.conn.told().at(-1)).toMatch(/No call/);
+  });
+
   it('puts 911 calls and people down on the dispatch, and a medic revives', async () => {
     const t = setup({ cop: { faction: 'police', rank: 1 }, doc: { faction: 'medical', rank: 2 } });
     const cop = await t.join('cop');

@@ -1,4 +1,5 @@
 import {
+  ACT,
   decodeServerFrame,
   encodeClient,
   ERROR_CODE,
@@ -334,6 +335,81 @@ describe('vehicles', () => {
     send(a.conn, { type: 'exit_vehicle' });
     expect(a.conn.take('seat').at(-1)?.driver).toBe(NO_ENTITY);
     expect(a.conn.take('correction')).toHaveLength(1);
+  });
+
+  it('carries up to three passengers, who move with the car and can be put out', () => {
+    const { world, advance, send, join } = setup();
+    const inner = world as unknown as {
+      players: Map<number, { pose: { x: number; y: number; z: number } }>;
+      vehicles: Map<
+        number,
+        { model: number; pose: { x: number; y: number; z: number; vx: number; vz: number } }
+      >;
+    };
+    const driver = join('Driver');
+    const riders = ['Ann', 'Ben', 'Cal', 'Dee'].map((n) => join(n));
+    world.step();
+    const car = [...inner.vehicles.entries()][0];
+    if (!car) throw new Error('no cars');
+    const [id, v] = car;
+    v.model = 0;
+    const beside = (p: number) =>
+      Object.assign(inner.players.get(p)?.pose ?? {}, {
+        x: v.pose.x + 1.5,
+        y: v.pose.y,
+        z: v.pose.z,
+      });
+    const board = (p: (typeof riders)[number]) => {
+      beside(p.id);
+      send(p.conn, { type: 'act', what: ACT.RIDE, arg: id });
+    };
+
+    // Nobody driving: nobody to ride with.
+    board(riders[0]!);
+    expect(riders[0]!.conn.take('error').at(-1)?.message).toMatch(/Nobody to ride/);
+    beside(driver.id);
+    send(driver.conn, { type: 'enter_vehicle', vehicle: id });
+
+    // Moving: wait. Stopped: in, each in their own seat, and the fourth finds it full.
+    v.pose.vx = 10;
+    advance(500);
+    board(riders[0]!);
+    expect(riders[0]!.conn.take('error').at(-1)?.message).toMatch(/Wait for it/);
+    v.pose.vx = 0;
+    advance(500);
+    for (const r of riders) {
+      board(r);
+      advance(500);
+    }
+    const said = driver.conn.take('passenger');
+    const seats = riders.slice(0, 3).map((r) => said.find((m) => m.player === r.id));
+    expect(seats.map((m) => m?.seat)).toEqual([1, 2, 3]);
+    expect(seats.every((m) => m?.vehicle === id)).toBe(true);
+    expect(riders[3]!.conn.take('error').at(-1)?.message).toMatch(/full/);
+
+    // What a passenger reports moves nothing; the car moves them.
+    advance(50);
+    send(riders[0]!.conn, {
+      type: 'state',
+      seq: 1,
+      ...v.pose,
+      vy: 0,
+      yaw: 0,
+      x: 0,
+      z: 0,
+      state: 0,
+    });
+    expect(inner.players.get(riders[0]!.id)?.pose.x).toBeCloseTo(v.pose.x);
+    const to = v.pose.x + 0.5;
+    send(driver.conn, { type: 'state', seq: 1, ...v.pose, vy: 0, yaw: 0, x: to, state: 0 });
+    expect(v.pose.x).toBeCloseTo(to);
+    expect(inner.players.get(riders[1]!.id)?.pose.x).toBeCloseTo(to);
+
+    // A passenger gets out; the car keeps its driver.
+    send(riders[0]!.conn, { type: 'exit_vehicle' });
+    expect(riders[0]!.conn.take('passenger').at(-1)).toMatchObject({ seat: 0, vehicle: NO_ENTITY });
+    expect(driver.conn.take('seat').filter((m) => m.driver === NO_ENTITY)).toHaveLength(0);
+    expect(riders[0]!.conn.take('correction')).toHaveLength(1);
   });
 });
 

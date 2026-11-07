@@ -17,3 +17,4 @@ export * from './car-handling.ts';
 export * from './armory.ts';
 export * from './factions.ts';
 export * from './business.ts';
+export * from './daily.ts';

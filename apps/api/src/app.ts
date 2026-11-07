@@ -14,6 +14,7 @@
  *   GET  /v1/bank?before=  same auth: balance, frozen, and a page of history (newest first)
  *   POST /v1/bank/pay  same auth, body {to, cents, note?, key}: pays another character
  *   GET  /v1/progress  same auth: level, XP and the latest rewards
+ *   GET  /v1/daily, POST /v1/daily/claim  same auth: login streak, spin, tasks, level bonuses
  *   GET  /v1/garage    same auth: the cars this account owns (a starter car the first time)
  *   POST /v1/internal/garage  the world server: a player's cars, when they call one
  *   POST /v1/dealer/buy  same auth, body {model, key}: buys a car (shared CARS_FOR_SALE)
@@ -81,6 +82,7 @@ import {
 import { openFlags, reviewFlag } from './anomalies.ts';
 import { BankError, pay, statement } from './bank.ts';
 import { correct, freeze, lookUp, reverse } from './corrections.ts';
+import { claimDaily, dailyStatus } from './daily.ts';
 import { progress, reward, RewardError } from './rewards.ts';
 import { advanceTutorial, TutorialError } from './tutorial.ts';
 import {
@@ -676,6 +678,10 @@ export function buildApp(deps: AppDeps): FastifyInstance {
     return bank(req, reply, (u) => buyCar(deps.db, u, req.body ?? {}));
   });
 
+  app.get('/v1/daily', (req, reply) => bank(req, reply, (u) => dailyStatus(deps.db, u)));
+  app.post('/v1/daily/claim', (req, reply) =>
+    bank(req, reply, (u) => claimDaily(deps.db, u, req.body ?? {})),
+  );
   app.get('/v1/progress', (req, reply) =>
     bank(req, reply, async (u) => {
       try {

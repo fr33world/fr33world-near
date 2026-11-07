@@ -2,9 +2,10 @@
 Converts a Microsoft Rocketbox avatar (MIT) into the game's two character parts:
 
     blender -b --factory-startup --python scripts/blender/convert_rocketbox.py -- \
-        <avatar.fbx> <out_dir> <id>
+        <avatar.fbx> <out_dir> <id> [outfit,face]
 
-writes <out_dir>/rb_<id>_outfit[.lod1|.lod2].glb (the body material: clothes, hands, neck)
+writes <out_dir>/rb_<id>_outfit[.lod1|.lod2].glb (the body material: clothes, hands, neck,
+and on a uniform its belt and holsters)
 and <out_dir>/rb_<id>_face[.lod1|.lod2].glb (the head and its cut-out hair and lashes), each
 skinned to the full skeleton, plus <out_dir>/rb_<id>.json (which bones exist, the rig's hip
 height). Normally run through scripts/assets/rocketbox.mjs.
@@ -56,6 +57,8 @@ LEVELS = [("", 1.0, 1024), (".lod1", 0.5, 512), (".lod2", 0.22, 256)]
 def main():
     args = sys.argv[sys.argv.index("--") + 1 :]
     fbx, out_dir, ident = args[0], args[1], args[2]
+    # A uniform needs only its outfit: the wearer keeps their own face.
+    wanted = args[3].split(",") if len(args) > 3 else ["outfit", "face"]
     os.makedirs(out_dir, exist_ok=True)
     bpy.ops.wm.read_factory_settings(use_empty=True)
     bpy.ops.import_scene.fbx(filepath=fbx)
@@ -92,7 +95,9 @@ def main():
         "bones": [b.name for b in arm.data.bones],
     }
 
-    for part, keep in (("outfit", ("_body",)), ("face", ("_head", "_opacity"))):
+    for part, keep in (("outfit", ("_body", "_equipment")), ("face", ("_head", "_opacity"))):
+        if part not in wanted:
+            continue
         for suffix, ratio, size in LEVELS:
             export_part(arm, mesh, keep, ratio, size, os.path.join(out_dir, f"rb_{ident}_{part}{suffix}.glb"))
     with open(os.path.join(out_dir, f"rb_{ident}.json"), "w") as f:

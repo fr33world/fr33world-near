@@ -155,6 +155,22 @@ export class VehicleManager {
     return best;
   }
 
+  /** The nearest car someone else is driving, to ride along in. */
+  nearestDriven(at: THREE.Vector3, radius: number, you: number): Car | null {
+    let best: Car | null = null;
+    let bestD = radius;
+    for (const car of this.cars.values()) {
+      if (car.driver === NO_ENTITY || car.driver === you) continue;
+      if (Math.abs(car.pos.y - at.y) > ENTER_HEIGHT) continue;
+      const d = Math.hypot(car.pos.x - at.x, car.pos.z - at.z);
+      if (d < bestD) {
+        best = car;
+        bestD = d;
+      }
+    }
+    return best;
+  }
+
   /** Takes the wheel: the car becomes a locally simulated dynamic body. */
   startDriving(id: number): DrivenCar | null {
     const car = this.cars.get(id);

@@ -3,7 +3,7 @@
  * server sends the player's job as a JobView; the client only asks to use city points.
  */
 
-export type JobId = 'courier' | 'mining' | 'taxi' | 'collect' | 'haul';
+export type JobId = 'courier' | 'mining' | 'taxi' | 'collect' | 'haul' | 'patrol';
 
 /** Where each job is offered (a city point kind), and what its prompt says. */
 export const JOB_OFFERS: Record<string, { job: JobId; label: string }> = {
@@ -12,6 +12,7 @@ export const JOB_OFFERS: Record<string, { job: JobId; label: string }> = {
   taxi_depot: { job: 'taxi', label: 'Start a taxi shift' },
   hideout: { job: 'collect', label: 'Run collections' },
   dock: { job: 'haul', label: "Load Sunny's order" },
+  patrol: { job: 'patrol', label: 'Start a patrol' },
 };
 
 /** Something the player can do now: use a point (the client shows the prompt). */

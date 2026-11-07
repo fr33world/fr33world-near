@@ -747,6 +747,11 @@ export class Animator {
     action.timeScale = -duration / seconds;
   }
 
+  /** In a passenger seat: sitting, hands off the wheel. */
+  async ride(): Promise<void> {
+    await this.sit();
+  }
+
   /** Down onto a chair, and sitting until stand() or stop(). */
   async sit(): Promise<void> {
     const ask = ++this.seatAsk;

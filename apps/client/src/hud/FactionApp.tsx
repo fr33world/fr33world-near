@@ -442,28 +442,102 @@ export function FactionApp({ game }: { game: Game }) {
   );
 }
 
-/** The Emergency app: a call to the police or EMS, from here, with a few words. */
-export function EmergencyApp({ game, onGo }: { game: Game; onGo: () => void }) {
+const CALLS = {
+  police: {
+    label: 'Police',
+    icon: '🚓',
+    command: '911',
+    reasons: ['Robbery', 'Shots fired', 'Fight', 'Reckless driver', 'Stolen car'],
+  },
+  medical: {
+    label: 'EMS',
+    icon: '🚑',
+    command: 'ems',
+    reasons: ['Someone’s down', 'Injured', 'Car crash', 'Overdose'],
+  },
+} as const;
+
+/** The Emergency app: pick who and why, then follow the call until it's answered. */
+export function EmergencyApp({ game }: { game: Game }) {
+  const [who, setWho] = useState<keyof typeof CALLS>('police');
+  const [reason, setReason] = useState<string | null>(null);
   const [text, setText] = useState('');
-  const call = (cmd: '911' | 'ems') => {
-    if (game.command(`/${cmd} ${text.trim() || 'Needs help'}`)) onGo();
+  const [, tick] = useState(0);
+  // The world server says how the call is going; the phone shows it as it changes.
+  useEffect(() => {
+    const t = window.setInterval(() => tick((n) => n + 1), 1000);
+    return () => window.clearInterval(t);
+  }, []);
+
+  const open = game.call;
+  if (open) {
+    const c = CALLS[open.kind];
+    const coming = open.responders.length > 0;
+    return (
+      <div className="bank call-live">
+        <div className={`call-pulse ${open.kind}`}>{c.icon}</div>
+        <div className="bank-title">{coming ? 'Help is on the way' : `Calling ${c.label}…`}</div>
+        <div className="bank-sub">
+          {coming
+            ? `${open.responders.join(', ')} ${open.responders.length > 1 ? 'are' : 'is'} coming to where you called from.`
+            : open.onDuty > 0
+              ? `${open.onDuty} on duty ${open.onDuty > 1 ? 'have' : 'has'} your call. Stay where you are.`
+              : 'Nobody’s on duty right now. Your call waits for the next one who is.'}
+        </div>
+        <div className="bank-sub">Call {open.id}</div>
+        <button type="button" className="btn" onClick={() => game.command('/hangup')}>
+          Hang up
+        </button>
+      </div>
+    );
+  }
+  const c = CALLS[who];
+  const call = () => {
+    const said = [reason, text.trim()].filter(Boolean).join(': ');
+    game.command(`/${c.command} ${said || 'Needs help'}`);
   };
   return (
     <div className="bank">
-      <div className="bank-sub">They'll come to where you are now. Say what's happening:</div>
+      <div className="call-who">
+        {(Object.keys(CALLS) as (keyof typeof CALLS)[]).map((k) => (
+          <button
+            key={k}
+            type="button"
+            className={`call-card ${k}${who === k ? ' on' : ''}`}
+            onClick={() => {
+              setWho(k);
+              setReason(null);
+            }}
+          >
+            <span>{CALLS[k].icon}</span>
+            <b>{CALLS[k].label}</b>
+          </button>
+        ))}
+      </div>
+      <div className="bank-sub">What’s happening?</div>
+      <div className="call-reasons">
+        {c.reasons.map((r) => (
+          <button
+            key={r}
+            type="button"
+            className={`call-reason${reason === r ? ' on' : ''}`}
+            onClick={() => setReason(reason === r ? null : r)}
+          >
+            {r}
+          </button>
+        ))}
+      </div>
       <input
         className="field"
-        maxLength={100}
-        placeholder="What's happening?"
+        maxLength={70}
+        placeholder="Anything else? (optional)"
         value={text}
         onChange={(e) => setText(e.target.value)}
       />
-      <button type="button" className="btn btn-primary" onClick={() => call('911')}>
-        🚓 Call the police
+      <button type="button" className="btn btn-primary call-go" onClick={call}>
+        Call {c.label}
       </button>
-      <button type="button" className="btn" onClick={() => call('ems')}>
-        🚑 Call EMS
-      </button>
+      <div className="bank-sub">They’ll come to where you are now.</div>
     </div>
   );
 }

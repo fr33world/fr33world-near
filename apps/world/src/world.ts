@@ -99,10 +99,11 @@ import {
   SKIN_TONES,
   type Staff,
   ARMORY,
+  BOARD_SPEED,
+  passengerSeats,
   type FactionId,
   FACTIONS,
-  factionCode,
-  ON_DUTY_BIT,
+  factionTag,
   hasPower,
   isFactionId,
   type Membership,
@@ -125,6 +126,7 @@ import {
 } from '@fr33world/shared';
 import { type ApiPath, type CommandWorld, parse, parseCents, runCommand } from './commands.ts';
 import { collect } from './jobs/collect.ts';
+import { patrol } from './jobs/patrol.ts';
 import { courier } from './jobs/courier.ts';
 import { haul } from './jobs/haul.ts';
 import { type JobDef, type JobHost, type JobPlayer, Jobs, type Saved } from './jobs/jobs.ts';
@@ -385,6 +387,8 @@ interface Player {
   fallUntil: number;
   /** The seat they're sitting on (each room's `seats`). */
   seat: Seat | null;
+  /** Riding in `vehicle` beside its driver: which seat (0: not a passenger). */
+  passengerSeat: number;
   /** Where they stood at the last save of their place, to rounded metres. */
   placeSaved: string;
 }
@@ -395,6 +399,8 @@ interface Vehicle {
   color: number;
   pose: Pose;
   driver: number;
+  /** Who's riding beside the driver. */
+  passengers?: Set<number>;
   /** A player's own car (called at a car park): whose (account, or `anon:<id>` in local play), and their name. */
   owner?: string;
   ownerName?: string;
@@ -431,6 +437,8 @@ const STREET_CAR_RESET_MS = 180_000;
 /** Chat commands the factions use (Phase 9), run by the world rather than commands.ts. */
 const FACTION_COMMANDS = new Set([
   '911',
+  'hangup',
+  'eject',
   'ems',
   'duty',
   'respond',
@@ -635,6 +643,7 @@ export class World {
       taxi,
       collect,
       haul,
+      patrol,
     ] as JobDef<unknown>[]);
     this.collision = CollisionIndex.fromCity(this.city);
     this.startedAt = this.now();
@@ -1112,6 +1121,7 @@ export class World {
       fallUntil: 0,
       ghostUntil: 0,
       seat: null,
+      passengerSeat: 0,
       placeSaved: '',
     };
     p.validator.reset(now);
@@ -1150,7 +1160,8 @@ export class World {
     if (p.seq >= 0 && (delta === 0 || delta > 0x7fff)) return; // old or duplicate
     p.seq = m.seq;
     const now = this.now();
-    if (p.downedUntil > 0 || p.fallUntil > 0 || p.seat) return;
+    // A passenger's body goes where the car goes: nothing they report moves it.
+    if (p.downedUntil > 0 || p.fallUntil > 0 || p.seat || p.passengerSeat) return;
     const vehicle = p.vehicle === NO_ENTITY ? null : this.vehicles.get(p.vehicle);
     const body = vehicle ? vehicle.pose : p.pose;
 
@@ -1186,6 +1197,16 @@ export class World {
       p.pose.z = body.z;
       p.pose.yaw = body.yaw;
       p.pose.state = MODE.SEATED;
+      for (const id of vehicle.passengers ?? []) {
+        const q = this.players.get(id);
+        if (!q) continue;
+        q.pose.x = body.x;
+        q.pose.y = body.y;
+        q.pose.z = body.z;
+        q.pose.yaw = body.yaw;
+        q.movedAt = now;
+        this.moved(q.id, q.pose);
+      }
     } else {
       // SEATED and DOWNED are only ever set by the server.
       const mode = modeOf(m.state);
@@ -1316,6 +1337,12 @@ export class World {
     const v = this.vehicles.get(p.vehicle);
     p.vehicle = NO_ENTITY;
     this.evisible[p.id] = 1;
+    if (p.passengerSeat) {
+      p.passengerSeat = 0;
+      v?.passengers?.delete(p.id);
+      this.broadcastPassenger(p, v);
+      return;
+    }
     if (!v) return;
     v.driver = NO_ENTITY;
     v.idleSince = this.now();
@@ -1324,6 +1351,69 @@ export class World {
     v.pose.vz = 0;
     this.moved(v.id, v.pose);
     this.broadcastSeat(v);
+  }
+
+  /** In beside the driver of a car that's stopped, or nearly. Anyone may: the driver can /eject. */
+  private boardVehicle(p: Player, vehicleId: number) {
+    const v = this.vehicles.get(vehicleId);
+    const no = (message: string) =>
+      this.sendMsg(p.conn, { type: 'error', code: ERROR_CODE.SEAT_DENIED, message });
+    if (!v || v.driver === NO_ENTITY || v.driver === p.id) return no('Nobody to ride with.');
+    if (
+      p.vehicle !== NO_ENTITY ||
+      p.seat ||
+      p.downedUntil > 0 ||
+      p.fallUntil > 0 ||
+      Math.hypot(p.pose.x - v.pose.x, p.pose.z - v.pose.z) > VEHICLE_ENTER_RADIUS ||
+      Math.abs(p.pose.y - v.pose.y) > 2.5
+    )
+      return no('You cannot get in that car');
+    if (Math.hypot(v.pose.vx, v.pose.vz) > BOARD_SPEED) return no('Wait for it to stop.');
+    const spec = CAR_MODELS[v.model];
+    const seats = passengerSeats(spec?.id);
+    const taken = new Set(
+      [...(v.passengers ?? [])].map((id) => this.players.get(id)?.passengerSeat ?? 0),
+    );
+    let seat = 1;
+    while (taken.has(seat)) seat += 1;
+    if (seat > seats) return no('That car is full.');
+    (v.passengers ??= new Set()).add(p.id);
+    p.vehicle = v.id;
+    p.passengerSeat = seat;
+    p.pose.state = MODE.SEATED;
+    p.pose.x = v.pose.x;
+    p.pose.y = v.pose.y;
+    p.pose.z = v.pose.z;
+    p.pose.vx = p.pose.vy = p.pose.vz = 0;
+    this.moved(p.id, p.pose);
+    p.validator.reset(this.now());
+    this.broadcastPassenger(p, v);
+    const driver = this.players.get(v.driver);
+    if (driver) this.tell(driver, `${p.name} got in. /eject puts passengers out.`);
+  }
+
+  /** Everyone riding in `v` steps out beside it (the car is going, or the driver said so). */
+  private clearPassengers(v: Vehicle) {
+    for (const id of [...(v.passengers ?? [])]) {
+      const p = this.players.get(id);
+      if (p) this.exitVehicle(p);
+    }
+    v.passengers?.clear();
+  }
+
+  private broadcastPassenger(p: Player, v: Vehicle | undefined) {
+    const msg = encodeServer(
+      {
+        type: 'passenger',
+        player: p.id,
+        vehicle: p.passengerSeat ? p.vehicle : NO_ENTITY,
+        seat: p.passengerSeat,
+      },
+      this.writer,
+    );
+    for (const viewer of this.players.values())
+      if (viewer.id === p.id || viewer.view.has(p.id) || (v && viewer.view.has(v.id)))
+        this.send(viewer.conn, msg);
   }
 
   private broadcastSeat(v: Vehicle) {
@@ -1525,7 +1615,7 @@ export class World {
           );
     }
     for (const v of this.vehicles.values()) {
-      if (v.spawn === undefined || v.driver !== NO_ENTITY) continue;
+      if (v.spawn === undefined || v.driver !== NO_ENTITY || v.passengers?.size) continue;
       if ((v.fuel > 0.05 && v.health > 0) || now - v.idleSince < STREET_CAR_RESET_MS) continue;
       const s = this.city.vehicleSpawns[v.spawn];
       if (!s) continue;
@@ -1542,6 +1632,7 @@ export class World {
 
   /** Takes a vehicle out of the world. */
   private dropVehicle(v: Vehicle) {
+    this.clearPassengers(v);
     this.vehicles.delete(v.id);
     this.untrack(v.id);
     this.idPool.release(v.id);
@@ -1749,6 +1840,9 @@ export class World {
       // On duty (and as what), for the client's dispatch and revive.
       duty: p.onDuty && p.membership ? FACTIONS[p.membership.faction].kind : null,
       faction: p.membership?.faction ?? null,
+      rank: p.membership?.rank ?? 0,
+      // The 911 call they're waiting on, for the phone.
+      call: this.callView(p),
       // Down or in a hospital bed: how long for, and which bed.
       downedMs: Math.max(0, p.downedUntil - this.now()),
       emsCalled: p.emsCalled,
@@ -1904,7 +1998,7 @@ export class World {
 
   /** The faction in `enter`, with the top bit for on duty. */
   private factionTag(p: Player): number {
-    return factionCode(p.membership?.faction) | (p.onDuty ? ON_DUTY_BIT : 0);
+    return factionTag(p.membership, p.onDuty);
   }
 
   /** Into or out of uniform (the lockers): on duty, paid while active. */
@@ -1935,7 +2029,7 @@ export class World {
     this.reintroduce(p);
     this.tell(
       p,
-      `On duty as ${rankOf(m)?.title ?? ''}: paid for every ${SALARY.everyMs / 60_000} min active.${kind === 'police' ? ' Duty pistol issued (Q).' : ''}`,
+      `On duty as ${rankOf(m)?.title ?? ''}: paid for every ${SALARY.everyMs / 60_000} min active.${kind === 'police' ? ' Duty pistol issued (Q). Patrols are on the board in the office.' : ''}`,
     );
   }
 
@@ -2024,6 +2118,30 @@ export class World {
     return id;
   }
 
+  private callView(p: Player) {
+    const i = this.openCall(p);
+    if (!i) return null;
+    return {
+      id: i.id,
+      kind: i.kind,
+      onDuty: this.onDutyIn(i.kind).length,
+      responders: i.responders,
+    };
+  }
+
+  /** The call this player has made and is still waiting on. */
+  private openCall(p: Player) {
+    for (const i of this.incidents.values()) if (i.caller === p.id) return i;
+    return null;
+  }
+
+  private closeIncident(i: { id: number; kind: 'police' | 'medical'; caller: number | null }) {
+    this.incidents.delete(i.id);
+    this.sendDispatch(i.kind);
+    const caller = i.caller === null ? undefined : this.players.get(i.caller);
+    if (caller) this.sendArms(caller);
+  }
+
   private sendDispatch(kind: 'police' | 'medical') {
     const now = this.now();
     const list = [...this.incidents.values()]
@@ -2100,15 +2218,30 @@ export class World {
       switch (cmd) {
         case '911':
         case 'ems': {
+          if (this.openCall(p)) return say('📞 Your last call is still open. Hang up first.');
           const text = args.join(' ').slice(0, 100) || 'Needs help';
           const want = cmd === '911' ? 'police' : 'medical';
           const id = this.incident(want, `${p.name}: ${text}`, p.pose.x, p.pose.z, null, p.id);
           const n = this.onDutyIn(want).length;
+          this.sendArms(p);
           return say(
             n
               ? `📞 ${want === 'police' ? 'Police' : 'EMS'} told (call ${id}): ${n} on duty.`
               : `📞 Call ${id} logged. Nobody's on duty right now.`,
           );
+        }
+        case 'eject': {
+          const car = this.vehicles.get(p.vehicle);
+          if (!car || car.driver !== p.id) return say('Only the driver can do that.');
+          if (!car.passengers?.size) return say('Nobody to put out.');
+          this.clearPassengers(car);
+          return say('Passengers out.');
+        }
+        case 'hangup': {
+          const open = this.openCall(p);
+          if (!open) return say('No call to hang up.');
+          this.closeIncident(open);
+          return say('📞 Call ended.');
         }
         case 'duty': {
           if (!m || kind === 'gang') return say('Duty is for the police and EMS.');
@@ -2127,13 +2260,15 @@ export class World {
           if (!i) return say('No such call.');
           if (!p.onDuty || !m || FACTIONS[m.faction].kind !== i.kind) return say('Not your call.');
           if (cmd === 'resolve') {
-            this.incidents.delete(i.id);
-            this.sendDispatch(i.kind);
+            this.closeIncident(i);
             return say(`Call ${i.id} closed.`);
           }
           if (!i.responders.includes(p.name)) i.responders.push(p.name);
           const caller = i.caller === null ? undefined : this.players.get(i.caller);
-          if (caller) this.tell(caller, `🚓 ${p.name} is on the way.`);
+          if (caller) {
+            this.tell(caller, `🚓 ${p.name} is on the way.`);
+            this.sendArms(caller);
+          }
           this.sendDispatch(i.kind);
           return say(`Responding to call ${i.id}.`);
         }
@@ -2340,6 +2475,7 @@ export class World {
       downed: p.downedUntil > 0,
       xp: p.xp,
       faction: p.membership?.faction ?? null,
+      onDuty: p.onDuty,
     };
   }
 
@@ -2723,6 +2859,7 @@ export class World {
       if (p.bed >= 0) this.leaveBed(p);
     } else if (what === ACT.SIT) this.sit(p, arg);
     else if (what === ACT.STAND) this.stand(p);
+    else if (what === ACT.RIDE) this.boardVehicle(p, arg);
   }
 
   /** Onto seat `index` of the room they're in, if it's free and they're beside it. */
@@ -3220,6 +3357,11 @@ export class World {
       out,
     );
     if (v.driver !== NO_ENTITY) writeServer({ type: 'seat', vehicle: v.id, driver: v.driver }, out);
+    for (const id of v.passengers ?? []) {
+      const q = this.players.get(id);
+      if (q)
+        writeServer({ type: 'passenger', player: q.id, vehicle: v.id, seat: q.passengerSeat }, out);
+    }
   }
 
   // ---- helpers -------------------------------------------------------------------------

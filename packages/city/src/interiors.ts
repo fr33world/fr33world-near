@@ -55,7 +55,7 @@ export interface RoomLabel {
 }
 
 export interface RoomPoint {
-  kind: 'exit' | 'locker' | 'counter' | 'computer' | 'till' | 'join';
+  kind: 'exit' | 'locker' | 'counter' | 'computer' | 'till' | 'join' | 'patrol';
   x: number;
   z: number;
   yaw: number;
@@ -532,6 +532,15 @@ function policeStation(x: number, z: number): Interior {
   r.label('DUTY LOCKERS', 12.98, 2.5, 11.9, -Math.PI / 2, 3.4, 0.4, '#ffffff', '#1f3a63');
   r.point('locker', 11.3, 11.9, Math.PI / 2, 'Lockers', 2.2);
   r.point('computer', 9.4, 13.7, 0, 'Applications');
+  r.label('PATROL BOARD', 2.3, 2.3, 9.16, 0, 3, 0.4, '#ffffff', '#1f3a63');
+  r.box(1, 9.1, 3.6, 9.14, 1, 2.05, 0xd9d2bf);
+  for (const [px, py, c] of [
+    [1.4, 1.75, 0xf2c14e],
+    [2.2, 1.5, 0xe9e4d8],
+    [3, 1.72, 0xd8504a],
+  ] as const)
+    r.box(px - 0.26, 9.14, px + 0.26, 9.15, py - 0.2, py + 0.2, c);
+  r.point('patrol', 2.3, 10.2, 0, 'Patrol board', 1.8);
   // The far end of the office: the only way to the cells.
   r.crossWall(13, 9.1, 18, 14.8, 17.3, inner);
   r.label('HOLDING CELLS', 12.94, 2.86, 16.05, -Math.PI / 2, 2.4, 0.42, '#ffffff', '#1f3a63');

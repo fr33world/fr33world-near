@@ -20,6 +20,7 @@
  *   locker         police and EMS go on and off duty here
  *   counter        the Hospital's counter: medicine and bandages
  *   computer       recruiters read applications and set interviews here
+ *   patrol         the board in the Station where officers on duty take a patrol
  *   join           how to join: a board in the Station and Hospital, a gang's shut door
  */
 import { districtAt, inside, QUARRY } from './plan.ts';
@@ -51,6 +52,7 @@ export type PointKind =
   | 'computer'
   | 'till'
   | 'join'
+  | 'patrol'
   | 'dock'
   | 'bay';
 

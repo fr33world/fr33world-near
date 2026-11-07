@@ -29,6 +29,8 @@ export const XP_SOURCES = {
   tutorial: { perHour: 400, maxAward: 400 },
   /** Faction pay on duty (factions.ts SALARY). */
   faction: { perHour: 300, maxAward: 50 },
+  /** Daily rewards (daily.ts). */
+  daily: { perHour: 300, maxAward: 150 },
 } as const;
 export type XpSource = keyof typeof XP_SOURCES;
 

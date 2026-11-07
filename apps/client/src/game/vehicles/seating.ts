@@ -4,7 +4,7 @@
  * the Getting-in clip ends in the seat (it turns a quarter and travels on the way). Tilted with
  * the car on a slope. The clips' measurements are the animator's SEAT.
  */
-import { handlingOf } from '@fr33world/shared';
+import { handlingOf, REAR_ROW } from '@fr33world/shared';
 import * as THREE from 'three';
 import { SEAT } from '../character/animator.ts';
 
@@ -28,8 +28,12 @@ export function seatCharacter(
   car: SeatCar,
   phase: 'enter' | 'drive' | 'exit',
   hipsRestY: number,
+  /** 0 the driver; 1 beside them; 2 and 3 behind. */
+  seat = 0,
 ): void {
-  const [sx, sy, sz] = handlingOf(car.id).seat;
+  const [dx, sy, dz] = handlingOf(car.id).seat;
+  const sx = seat % 2 === 1 ? -dx : dx;
+  const sz = seat >= 2 ? dz - REAR_ROW : dz;
   if (car.quat) carQuat.copy(car.quat);
   else carQuat.setFromAxisAngle(UP, car.yaw);
   // In car space (+x its left, +z its front): the hips at the seat, the root under them.

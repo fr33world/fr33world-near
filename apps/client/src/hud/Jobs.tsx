@@ -73,6 +73,16 @@ function JobPicture({ job }: { job: string }) {
         <circle cx="28" cy="26" r="3.5" fill="#1d1600" />
       </svg>
     );
+  if (job === 'patrol')
+    return (
+      <svg viewBox="0 0 40 40" aria-hidden="true">
+        <path d="M20 5l13 5v9c0 8-5 13-13 16-8-3-13-8-13-16v-9z" fill="#1f3a68" />
+        <path
+          d="M20 12l2.4 5 5.4.7-4 3.7 1 5.4-4.8-2.6-4.8 2.6 1-5.4-4-3.7 5.4-.7z"
+          fill="#f2c14e"
+        />
+      </svg>
+    );
   if (job === 'collect')
     return (
       <svg viewBox="0 0 40 40" aria-hidden="true">

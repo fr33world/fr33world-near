@@ -2663,6 +2663,9 @@ body.driving .chat-button {
   background: linear-gradient(160deg, #9dfa3a, #3f9c00);
   color: #0a1a02;
 }
+.app-icon.app-rewards {
+  background: linear-gradient(160deg, #ff9d3d, #e0522b);
+}
 .app-icon.app-progress {
   background: linear-gradient(160deg, #ffd65a, #f08a00);
   color: #3a2000;
@@ -3879,4 +3882,163 @@ body.driving .chat-button {
   color: inherit;
   font: inherit;
   font-size: 13px;
+}
+
+/* The Emergency app. */
+.call-who {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.call-card {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding: 12px 6px;
+  border-radius: 14px;
+  border: 2px solid transparent;
+  background: rgb(255 255 255 / 8%);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.call-card span {
+  font-size: 26px;
+  line-height: 1;
+}
+.call-card.police.on {
+  border-color: #3d8bff;
+  background: rgb(61 139 255 / 18%);
+}
+.call-card.medical.on {
+  border-color: #ff5a52;
+  background: rgb(255 90 82 / 18%);
+}
+.call-reasons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.call-reason {
+  padding: 7px 11px;
+  border-radius: 999px;
+  border: 1px solid rgb(255 255 255 / 18%);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.call-reason.on {
+  background: #fff;
+  color: #10160a;
+}
+.btn.call-go {
+  background: #e5342b;
+  color: #fff;
+}
+.call-live {
+  justify-items: center;
+  text-align: center;
+}
+.call-pulse {
+  width: 76px;
+  height: 76px;
+  margin: 8px auto;
+  display: grid;
+  place-items: center;
+  font-size: 34px;
+  border-radius: 50%;
+  animation: call-pulse 1.6s ease-out infinite;
+}
+.call-pulse.police {
+  --call: 61 139 255;
+  background: rgb(61 139 255 / 22%);
+}
+.call-pulse.medical {
+  --call: 255 90 82;
+  background: rgb(255 90 82 / 22%);
+}
+@keyframes call-pulse {
+  from {
+    box-shadow: 0 0 0 0 rgb(var(--call) / 55%);
+  }
+  to {
+    box-shadow: 0 0 0 22px rgb(var(--call) / 0%);
+  }
+}
+
+/* The phone's Rewards app. */
+.rewards-said {
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgb(125 239 6 / 16%);
+  color: #bdf76f;
+  font-weight: 700;
+  text-align: center;
+}
+.streak {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 5px;
+}
+.streak-day {
+  display: grid;
+  gap: 1px;
+  justify-items: center;
+  padding: 6px 2px;
+  border-radius: 9px;
+  background: rgb(255 255 255 / 7%);
+  font-size: 11px;
+}
+.streak-day small {
+  opacity: 0.65;
+  font-size: 10px;
+}
+.streak-day.now {
+  outline: 2px solid #7def06;
+}
+.streak-day.done {
+  background: rgb(125 239 6 / 22%);
+}
+.wheel-frame {
+  position: relative;
+  width: 196px;
+  height: 196px;
+  margin: 4px auto;
+}
+.wheel-pointer {
+  position: absolute;
+  z-index: 1;
+  top: -3px;
+  left: 50%;
+  width: 0;
+  height: 0;
+  margin-left: -9px;
+  border: 9px solid transparent;
+  border-top: 15px solid #7def06;
+}
+.wheel {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 3px solid rgb(255 255 255 / 26%);
+  overflow: hidden;
+}
+.wheel.spinning {
+  transition: transform 3s cubic-bezier(0.14, 0.72, 0.16, 1);
+}
+.wheel span {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  padding-top: 10px;
+  font-size: 11px;
+}
+.btn.task-claim {
+  flex: none;
+  min-height: 34px;
+  padding: 0 14px;
+  font-size: 15px;
 }

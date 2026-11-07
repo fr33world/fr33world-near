@@ -10,7 +10,7 @@
 import { DecodeError, Reader, Writer } from './buffer.ts';
 
 /** v2: `hello` carries the player's access token (empty when playing unauthenticated in dev). */
-export const PROTOCOL_VERSION = 18;
+export const PROTOCOL_VERSION = 19;
 
 /** What a player does with `act`. */
 export const ACT = {
@@ -34,6 +34,8 @@ export const ACT = {
   STAND: 9,
   /** At Sunny's till: buy GOODS item `arg` for `$`. */
   BUY_GOOD: 10,
+  /** Get in beside the driver of vehicle `arg`. */
+  RIDE: 11,
 } as const;
 
 export const POS_SCALE = 64;
@@ -113,6 +115,7 @@ export const S2C = {
   CAR: 119,
   ARMS: 120,
   DISPATCH: 121,
+  PASSENGER: 122,
 } as const;
 
 /** Low nibble of `state`: what the body is doing. */
@@ -258,7 +261,7 @@ export type ServerMessage =
       look: number;
       /** What they wear besides the outfit (shared `encodeGear`; 0 for vehicles). */
       gear: number;
-      /** v13: their faction (shared factionCode; 0 none), for the name tag's colour. */
+      /** v13: their faction, v19 with their rank (shared factionTag), for the tag and uniform. */
       faction?: number;
       /** v17: a player's level, shown beside their name (0 for vehicles). */
       level?: number;
@@ -267,6 +270,8 @@ export type ServerMessage =
   | { type: 'pong'; clientTime: number; serverTime: number }
   | ({ type: 'clock' } & ClockMsg)
   | { type: 'seat'; vehicle: number; driver: number }
+  /** Player `player` sits in `seat` of `vehicle` (1 and up; NO_ENTITY: they got out). */
+  | { type: 'passenger'; player: number; vehicle: number; seat: number }
   | ({ type: 'correction'; seq: number } & Pose)
   | {
       type: 'shot_fx';
@@ -560,6 +565,9 @@ export function writeServer(m: ServerMessage, w: Writer): void {
     case 'seat':
       w.u8(S2C.SEAT).u16(m.vehicle).u16(m.driver);
       break;
+    case 'passenger':
+      w.u8(S2C.PASSENGER).u16(m.player).u16(m.vehicle).u8(m.seat);
+      break;
     case 'correction':
       w.u8(S2C.CORRECTION).u16(m.seq);
       writePose(w, m);
@@ -688,6 +696,9 @@ function readServer(r: Reader): ServerMessage {
       break;
     case S2C.SEAT:
       m = { type: 'seat', vehicle: r.u16(), driver: r.u16() };
+      break;
+    case S2C.PASSENGER:
+      m = { type: 'passenger', player: r.u16(), vehicle: r.u16(), seat: r.u8() };
       break;
     case S2C.CORRECTION:
       m = { type: 'correction', seq: r.u16(), ...readPose(r) };
