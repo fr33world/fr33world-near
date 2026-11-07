@@ -2,8 +2,12 @@ import { describe, expect, it } from 'vitest';
 import type { FactionStatus } from '../game/api.ts';
 import { joinStep } from './Join.tsx';
 
-const status = (over: Partial<FactionStatus>) =>
-  ({ membership: null, application: null, roster: [], ...over });
+const status = (over: Partial<FactionStatus>) => ({
+  membership: null,
+  application: null,
+  roster: [],
+  ...over,
+});
 const application = (faction: 'police' | 'vipers', stage: string) =>
   ({ faction, stage }) as FactionStatus['application'];
 

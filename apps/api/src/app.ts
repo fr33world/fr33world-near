@@ -686,9 +686,7 @@ export function buildApp(deps: AppDeps): FastifyInstance {
   );
   app.post('/v1/messages', (req, reply) => {
     if (limited(req.ip, 'messages', 30)) return reply.code(429).send({ error: 'Slow down.' });
-    return bank(req, reply, (u) =>
-      sendMessage(deps.db, u, (req.body ?? {})),
-    );
+    return bank(req, reply, (u) => sendMessage(deps.db, u, req.body ?? {}));
   });
   app.get('/v1/daily', (req, reply) => bank(req, reply, (u) => dailyStatus(deps.db, u)));
   app.post('/v1/daily/claim', (req, reply) =>
