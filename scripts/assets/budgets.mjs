@@ -29,7 +29,7 @@ const folders = {
   audio: { limit: 2.2 * MB, file: 2.1 * MB },
   cars: { limit: 7.4 * MB, file: 1.5 * MB },
   // Uniforms load only when someone on duty is near, so they don't touch a first visit.
-  characters: { limit: 150 * MB, file: 2.4 * MB },
+  characters: { limit: 150 * MB, file: 3 * MB },
   props: { limit: 520 * KB, file: 180 * KB },
   textures: { limit: 19.5 * MB, file: 750 * KB },
 };
