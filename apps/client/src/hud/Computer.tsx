@@ -53,23 +53,15 @@ export function ComputerSheet({ game }: { game: Game }) {
   return (
     <Modal
       title="Applications"
-      kicker="The boss's desk"
       accent="#7fb0ff"
       art="/ui/medals/desk.webp"
-      ghost="DESK"
-      rail={
-        <p className="m-lore">
-          {desk && desk.factions.length === 0
-            ? 'For sergeants and above.'
-            : 'Set an interview, meet them here, then decide.'}
-        </p>
-      }
       onClose={() => setOpen(false)}
     >
       {error && <div className="login-error">{error}</div>}
       {!desk && !error && <p className="m-empty">Opening…</p>}
+      {desk?.factions.length === 0 && <p className="m-empty">Sergeants and above</p>}
       {desk?.factions.length !== 0 && desk?.applicants.length === 0 && (
-        <p className="m-empty">No applications right now.</p>
+        <p className="m-empty">No applications</p>
       )}
       {desk?.applicants.map((a) => (
         <div key={a.name} className="m-person">

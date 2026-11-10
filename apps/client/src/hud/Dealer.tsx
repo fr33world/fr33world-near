@@ -92,16 +92,14 @@ export function DealerSheet({ game }: { game: Game }) {
   };
   const driveAway = (car: OwnedCar) => {
     if (game.callCar(point, Number(car.id))) close();
-    else setError("You're offline. Your car is in your garage: fetch it at any car park.");
+    else setError("You're offline.");
   };
 
   return (
     <Modal
       title={game.layout.points[point]?.name ?? 'Dealership'}
-      kicker="Sol Boulevard"
       accent="#e0b43e"
       art={`/ui/cars/${spec.id}.webp`}
-      ghost={spec.name.toUpperCase()}
       medal="dealer"
       size="lg"
       className="m-showroom"
@@ -125,7 +123,7 @@ export function DealerSheet({ game }: { game: Game }) {
           {stage.at === 'bought' ? (
             <div className="m-confirm">
               <p>
-                <b>The {stage.car.name} is yours.</b> Bring it to any car park from the blue P.
+                <b>The {stage.car.name} is yours.</b>
               </p>
               <div className="m-actions">
                 <button type="button" className="m-btn" onClick={close}>
@@ -146,9 +144,7 @@ export function DealerSheet({ game }: { game: Game }) {
             </button>
           ) : (
             <div className="m-confirm">
-              <p>
-                Pay {dollars(price)} from your bank for the {spec.name}?
-              </p>
+              <p>Pay {dollars(price)}?</p>
               <div className="m-actions">
                 <button
                   type="button"

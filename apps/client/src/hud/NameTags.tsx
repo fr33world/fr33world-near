@@ -114,8 +114,6 @@ function PlayerCard({
   return (
     <Modal
       title={who.name}
-      kicker="Nearby"
-      subtitle="In Los Soles"
       size="sm"
       accent="#9ad7ff"
       head={<span className="m-avatar big">{who.name.slice(0, 1).toUpperCase()}</span>}
@@ -139,7 +137,7 @@ function PlayerCard({
               onClose();
             }}
           >
-            <Ico icon={SmileIcon} size={22} />
+            <Ico icon={SmileIcon} size={17} />
             Wave
           </button>
           <button
@@ -149,17 +147,17 @@ function PlayerCard({
               setMuted(!muted);
             }}
           >
-            <Ico icon={muted ? VolumeHighIcon : VolumeOffIcon} size={22} />
+            <Ico icon={muted ? VolumeHighIcon : VolumeOffIcon} size={17} />
             {muted ? 'Unmute' : 'Mute'}
           </button>
           {game.canModerate && (
             <>
               <button type="button" disabled={busy} onClick={toggleBlock}>
-                <Ico icon={UserBlock01Icon} size={22} />
+                <Ico icon={UserBlock01Icon} size={17} />
                 {blocked ? 'Unblock' : 'Block'}
               </button>
               <button type="button" className="danger" onClick={() => setReporting(true)}>
-                <Ico icon={Flag02Icon} size={22} />
+                <Ico icon={Flag02Icon} size={17} />
                 Report
               </button>
             </>
@@ -193,7 +191,7 @@ function ReportForm({
         if (!reason) return;
         setBusy(true);
         game.report(name, reason, details).then(
-          () => onDone(`Thanks. ${name} has been reported; the team will look into it.`),
+          () => onDone(`${name} reported.`),
           (err: unknown) => {
             setBusy(false);
             setError(err instanceof Error ? err.message : String(err));

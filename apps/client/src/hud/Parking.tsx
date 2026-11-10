@@ -66,19 +66,16 @@ export function ParkingSheet({ game }: { game: Game }) {
   const bring = (car: OwnedCar) => {
     // The garage's ids are bigserials: JSON may carry them as strings.
     if (game.callCar(point, Number(car.id))) close();
-    else setError("You're offline. Your cars come back once you're connected to the city.");
+    else setError("You're offline.");
   };
   const shown = CAR_MODELS[here?.model ?? cars?.[0]?.model ?? -1];
   return (
     <Modal
       title={lot?.name ?? 'Car park'}
-      kicker="Car park"
       accent="#4c8dff"
       art={shown ? `/ui/cars/${shown.id}.webp` : '/ui/medals/parking.webp'}
-      ghost="GARAGE"
       medal="parking"
       head={<Funds game={game} dollars />}
-      rail={<p className="m-lore">Pick a car. It'll be waiting in a free bay.</p>}
       onClose={close}
     >
       {error && <div className="login-error">{error}</div>}
@@ -91,12 +88,8 @@ export function ParkingSheet({ game }: { game: Game }) {
           onRepair={() => serve(SERVICE.REPAIR)}
         />
       )}
-      {!cars && !error && <p className="m-empty">Opening your garage…</p>}
-      {cars && cars.length === 0 && (
-        <p className="m-empty">
-          No cars: your rental has gone back. Buy one at the Car Dealership on Sol Boulevard.
-        </p>
-      )}
+      {!cars && !error && <p className="m-empty">Opening…</p>}
+      {cars && cars.length === 0 && <p className="m-empty">No cars yet</p>}
       {cars && cars.length > 0 && (
         <div className="m-tiles wide">
           {cars.map((c, i) => {
@@ -109,8 +102,8 @@ export function ParkingSheet({ game }: { game: Game }) {
                 name={c.name}
                 meta={
                   c.expiresAt
-                    ? `Free rental · due back in ${rentalLeft(Date.parse(c.expiresAt) - Date.now())}`
-                    : spec && `Top speed ${Math.round(spec.topSpeed * 3.6)} km/h`
+                    ? `Rental · ${rentalLeft(Date.parse(c.expiresAt) - Date.now())}`
+                    : spec && `${Math.round(spec.topSpeed * 3.6)} km/h`
                 }
               >
                 <button type="button" className="m-btn go small" onClick={() => bring(c)}>
@@ -141,7 +134,7 @@ function ServiceCard(props: {
     <div className={`m-service${warn ? ' warn' : ''}`}>
       <div className="m-row-text">
         <b>Your {spec?.name ?? 'car'}</b>
-        <small>{props.health <= 0 ? 'Wrecked: it needs a repair to go' : 'In this car park'}</small>
+        {props.health <= 0 && <small>Wrecked</small>}
       </div>
       <Stat label="Fuel" value={props.fuel}>{`${Math.round(props.fuel * 100)}%`}</Stat>
       {DAMAGE.enabled && (

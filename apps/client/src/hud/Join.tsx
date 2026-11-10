@@ -76,11 +76,9 @@ export function JoinSheet({ game }: { game: Game }) {
   return (
     <Modal
       title={f.name}
-      kicker="How to join"
       subtitle={guide.tagline}
       accent={f.colour}
       art={`/ui/medals/${MEDALS[faction]}.webp`}
-      ghost={f.short.toUpperCase()}
       rail={
         <ul className="m-perks">
           {guide.perks.map((p) => (
@@ -94,14 +92,14 @@ export function JoinSheet({ game }: { game: Game }) {
             <input
               className="m-input"
               maxLength={200}
-              placeholder="Why do you want in? (optional)"
+              placeholder="Why? (optional)"
               value={note}
               onChange={(e) => setNote(e.target.value)}
             />
           )}
           {canApply && (
             <button type="button" className="m-btn go" disabled={busy} onClick={apply}>
-              {busy ? 'Sending…' : `Apply to ${f.short}`}
+              {busy ? 'Sending…' : 'Apply'}
             </button>
           )}
           {step === 1 && (
@@ -114,7 +112,6 @@ export function JoinSheet({ game }: { game: Game }) {
       onClose={close}
     >
       {guide.door && <p className="m-callout">{guide.door}</p>}
-      <p className="m-copy">{guide.about}</p>
       <ol className="m-steps">
         {JOIN_STEPS.map((j, i) => (
           <li key={j.title} className={i < step ? 'done' : i === step ? 'now' : ''}>
@@ -127,28 +124,21 @@ export function JoinSheet({ game }: { game: Game }) {
         ))}
       </ol>
       {error && <div className="login-error">{error}</div>}
-      {elsewhere && (
-        <p className="m-empty">
-          You’re in the {FACTIONS[elsewhere.faction].name}. Leave them first, in the phone’s Faction
-          app.
-        </p>
-      )}
+      {elsewhere && <p className="m-empty">Leave the {FACTIONS[elsewhere.faction].short} first.</p>}
       {applying && (
-        <p className="m-empty">
-          You’ve applied to the {FACTIONS[applying.faction].name}. Finish or withdraw that first.
-        </p>
+        <p className="m-empty">Already applying to the {FACTIONS[applying.faction].short}.</p>
       )}
       {step === 2 && (
         <p className="m-empty">
           {s?.application?.interviewAt
-            ? `Your interview: ${new Date(s.application.interviewAt).toLocaleString([], {
+            ? `Interview: ${new Date(s.application.interviewAt).toLocaleString([], {
                 dateStyle: 'medium',
                 timeStyle: 'short',
-              })}. Be here.`
-            : 'You passed. A boss will set your interview, and your phone will tell you.'}
+              })}`
+            : 'Passed. Waiting for an interview.'}
         </p>
       )}
-      {step === 3 && <p className="m-empty">You’re a member.</p>}
+      {step === 3 && <p className="m-empty">You’re a member</p>}
     </Modal>
   );
 }

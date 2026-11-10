@@ -64,10 +64,9 @@ export function UsdcCard({ game }: { game: Game }) {
       <div className="usdc-head">
         <UsdcMark size={18} />
         <div className="bank-name">USDC wallet</div>
-        <span className="usdc-tag">Testnet: no real value</span>
+        <span className="usdc-tag">Testnet</span>
       </div>
       <div className="bank-balance">{game.usdc ? formatUsdc(game.usdc.micro) : '…'}</div>
-      <div className="bank-sub">Yours, on NEAR. Separate from your $.</div>
       <button type="button" className="btn" onClick={() => game.onWallet()}>
         Open wallet
       </button>
@@ -123,7 +122,7 @@ export function WalletSheet({ game }: { game: Game }) {
       await navigator.clipboard.writeText(wallet.near);
       setCopied(true);
     } catch {
-      setNote('Couldn’t copy. Press and hold the address instead.');
+      setNote('Couldn’t copy.');
     }
   };
 
@@ -157,22 +156,20 @@ export function WalletSheet({ game }: { game: Game }) {
   return (
     <Modal
       title="USDC wallet"
-      kicker="Yours, on NEAR"
       accent="#4f9cf0"
       art="/ui/usdc.webp"
-      ghost="USDC"
       className="m-wallet"
       rail={
         <>
           <div className="w-balance">{wallet ? figure(micro) : '…'}</div>
-          <div className="w-unit">USDC · Separate from your $</div>
-          <span className="w-testnet">Testnet: no real value</span>
+          <div className="w-unit">USDC</div>
+          <span className="w-testnet">Testnet</span>
         </>
       }
       footer={
         wallet?.explorer ? (
           <a className="w-link" href={wallet.explorer} target="_blank" rel="noreferrer">
-            All activity on NearBlocks <Ico icon={LinkSquare02Icon} size={15} />
+            Activity <Ico icon={LinkSquare02Icon} size={12} />
           </a>
         ) : undefined
       }
@@ -198,20 +195,19 @@ export function WalletSheet({ game }: { game: Game }) {
             {wallet?.near ? <DepositQr value={wallet.near} /> : <span>Setting up…</span>}
           </div>
           <div className="w-pane">
-            <label className="w-label">Your NEAR address</label>
-            <div className="w-address">{wallet?.near ?? 'Setting up your wallet…'}</div>
+            <label className="w-label">NEAR address</label>
+            <div className="w-address">{wallet?.near ?? 'Setting up…'}</div>
             <button
               type="button"
               className={`m-btn small${copied ? ' done' : ''}`}
               disabled={!wallet?.near}
               onClick={() => void copy()}
             >
-              <Ico icon={copied ? Tick02Icon : Copy01Icon} size={16} />
-              {copied ? 'Copied' : 'Copy address'}
+              <Ico icon={copied ? Tick02Icon : Copy01Icon} size={13} />
+              {copied ? 'Copied' : 'Copy'}
             </button>
             <p className="w-fine">
-              Send only <b>{wallet?.token ?? 'USDC'}</b> on NEAR. Anything else won’t show up here.
-              Deposits appear within a minute.
+              Only <b>{wallet?.token ?? 'USDC'}</b> on NEAR.
             </p>
           </div>
         </div>
@@ -219,12 +215,12 @@ export function WalletSheet({ game }: { game: Game }) {
         <div className="w-pane w-review">
           <label className="w-label">You’re sending</label>
           <div className="w-amount">
-            <UsdcMark size={26} />
+            <UsdcMark size={18} />
             {formatUsdc(value)}
           </div>
           <label className="w-label">To</label>
           <div className="w-address">{account}</div>
-          <p className="w-fine">This can’t be undone once it’s on the chain.</p>
+          <p className="w-fine">Can’t be undone.</p>
           <div className="m-actions">
             <button
               type="button"

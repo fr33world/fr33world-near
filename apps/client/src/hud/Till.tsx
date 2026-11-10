@@ -61,30 +61,27 @@ export function TillSheet({ game }: { game: Game }) {
 
   const buyUsdc = (item: ShelfItem) =>
     run(async () => {
-      if (!access) throw new Error('Make a full account to use USDC.');
+      if (!access) throw new Error('Full account needed.');
       const s = await startUsdcSale(await access.token(), item.id);
       const signature = await access.sign(s.hash);
       await finishUsdcSale(await access.token(), { sale: s.sale, tx: s.tx, signature });
-      return `${item.name} bought. It’s in your bag.`;
+      return `${item.name} in your bag.`;
     });
 
   const take = (job: EconomyJob) =>
     run(async () => {
-      if (!access) throw new Error('Make a full account to take USDC jobs.');
+      if (!access) throw new Error('Full account needed.');
       await takeUsdcJob(await access.token(), job.id);
-      return 'Job taken. Load up at Harbor Wholesale’s dock, then bring it here.';
+      return 'Taken. Load up at Harbor’s dock.';
     });
 
   return (
     <Modal
       title="Sunny's Grocery"
-      kicker="Open all hours"
       accent="#ffb02e"
       art="/ui/shop/meal.webp"
-      ghost="SUNNY'S"
       medal="shop"
       head={<Funds game={game} />}
-      rail={<p className="m-lore">Run by itself: its stock, its prices, its own wallet.</p>}
       onClose={() => setOpen(false)}
     >
       <div className="m-tiles">
@@ -95,7 +92,7 @@ export function TillSheet({ game }: { game: Game }) {
             art={`/ui/shop/${item.id}.webp`}
             name={item.name}
             dim={item.stock === 0}
-            meta={`+${item.heal} health · ${item.stock > 0 ? `${item.stock} left` : 'sold out'}`}
+            meta={`+${item.heal} HP · ${item.stock > 0 ? `${item.stock} left` : 'Sold out'}`}
           >
             {item.cents !== null && (
               <Price
@@ -119,14 +116,14 @@ export function TillSheet({ game }: { game: Game }) {
       </div>
       <Said text={said} />
       <h3 className="m-section">
-        <UsdcMark /> Deliveries that pay USDC
+        <UsdcMark /> Deliveries
       </h3>
-      {jobs.length === 0 && <p className="m-empty">No deliveries needed right now.</p>}
+      {jobs.length === 0 && <p className="m-empty">None right now</p>}
       {jobs.map((job) => (
         <div key={job.id} className="m-row">
           <div className="m-row-text">
-            <b>Bring an order from Harbor Wholesale</b>
-            <small>Level {JOB_RULES.minLevel}+, full accounts</small>
+            <b>Harbor Wholesale order</b>
+            <small>Level {JOB_RULES.minLevel}+</small>
           </div>
           <Price
             usdc

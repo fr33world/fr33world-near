@@ -39,36 +39,26 @@ const more = (game: Game, since: Since, event: string) =>
 
 const LESSONS: Record<Step, Lesson> = {
   welcome: {
-    say: () =>
-      "Hi, I'm Luz, your guide to Los Soles! The whole city is open: work, drive, meet people, " +
-      'make a name for yourself. Let me show you around. It only takes a few minutes.',
+    say: () => "Hi, I'm Luz. Let me show you around.",
     button: "Let's go",
   },
   move: {
-    say: (touch) =>
-      touch
-        ? 'Put your left thumb anywhere on the left of the screen and drag to walk. Push further to run.'
-        : 'Walk with W A S D. Hold Shift to walk slowly, Space to jump.',
+    say: (touch) => (touch ? 'Drag on the left to move.' : 'Move with W A S D.'),
     done: (game, since) => {
       const at = game.whereabouts();
       return !!at && Math.hypot(at.x - since.x, at.z - since.z) > 8;
     },
   },
   look: {
-    say: (touch) =>
-      touch
-        ? 'Drag on the right side of the screen to look around.'
-        : 'Move the mouse to look around (click the game first to grab the mouse).',
+    say: (touch) => (touch ? 'Drag on the right to look.' : 'Click the game, then move the mouse.'),
     done: (_game, since) => since.turned > 1.6,
   },
   map: {
-    say: () => 'Tap the minimap in the top corner to open the map of the whole island.',
+    say: () => 'Tap the minimap.',
     done: (game, since) => more(game, since, 'map'),
   },
   kiosk: {
-    say: (touch) =>
-      `On the map you can tap any place to get a route. For now I've marked the city guide ` +
-      `kiosk: follow the green arrows and ${touch ? 'tap the prompt' : 'press E'} to use it.`,
+    say: (touch) => `Follow the arrows to the kiosk, then ${touch ? 'tap the prompt' : 'press E'}.`,
     target: (game) => {
       const k = point(game, 'info');
       return k ? { x: k.x, z: k.z, label: 'City guide kiosk' } : null;
@@ -76,9 +66,7 @@ const LESSONS: Record<Step, Lesson> = {
     done: (game, since) => more(game, since, 'guide'),
   },
   job: {
-    say: () =>
-      'Time to earn! The Courier Depot always needs couriers. Head to the lockers, start a shift, ' +
-      'collect the packages and deliver the first one. Pay goes straight to your bank.',
+    say: () => 'Time to earn. Start a shift at the Courier Depot and make one delivery.',
     skippable: true,
     target: (game) => {
       if (game.job) return null;
@@ -88,29 +76,20 @@ const LESSONS: Record<Step, Lesson> = {
     done: (game, since) => game.rewards.length > since.rewards,
   },
   phone: {
-    say: (touch) =>
-      `Nicely done! Every job pays money and XP, and XP raises your level. ` +
-      `Open your phone (${touch ? 'the phone button' : 'P'}) to see your bank and progress.`,
+    say: (touch) => `Nice. Open your phone${touch ? '' : ' (P)'}.`,
     done: (game, since) => more(game, since, 'phone'),
   },
   car: {
     say: (touch) =>
-      `You've a free rental car from the Car Dealership for your first ${RENTAL.days} days: fetch it ` +
-      `from the blue P at any car park, and earn enough to buy your own before it's due back. ` +
-      `The Garage app on your phone gives directions: walk up to your car and ` +
-      `${touch ? 'tap Enter car' : 'press E'}.`,
+      `Free rental for ${RENTAL.days} days. Fetch it at any blue P and ${touch ? 'tap Enter car' : 'press E'}.`,
     done: (game) => game.hud.driving,
   },
   social: {
-    say: (touch) =>
-      `Los Soles is better with people. Say hi in chat (${touch ? 'the chat button' : 'T'}) ` +
-      `or wave (${touch ? 'the smiley' : 'G'}). Hold the mic to talk to anyone nearby.`,
+    say: (touch) => `Say hi in chat${touch ? '' : ' (T)'} or wave${touch ? '' : ' (G)'}.`,
     done: (game, since) => more(game, since, 'chat') || more(game, since, 'emote'),
   },
   done: {
-    say: () =>
-      "That's everything! Here's a little something to start you off. If you need help, " +
-      'type /help in chat. See you around Los Soles!',
+    say: () => "That's it. Stuck? Type /help.",
     button: 'Thanks, Luz',
   },
 };

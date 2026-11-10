@@ -35,11 +35,11 @@ export function Bag({ game, left }: { game: Game; left: number }) {
   }, [open]);
 
   const why = driving
-    ? 'Not while driving.'
+    ? 'Not while driving'
     : downed
-      ? 'You’re down.'
+      ? 'You’re down'
       : hp >= 100
-        ? 'You’re at full health.'
+        ? 'Full health'
         : null;
   return (
     <>
@@ -77,9 +77,9 @@ export function Bag({ game, left }: { game: Game; left: number }) {
               ))}
             </div>
           ) : (
-            <p className="bag-note">Empty. The Hospital’s counter sells bandages and medicine.</p>
+            <p className="bag-note">Empty</p>
           )}
-          {carried.length > 0 && <p className="bag-note">{why ?? 'Tap one to use it.'}</p>}
+          {carried.length > 0 && <p className="bag-note">{why ?? 'Tap to use'}</p>}
         </div>
       )}
     </>

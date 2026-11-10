@@ -27,39 +27,37 @@ import type { IconSvgElement } from '@hugeicons/react';
 import { GearIcon } from '../ui/icons.tsx';
 import { Ico, Modal } from '../ui/Modal.tsx';
 
-const LABELS: Record<GraphicsSetting, { name: string; about: string }> = {
-  auto: { name: 'Auto', about: 'Picks for your device and keeps the game smooth' },
-  low: { name: 'Low', about: 'Older phones: no shadows, shorter view' },
-  medium: { name: 'Medium', about: 'Most phones: shadows, sharper textures' },
-  high: { name: 'High', about: 'Laptops: full detail, long view' },
-  ultra: { name: 'Ultra', about: 'Strong computers: the sharpest shadows and textures' },
+const LABELS: Record<GraphicsSetting, string> = {
+  auto: 'Auto',
+  low: 'Low',
+  medium: 'Medium',
+  high: 'High',
+  ultra: 'Ultra',
 };
 
 const KEYS: [string, string][] = [
   ['W A S D', 'Move'],
-  ['Mouse', 'Look around (click the game first)'],
+  ['Mouse', 'Look'],
   ['Shift', 'Walk'],
-  ['Space', 'Jump; handbrake in a car'],
-  ['H', 'Horn, in a car'],
-  ['E', 'Get in or out of a car'],
-  ['Left mouse', 'Punch'],
-  ['V (hold)', 'Talk to players nearby'],
-  ['T or Enter', 'Chat to players nearby'],
-  ['G', 'Emotes (then 1–9)'],
+  ['Space', 'Jump / handbrake'],
+  ['H', 'Horn'],
+  ['E', 'Use / car'],
+  ['Click', 'Punch'],
+  ['V', 'Talk'],
+  ['T', 'Chat'],
+  ['G', 'Emotes'],
 ];
 const TOUCH: [string, string][] = [
-  ['Left thumb', 'Move: put it down anywhere on the left'],
-  ['Right side', 'Drag to look around'],
-  ['Buttons', 'Jump, punch, get in a car, hold the microphone to talk, chat, emotes'],
+  ['Left', 'Move'],
+  ['Right', 'Look'],
+  ['Pinch', 'Zoom'],
 ];
 
 type Tab = 'graphics' | 'sound' | 'controls' | 'account' | 'credits';
 
 export function Settings({
-  current,
   account,
 }: {
-  current: string;
   /** Logged in (Privy is there): whether as a guest. Null plays without an account. */
   account: { name: string; guest: boolean } | null;
 }) {
@@ -93,7 +91,6 @@ export function Settings({
       {open && s && (
         <Modal
           title={tabs.find(([t]) => t === tab)?.[1] ?? 'Settings'}
-          kicker="Settings"
           accent="#c9ced6"
           medal="settings"
           size="lg"
@@ -111,7 +108,7 @@ export function Settings({
                     className={tab === t ? 'on' : ''}
                     onClick={() => setTab(t)}
                   >
-                    <Ico icon={icon} size={19} />
+                    <Ico icon={icon} size={16} />
                     {label}
                   </button>
                 ))}
@@ -121,7 +118,7 @@ export function Settings({
           onClose={() => setOpen(false)}
         >
           <div className="settings-body">
-            {tab === 'graphics' && <Graphics current={current} />}
+            {tab === 'graphics' && <Graphics />}
             {tab === 'sound' && (
               <>
                 <Level
@@ -187,7 +184,7 @@ export function Settings({
   );
 }
 
-function Graphics({ current }: { current: string }) {
+function Graphics() {
   const chosen = graphicsSetting();
   const pick = (g: GraphicsSetting) => {
     if (g === chosen) return;
@@ -199,7 +196,6 @@ function Graphics({ current }: { current: string }) {
   };
   return (
     <>
-      <div className="sheet-note">Now: {current}</div>
       {/* Each setting shown as the city looks at it (the same street, ui/graphics/). */}
       <div className="tiers">
         {GRAPHICS_SETTINGS.map((g) => (
@@ -211,8 +207,7 @@ function Graphics({ current }: { current: string }) {
             onClick={() => pick(g)}
           >
             {g === chosen && <span className="tier-tag">In use</span>}
-            <span className="tier-name">{LABELS[g].name}</span>
-            <span className="tier-about">{LABELS[g].about}</span>
+            <span className="tier-name">{LABELS[g]}</span>
           </button>
         ))}
       </div>
@@ -253,20 +248,17 @@ function Account({ account }: { account: { name: string; guest: boolean } }) {
   return (
     <>
       <div className="login-note">
-        Playing as <b>{account.name}</b>
+        <b>{account.name}</b>
       </div>
       {guest ? (
         <>
-          <div className="login-fine">
-            A guest: on this device only, for 30 days. Link an account to keep your character, money
-            and progress for good.
-          </div>
+          <div className="login-fine">Guest: 30 days, this device. Link to keep it.</div>
           <LinkButtons
             links={{ email: linkEmail, google: linkGoogle, discord: linkDiscord, x: linkTwitter }}
           />
         </>
       ) : (
-        <div className="login-fine">Your progress is saved to your account.</div>
+        <div className="login-fine">Saved to your account.</div>
       )}
     </>
   );

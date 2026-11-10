@@ -35,67 +35,51 @@ const ICONS: Record<string, IconSvgElement> = {
 };
 
 const START: [string, string][] = [
-  [
-    'Earn',
-    'Jobs: courier at the Courier Depot on the plaza, mining at the quarry, taxi at the Taxi Office (level 2). Pay goes to your bank (phone, P).',
-  ],
-  [
-    'Your car',
-    `A free rental from the Car Dealership for your first ${RENTAL.days} days: fetch it at any car park's blue P. Buy your own on Sol Boulevard before it's due back.`,
-  ],
-  ['Fuel', 'Cars burn fuel. Top up at any car park: step into the blue P beside your car.'],
-  ['Trade', "Sell your cars to other players, or buy theirs, in the phone's Market."],
-  [
-    'Weapons',
-    `The Gun Store in Mid City sells a pistol licence from level ${ARMORY.licence.minLevel}, then the pistol and rounds. Q takes it out, R reloads. Never in safe zones.`,
-  ],
-  [
-    'Factions',
-    'Join the police, EMS or a gang from the phone: apply, pass the training, then an interview with a member.',
-  ],
-  [
-    'Trouble',
-    'Call 911 or EMS from the phone. Downed? Call EMS and wait for a medic, or faint and wake in a Hospital bed, for a fee.',
-  ],
+  ['Earn', 'Courier, mining or taxi jobs'],
+  ['Your car', `Free rental for ${RENTAL.days} days, at any blue P`],
+  ['Fuel', 'Blue P beside your car'],
+  ['Trade', 'Phone → Market'],
+  ['Weapons', `Gun Store, level ${ARMORY.licence.minLevel}+. Q draws, R reloads`],
+  ['Factions', 'Apply, train, interview'],
+  ['Trouble', 'Phone → 911'],
 ];
 
 const KEYS: [string, string][] = [
-  ['WASD', 'Move (Shift to walk)'],
-  ['Space', 'Jump; handbrake in a car'],
-  ['H', 'Horn, in a car'],
-  ['E', 'Use what the prompt shows: cars, the kiosk'],
+  ['WASD', 'Move'],
+  ['Shift', 'Walk'],
+  ['Space', 'Jump / handbrake'],
+  ['H', 'Horn'],
+  ['E', 'Use / car'],
   ['Click', 'Punch'],
-  ['V (hold)', 'Talk to players nearby'],
-  ['T or Enter', 'Chat'],
+  ['V', 'Talk'],
+  ['T', 'Chat'],
   ['G', 'Emotes'],
-  ['P', 'Phone: bank, jobs, garage, market, factions, 911'],
-  ['Q · R', 'Take out your weapon (next one, then none) · reload'],
+  ['P', 'Phone'],
+  ['B', 'Bag'],
+  ['Q · R', 'Weapon · reload'],
 ];
 
 const TOUCH: [string, string][] = [
-  ['Left thumb', 'Move: the stick appears where you touch'],
-  ['Right side', 'Drag to look around'],
-  ['Prompt', 'Tap the round prompt to use a car or the kiosk'],
-  ['Mic (hold)', 'Talk to players nearby'],
-  ['In a car', 'Steer with the wheel; accelerator on the right, brake beside it'],
+  ['Left', 'Move'],
+  ['Right', 'Look'],
+  ['Pinch', 'Zoom'],
+  ['Mic', 'Hold to talk'],
+  ['Car', 'Arrows and pedals'],
 ];
 
 const RULES: [string, string][] = [
-  ['Stay in character', 'Los Soles is a role-play city: play your character, not the game.'],
-  ['No random violence', "Don't attack people without a story reason (no RDM)."],
-  ['No car ramming', "Don't use cars as weapons (no VDM)."],
-  ['Respect everyone', 'No hate, slurs or harassment, in chat or on the mic.'],
-  ['No cheats or exploits', 'Bugs are for reporting, not using.'],
-  ['Admins have the last word', 'Follow their calls in game; appeal afterwards.'],
+  ['Stay in character', 'It’s a role-play city'],
+  ['No RDM', 'No attacks without a reason'],
+  ['No VDM', 'No cars as weapons'],
+  ['Respect', 'No hate or harassment'],
+  ['No cheats', 'Report bugs'],
+  ['Admins', 'Their call stands'],
 ];
 
 const HELP: [string, string][] = [
-  [
-    '/help',
-    'Type it in chat (add what happened) and the admins online are told where you are. Stuck in a wall or a car stuck somewhere? This is the way.',
-  ],
-  ['Report', "Tap a player's name tag, then Report. Block hides their chat and voice."],
-  ['/commands', 'Lists every chat command you can use.'],
+  ['/help', 'Calls an admin'],
+  ['Report', 'Tap a name tag'],
+  ['/commands', 'All commands'],
 ];
 
 export function Guide({ game, touch }: { game: Game; touch: boolean }) {
@@ -126,19 +110,9 @@ export function Guide({ game, touch }: { game: Game; touch: boolean }) {
   return (
     <Modal
       title="City guide"
-      kicker="Welcome to Los Soles"
-      subtitle="Here's how it works."
       accent="#7def06"
       size="lg"
-      photo="/slides/downtown.webp"
       art="/ui/medals/guide.webp"
-      ghost="LOS SOLES"
-      rail={<p className="m-lore">Play your character. Look after your city.</p>}
-      footer={
-        <button type="button" className="m-btn go" onClick={() => setOpen(false)}>
-          Got it
-        </button>
-      }
       onClose={() => setOpen(false)}
     >
       <Tabs
@@ -158,7 +132,7 @@ export function Guide({ game, touch }: { game: Game; touch: boolean }) {
           <div key={k} style={{ '--i': i } as CSSProperties}>
             {ICONS[k] && (
               <span className="m-fact-ico">
-                <Ico icon={ICONS[k]} size={17} />
+                <Ico icon={ICONS[k]} size={13} />
               </span>
             )}
             <span>

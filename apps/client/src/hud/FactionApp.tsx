@@ -220,7 +220,7 @@ function GangsView({ game, onBack }: { game: Game; onBack: () => void }) {
           <span className="bank-amount in">{r.points}</span>
         </div>
       ))}
-      <div className="bank-sub">Every job a member does scores for the gang. Resets on Monday.</div>
+      <div className="bank-sub">Resets Monday</div>
       {!g && (
         <>
           <div className="bank-title">Join one</div>
@@ -345,9 +345,9 @@ export function FactionApp({ game }: { game: Game }) {
           Radio: /f message.{' '}
           {f.kind === 'police' ? 'Officers: /id and /fine “Name” 250 reason. ' : ''}
           {f.kind === 'police'
-            ? 'On duty: cruisers are in the garage, by the elevator at the end of the office. '
+            ? 'Cruisers: garage elevator, end of the office. '
             : f.kind === 'medical'
-              ? 'On duty: ambulances are in the garage, by the elevator past the lockers in the ward. '
+              ? 'Ambulances: garage elevator, past the lockers. '
               : ''}
           {canRecruit ? 'Ranks: /promote, /demote, /dismiss “Name”.' : ''}
         </div>
@@ -381,7 +381,7 @@ export function FactionApp({ game }: { game: Game }) {
                     dateStyle: 'medium',
                     timeStyle: 'short',
                   })}. A boss will meet you there.`
-                : `Your application is with the bosses. When one sets your interview it shows here. You'll meet them at ${where}.`}
+                : `Waiting for an interview at ${where}`}
             </div>
             <Pin game={game} faction={app.faction} label={`Set location: ${where}`} />
           </div>
@@ -408,9 +408,7 @@ export function FactionApp({ game }: { game: Game }) {
 
   return (
     <div className="bank">
-      <div className="bank-sub">
-        Join a faction: apply, pass its training, then an interview with one of its bosses.
-      </div>
+      <div className="bank-sub">Apply, train, interview.</div>
       {error && <div className="login-error">{error}</div>}
       <input
         className="field"
@@ -486,7 +484,7 @@ export function EmergencyApp({ game }: { game: Game }) {
             ? `${open.responders.join(', ')} ${open.responders.length > 1 ? 'are' : 'is'} coming to where you called from.`
             : open.onDuty > 0
               ? `${open.onDuty} on duty ${open.onDuty > 1 ? 'have' : 'has'} your call. Stay where you are.`
-              : 'Nobody’s on duty right now. Your call waits for the next one who is.'}
+              : 'Nobody on duty yet'}
         </div>
         <div className="bank-sub">Call {open.id}</div>
         <button type="button" className="btn" onClick={() => game.command('/hangup')}>

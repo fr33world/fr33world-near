@@ -30,18 +30,14 @@ export function CounterSheet({ game }: { game: Game }) {
   return (
     <Modal
       title="Pharmacy"
-      kicker="Hospital"
       accent="#2dd4bf"
       art="/ui/care/medicine.webp"
-      ghost="CARE"
       medal="pharmacy"
       head={<Funds game={game} dollars />}
       rail={
         <p className="m-lore">
           <i className={`m-dot${staffed ? ' on' : ''}`} />
-          {staffed
-            ? 'An EMS worker is serving.'
-            : `Self-service: ${Math.round((CARE.selfServe - 1) * 100)}% more with no staff in.`}
+          {staffed ? 'Staff in' : `No staff: +${Math.round((CARE.selfServe - 1) * 100)}%`}
         </p>
       }
       onClose={() => setOpen(false)}
@@ -55,7 +51,7 @@ export function CounterSheet({ game }: { game: Game }) {
               index={i}
               art={`/ui/care/${item.id}.webp`}
               name={item.name}
-              meta={`+${item.heal} health · you carry ${have} of ${CARE.max}`}
+              meta={`+${item.heal} HP · ${have}/${CARE.max}`}
             >
               <Price
                 label={have >= CARE.max ? 'Bag full' : formatMoney(carePrice(item.price, staffed))}

@@ -4,7 +4,7 @@
  * (no licence, below level 5, no gang rank). Buying goes through the world server, which checks
  * you're at the counter; its answer comes back as what you carry, and a line in chat.
  */
-import { ARMORY, levelOf, WEAPONS } from '@fr33world/shared';
+import { ARMORY, levelOf } from '@fr33world/shared';
 import { useEffect, useState } from 'react';
 import { formatMoney } from '../game/api.ts';
 import type { Game } from '../game/Game.ts';
@@ -42,19 +42,10 @@ export function GunStoreSheet({ game }: { game: Game }) {
   return (
     <Modal
       title={black ? 'By the containers' : 'Gun Store'}
-      kicker={black ? 'Off the books' : 'Mid City'}
       accent={black ? '#ff5a52' : '#e0b43e'}
       art={`/ui/shop/${black ? 'rifle' : 'pistol'}.webp`}
-      ghost={black ? 'NO NAMES' : 'ARMS'}
       medal={black ? 'black' : 'gun'}
       head={<Funds game={game} dollars />}
-      rail={
-        <p className="m-lore">
-          {black
-            ? '“Keep your voice down. Only for people I know.”'
-            : 'Licensed firearms. Safe zones are gun-free.'}
-        </p>
-      }
       onClose={close}
     >
       <div className="m-tiles">
@@ -65,10 +56,10 @@ export function GunStoreSheet({ game }: { game: Game }) {
             dim={arms?.licence}
             meta={
               arms?.licence
-                ? 'You hold one.'
+                ? undefined
                 : level < ARMORY.licence.minLevel
-                  ? `From level ${ARMORY.licence.minLevel} (you're ${level}).`
-                  : 'Lets you buy and carry a pistol.'
+                  ? `Level ${ARMORY.licence.minLevel}+`
+                  : 'Needed for pistols'
             }
           >
             <Price
@@ -85,14 +76,14 @@ export function GunStoreSheet({ game }: { game: Game }) {
           const max = ARMORY.maxRounds[item.weapon] ?? 0;
           const blocked = item.rounds
             ? !owned
-              ? `Buy the ${WEAPONS[item.weapon]?.name ?? 'weapon'} first.`
+              ? 'Buy the gun first'
               : rounds + item.rounds > max
-                ? `You carry ${rounds}: at most ${max}.`
-                : `You carry ${rounds}.`
+                ? `${rounds}/${max} full`
+                : `${rounds}/${max}`
             : owned
-              ? 'You have one.'
+              ? undefined
               : !black && !arms?.licence
-                ? 'Needs a pistol licence.'
+                ? 'Licence needed'
                 : null;
           const off = item.rounds
             ? !owned || rounds + item.rounds > max
@@ -105,7 +96,7 @@ export function GunStoreSheet({ game }: { game: Game }) {
               art={`/ui/shop/${item.id}.webp`}
               name={item.name}
               dim={!item.rounds && owned}
-              meta={blocked ?? (black ? 'For gang members of rank.' : 'Yours to keep.')}
+              meta={blocked ?? (black && !owned ? 'Gang rank only' : undefined)}
             >
               <Price
                 label={label}

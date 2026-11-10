@@ -145,7 +145,7 @@ export function MarketApp({ game }: { game: Game }) {
                 );
               })}
             {cars.filter((c) => !c.expiresAt).length === 0 && (
-              <div className="bank-sub">No cars of your own to sell (the rental isn't yours).</div>
+              <div className="bank-sub">No cars to sell</div>
             )}
           </>
         ))}

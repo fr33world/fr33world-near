@@ -291,11 +291,7 @@ function GarageApp({ game, onGo }: { game: Game; onGo: () => void }) {
           car park to bring one.
         </div>
       )}
-      {cars && cars.length === 0 && (
-        <div className="bank-sub">
-          No cars: your rental has gone back to the Car Dealership. Buy a car of your own there.
-        </div>
-      )}
+      {cars && cars.length === 0 && <div className="bank-sub">No cars yet</div>}
       {cars?.map((c) => {
         const spec = CAR_MODELS[c.model];
         const left = c.expiresAt ? Date.parse(c.expiresAt) - Date.now() : null;
@@ -388,7 +384,7 @@ function TaxiApp({ game, onGo }: { game: Game; onGo: () => void }) {
   const ride = () => {
     if (!chosen) return;
     if (game.callTaxi(chosen.x, chosen.z, chosen.name)) onGo();
-    else setError("You're offline. Cabs come once you're connected to the city.");
+    else setError("You're offline.");
   };
   return (
     <div className="bank">
@@ -399,7 +395,7 @@ function TaxiApp({ game, onGo }: { game: Game; onGo: () => void }) {
         </div>
         <div className="bank-sub">
           {free
-            ? `Rides cost nothing until level ${TAXI.freeBelowLevel}. Pick where to.`
+            ? `Free until level ${TAXI.freeBelowLevel}`
             : `$${TAXI.base / 100} plus $${TAXI.perKm / 100} a km. Pick where to.`}
         </div>
       </div>

@@ -235,7 +235,6 @@ export const FACTIONS: Record<FactionId, Faction> = {
 /** What a newcomer reads at the join point: who they are, what they get, and how to get in. */
 export interface FactionGuide {
   tagline: string;
-  about: string;
   perks: string[];
   /** A gang's door: why it's shut to you. */
   door?: string;
@@ -243,55 +242,31 @@ export interface FactionGuide {
 
 export const FACTION_GUIDE: Record<FactionId, FactionGuide> = {
   police: {
-    tagline: 'Keep the city safe. Paid on duty.',
-    about:
-      'The Los Soles Police answer 911 calls, stop trouble and fine those who break the rules. They start as Cadets and can rise to Chief.',
-    perks: [
-      'Pay for every 10 minutes on duty, from $150 to $300 by rank',
-      'A uniform, a duty pistol and a cruiser while on duty',
-      'From Officer: fines, from $50 to $5,000',
-    ],
+    tagline: 'Paid on duty',
+    perks: ['$150–$300 per 10 min', 'Uniform, pistol, cruiser', 'Issue fines'],
   },
   medical: {
-    tagline: 'Save lives. Paid on duty.',
-    about:
-      'EMS answers calls for people who are down, revives them and runs the Hospital. They start as Trainees and can rise to Chief of Medicine.',
-    perks: [
-      'Pay for every 10 minutes on duty, from $150 to $300 by rank',
-      'A uniform and an ambulance while on duty',
-      'XP and pay for each person revived',
-    ],
+    tagline: 'Paid on duty',
+    perks: ['$150–$300 per 10 min', 'Uniform, ambulance', 'Paid per revive'],
   },
   vipers: {
-    tagline: 'Fast money on the Eastside. No salary.',
-    about:
-      'The Eastside Vipers are a young street crew in green: quick, loud and always moving. They hold the Eastside and answer to their Boss.',
-    door: 'This is the Vipers’ own house, so only members get in. It’s their base: a place to meet, plan and start collections.',
-    perks: [
-      'Collections on the Eastside, paid when you bring the takings back',
-      'The black market: rifles open up by rank',
-      'A key to the Vipers House, and the crew’s radio',
-    ],
+    tagline: 'No salary',
+    door: 'Members only.',
+    perks: ['Paid collections', 'Black market rifles', 'House key, crew radio'],
   },
   kings: {
-    tagline: 'Old money in the South Grid. No salary.',
-    about:
-      'The South Grid Kings are the old crew in gold: patient, proud and loyal to the block. They hold the South Grid and answer to their Boss.',
-    door: 'This is the Kings’ own house, so only members get in. It’s their base: a place to meet, plan and start collections.',
-    perks: [
-      'Collections in the South Grid, paid when you bring the takings back',
-      'The black market: rifles open up by rank',
-      'A key to the Kings House, and the crew’s radio',
-    ],
+    tagline: 'No salary',
+    door: 'Members only.',
+    perks: ['Paid collections', 'Black market rifles', 'House key, crew radio'],
   },
 };
 
 /** The way in, the same for every faction: where an application is, in order. */
 export const JOIN_STEPS = [
-  { title: 'Apply', text: 'Say why you want in. It takes a moment.' },
-  { title: 'Training', text: `Answer ${QUIZ.size} questions on your phone: ${QUIZ.pass} to pass.` },
-  { title: 'Interview', text: 'A boss sets a time, and you meet them in this building.' },
-  { title: 'You’re in', text: 'They take you on, and you start at the lowest rank.' },
+  { title: 'Apply', text: 'Say why' },
+  { title: 'Training', text: `${QUIZ.pass} of ${QUIZ.size} on your phone` },
+  { title: 'Interview', text: 'Meet a boss here' },
+  { title: 'You’re in', text: 'Start at the bottom' },
 ] as const;
 
 export const FACTION_IDS = Object.keys(FACTIONS) as FactionId[];

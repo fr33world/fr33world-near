@@ -85,8 +85,6 @@ function IosSheet({ onClose }: { onClose: () => void }) {
   return (
     <Modal
       title="Install fr33world"
-      kicker="iPhone"
-      subtitle="The installed app is the way to play full screen, in landscape."
       size="sm"
       onClose={onClose}
       footer={

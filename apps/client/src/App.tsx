@@ -208,12 +208,7 @@ function GameView({
       {game && ready && <Hud game={game} />}
       {game && ready && <Chat game={game} online={game.hud.net === 'online'} />}
       {game && ready && <Emotes game={game} driving={game.hud.driving} />}
-      {game && ready && (
-        <Settings
-          account={account}
-          current={`${game.stats.tier}${game.stats.resolution < 100 ? ` · ${game.stats.resolution}% resolution` : ''}`}
-        />
-      )}
+      {game && ready && <Settings account={account} />}
       {/* The world-entry load (technical review §9, step 8), on the boot's cinematic screen. */}
       {(!ready || error) && (
         <Cinematic

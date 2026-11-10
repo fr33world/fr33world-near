@@ -13,12 +13,12 @@ import type { Game } from '../game/Game.ts';
 import { CashIcon } from './icons.tsx';
 import './modal.css';
 
-export function Ico({ icon, size = 18 }: { icon: IconSvgElement; size?: number }) {
+export function Ico({ icon, size = 15 }: { icon: IconSvgElement; size?: number }) {
   return <HugeiconsIcon icon={icon} size={size} strokeWidth={1.8} />;
 }
 
 /** USDC's real mark. The figure always travels with it, or with the word (D-44). */
-export const UsdcMark = ({ size = 16 }: { size?: number }) => (
+export const UsdcMark = ({ size = 14 }: { size?: number }) => (
   <img
     className="usdc-mark"
     src="/ui/usdc.svg"
@@ -50,13 +50,11 @@ const rgb = (hex: string) =>
 
 export function Modal({
   title,
-  kicker,
   subtitle,
   accent = '#7def06',
   medal,
   art,
   photo,
-  ghost,
   rail,
   head,
   footer,
@@ -66,8 +64,6 @@ export function Modal({
   children,
 }: {
   title: string;
-  /** The small line over the title. */
-  kicker?: string;
   subtitle?: ReactNode;
   /** The modal's own colour: its light, its active tab. Green stays for the main action. */
   accent?: string;
@@ -77,8 +73,6 @@ export function Modal({
   art?: string;
   /** A photo behind the rail, tinted. */
   photo?: string;
-  /** The huge outlined word behind the art. */
-  ghost?: string;
   /** Under the art, at the foot of the rail. */
   rail?: ReactNode;
   /** In the header, between the title and the close button. */
@@ -112,11 +106,6 @@ export function Modal({
         {hasRail && (
           <aside className="m-rail">
             {photo && <img className="m-photo" src={photo} alt="" draggable={false} />}
-            {ghost && (
-              <span className="m-ghost" aria-hidden="true">
-                {ghost}
-              </span>
-            )}
             {art && (
               <div className="m-stage">
                 <img className="m-art" src={art} alt="" draggable={false} />
@@ -131,7 +120,6 @@ export function Modal({
               <img className="m-medal" src={`/ui/medals/${medal}.webp`} alt="" draggable={false} />
             )}
             <div className="m-titles">
-              {kicker && <span className="m-kicker">{kicker}</span>}
               <h2 className="m-title">{title}</h2>
               {subtitle && <p className="m-sub">{subtitle}</p>}
             </div>
@@ -224,7 +212,7 @@ export function Price({
       disabled={locked || disabled}
       onClick={onClick}
     >
-      {locked ? <Ico icon={SquareLock02Icon} size={15} /> : usdc ? <UsdcMark /> : null}
+      {locked ? <Ico icon={SquareLock02Icon} size={12} /> : usdc ? <UsdcMark /> : null}
       <span>{label}</span>
     </button>
   );
@@ -280,7 +268,7 @@ export function Tabs<T extends string>({
           className={value === t ? 'on' : ''}
           onClick={() => onChange(t)}
         >
-          <Ico icon={icon} size={16} />
+          <Ico icon={icon} size={14} />
           {label}
         </button>
       ))}

@@ -173,9 +173,7 @@ export function MessagesApp({ game }: { game: Game }) {
         </button>
       </form>
       {error && <div className="login-error">{error}</div>}
-      {list?.length === 0 && (
-        <div className="bank-empty">No messages yet. Type a character’s full name to start.</div>
-      )}
+      {list?.length === 0 && <div className="bank-empty">No messages</div>}
       {list?.map((c) => (
         <button
           key={c.name}
