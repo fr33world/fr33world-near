@@ -24,6 +24,8 @@ export interface Handling {
   /**
    * The driver's hips in car space (m): to the left of the middle (+x), above the ground, and
    * ahead of the middle (+z). The driver sits there, steering (apps/client seating.ts).
+   * Height is set so the tallest hair (0.96 m above the hips at the wheel) stays under the roof,
+   * measured against each model's mesh; no lower, or the feet drop through the floor.
    */
   seat: [number, number, number];
 }
@@ -41,7 +43,7 @@ export const HANDLING: Record<string, Handling> = {
     rough: ROAD_CAR,
     sound: { pitch: 1.18, gears: 5, loud: 0.75 },
     horn: 520,
-    seat: [0.33, 0.56, 0.2],
+    seat: [0.33, 0.48, 0.2],
   },
   hatchback: {
     mass: 1.25,
@@ -53,7 +55,7 @@ export const HANDLING: Record<string, Handling> = {
     rough: ROAD_CAR,
     sound: { pitch: 1.1, gears: 5, loud: 0.8 },
     horn: 500,
-    seat: [0.38, 0.62, 0.15],
+    seat: [0.38, 0.52, 0.15],
   },
   sedan: {
     mass: 1.45,
@@ -65,7 +67,7 @@ export const HANDLING: Record<string, Handling> = {
     rough: ROAD_CAR,
     sound: { pitch: 1, gears: 5, loud: 0.85 },
     horn: 470,
-    seat: [0.38, 0.6, 0.1],
+    seat: [0.38, 0.54, 0.1],
   },
   wagon: {
     mass: 1.55,
@@ -77,7 +79,7 @@ export const HANDLING: Record<string, Handling> = {
     rough: ROAD_CAR,
     sound: { pitch: 0.95, gears: 5, loud: 0.85 },
     horn: 460,
-    seat: [0.38, 0.6, 0.15],
+    seat: [0.38, 0.53, 0.15],
   },
   coupe: {
     mass: 1.4,
@@ -89,7 +91,7 @@ export const HANDLING: Record<string, Handling> = {
     rough: ROAD_CAR,
     sound: { pitch: 0.92, gears: 6, loud: 1.05 },
     horn: 480,
-    seat: [0.38, 0.55, 0.0],
+    seat: [0.38, 0.47, 0.0],
   },
   sport: {
     mass: 1.3,
@@ -101,7 +103,7 @@ export const HANDLING: Record<string, Handling> = {
     rough: { top: 5, climb: 0.2 },
     sound: { pitch: 1.25, gears: 6, loud: 1.25 },
     horn: 540,
-    seat: [0.38, 0.22, 0.0],
+    seat: [0.38, 0.17, 0.0],
   },
   suv: {
     mass: 2.1,
@@ -173,7 +175,7 @@ export const HANDLING: Record<string, Handling> = {
     rough: ROAD_CAR,
     sound: { pitch: 0.95, gears: 6, loud: 1.15 },
     horn: 460,
-    seat: [0.36, 0.5, 0.1],
+    seat: [0.36, 0.35, 0.1],
   },
   ambulance: {
     mass: 3,

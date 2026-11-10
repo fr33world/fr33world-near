@@ -17,6 +17,10 @@ export interface SeatCar {
   id: string;
 }
 
+/** How far behind the driver the front passenger sits (m); more where the windscreen's upright. */
+const FRONT_SEAT_DEFAULT = 0.22;
+const FRONT_SEAT_BACK: Record<string, number> = { offroad: 0.4, ambulance: 0.5 };
+
 const UP = new THREE.Vector3(0, 1, 0);
 const local = new THREE.Vector3();
 const turn = new THREE.Quaternion();
@@ -33,7 +37,14 @@ export function seatCharacter(
 ): void {
   const [dx, sy, dz] = handlingOf(car.id).seat;
   const sx = seat % 2 === 1 ? -dx : dx;
-  const sz = seat >= 2 ? dz - REAR_ROW : dz;
+  // The passenger's pose leans further forward than the driver's: back a little, or their head
+  // comes through the windscreen.
+  const sz =
+    seat >= 2
+      ? dz - REAR_ROW
+      : seat === 1
+        ? dz - (FRONT_SEAT_BACK[car.id] ?? FRONT_SEAT_DEFAULT)
+        : dz;
   if (car.quat) carQuat.copy(car.quat);
   else carQuat.setFromAxisAngle(UP, car.yaw);
   // In car space (+x its left, +z its front): the hips at the seat, the root under them.
