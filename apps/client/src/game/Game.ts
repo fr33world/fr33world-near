@@ -121,12 +121,15 @@ import {
   fetchGarage,
   fetchProgress,
   fetchStatement,
+  fetchUsdc,
+  linkUsdc,
   type Progress,
   saveTutorial,
   sendPayment,
   sendReport,
   setBlock,
   type Statement,
+  type UsdcWallet,
 } from './api.ts';
 import { waiting } from '../hud/Rewards.tsx';
 import { type Interaction, type InteractionIcon, Interactions } from './interactions.ts';
@@ -182,6 +185,10 @@ export interface ChatLine {
 }
 /** Lines kept in the feed, and how long a speech bubble stays (ms). */
 const CHAT_KEEP = 40;
+/** The HUD card's face: its size in pixels, the layer it's drawn on, frames to take a pose. */
+const PORTRAIT_PX = 72;
+const PORTRAIT_LAYER = 5;
+const PORTRAIT_SETTLE = 12;
 const BUBBLE_MS = 6000;
 
 export interface HudState {
@@ -326,6 +333,11 @@ export class Game {
   private readonly city: CityView;
   private physics: Physics | null = null;
   private player: LocalPlayer | null = null;
+  /** The character's face for the HUD's card, once it's been drawn. */
+  portrait: string | null = null;
+  private portraitOf: Character | null = null;
+  private portraitNext: Character | null = null;
+  private portraitAt = 0;
   private follow: FollowCamera | null = null;
   private vehicles: VehicleManager | null = null;
   private combat: Combat | null = null;
@@ -1222,6 +1234,27 @@ export class Game {
     return apiToken && signHash ? { token: apiToken, sign: signHash } : null;
   }
 
+  /** The USDC wallet as last read from the chain, or null before the first look. */
+  usdc: UsdcWallet | null = null;
+  /** Set by the HUD's wallet sheet: opens it. */
+  onWallet: () => void = () => {};
+
+  /**
+   * Reads the wallet. With `link`, also makes it if this account has none yet, which costs the
+   * game a little NEAR, so only opening the wallet does that, not the top bar.
+   */
+  async refreshUsdc(link = false): Promise<void> {
+    const access = this.usdcAccess();
+    if (!access) return;
+    const token = await access.token();
+    let wallet = await fetchUsdc(token);
+    if (!wallet.near && link) {
+      await linkUsdc(token);
+      wallet = await fetchUsdc(token);
+    }
+    this.usdc = wallet;
+  }
+
   /** Uses CARE item `item`. */
   useCare(item: number): void {
     if (this.net.connected) this.net.send({ type: 'act', what: ACT.USE_CARE, arg: item });
@@ -2102,6 +2135,103 @@ export class Game {
     });
   }
 
+  /**
+   * The character's face for the HUD's card: drawn once per outfit into a corner of the canvas
+   * just before the frame covers it, and copied out. It uses the scene's own lights (none added
+   * or switched, which would rebuild shaders) and draws only the character.
+   */
+  private snapPortrait() {
+    const character = this.player?.character;
+    if (!character || character === this.portraitOf || document.hidden) return;
+    // Let a new body take its pose first.
+    if (character !== this.portraitNext) {
+      this.portraitNext = character;
+      this.portraitAt = this.frameNo + PORTRAIT_SETTLE;
+      return;
+    }
+    if (this.frameNo < this.portraitAt || !character.root.visible || this.vehicles?.driven) return;
+    let head: THREE.Object3D | undefined;
+    character.root.traverse((o) => {
+      if (!head && (o as THREE.Bone).isBone && /Head$/.test(o.name)) head = o;
+    });
+    if (!head) return;
+    this.portraitOf = character;
+
+    const at = head.getWorldPosition(new THREE.Vector3());
+    const facing = character.root.getWorldDirection(new THREE.Vector3());
+    const camera = new THREE.PerspectiveCamera(20, 1, 0.05, 10);
+    camera.position
+      .copy(at)
+      .addScaledVector(facing, 1.05)
+      .add(new THREE.Vector3(0, 0.1, 0));
+    camera.lookAt(at.x, at.y + 0.08, at.z);
+    camera.layers.set(PORTRAIT_LAYER);
+    camera.updateMatrixWorld();
+    character.root.traverse((o) => o.layers.enable(PORTRAIT_LAYER));
+    const lights: THREE.Object3D[] = [];
+    this.scene.traverse((o) => {
+      if ((o as THREE.Light).isLight) {
+        o.layers.enable(PORTRAIT_LAYER);
+        lights.push(o);
+      }
+    });
+
+    const r = this.renderer;
+    const background = this.scene.background;
+    const shadows = r.shadowMap.autoUpdate;
+    const viewport = r.getViewport(new THREE.Vector4());
+    const scissor = r.getScissor(new THREE.Vector4());
+    const scissored = r.getScissorTest();
+    const clear = r.getClearColor(new THREE.Color());
+    const clearAlpha = r.getClearAlpha();
+    this.scene.background = null;
+    r.shadowMap.autoUpdate = false;
+    r.setClearColor(0x2a3442, 1);
+    r.setViewport(0, 0, PORTRAIT_PX, PORTRAIT_PX);
+    r.setScissor(0, 0, PORTRAIT_PX, PORTRAIT_PX);
+    r.setScissorTest(true);
+    r.render(this.scene, camera);
+
+    const out = document.createElement('canvas');
+    out.width = out.height = PORTRAIT_PX;
+    const ctx = out.getContext('2d', { willReadFrequently: true });
+    if (ctx) {
+      const px = Math.round(PORTRAIT_PX * r.getPixelRatio());
+      ctx.drawImage(
+        r.domElement,
+        0,
+        r.domElement.height - px,
+        px,
+        px,
+        0,
+        0,
+        PORTRAIT_PX,
+        PORTRAIT_PX,
+      );
+      // At night the face is as dark as the street: lift it so it can still be recognised.
+      const image = ctx.getImageData(0, 0, PORTRAIT_PX, PORTRAIT_PX);
+      let sum = 0;
+      for (let i = 0; i < image.data.length; i += 4) sum += image.data[i + 1]!;
+      const mean = sum / (image.data.length / 4) / 255;
+      if (mean < 0.3) {
+        const gain = Math.min(3, 0.36 / Math.max(mean, 0.01));
+        for (let i = 0; i < image.data.length; i += 4)
+          for (let c = 0; c < 3; c += 1) image.data[i + c] = image.data[i + c]! * gain;
+        ctx.putImageData(image, 0, 0);
+      }
+      this.portrait = out.toDataURL('image/jpeg', 0.85);
+    }
+
+    r.setViewport(viewport);
+    r.setScissor(scissor);
+    r.setScissorTest(scissored);
+    r.setClearColor(clear, clearAlpha);
+    r.shadowMap.autoUpdate = shadows;
+    this.scene.background = background;
+    for (const l of lights) l.layers.disable(PORTRAIT_LAYER);
+    character.root.traverse((o) => o.layers.disable(PORTRAIT_LAYER));
+  }
+
   /** On a chair (the server's word), or up from it: drawn there, the body out of the world. */
   private setChair(seat: Seat | null) {
     const player = this.player;
@@ -2336,6 +2466,7 @@ export class Game {
     }
     if (this.frameNo % this.quality.shadowEvery === 0) this.sky.refreshShadows();
 
+    if (this.drawing) this.snapPortrait();
     if (this.mapCamera) {
       // Dev (?mapshot): the whole island from straight above, without haze.
       this.scene.fog = null;

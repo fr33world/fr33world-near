@@ -135,6 +135,11 @@ export class NearEconomy {
     return this.provider;
   }
 
+  /** What the wallet screen tells a player: which token, and where to see their account. */
+  walletLinks(account: string): { token: string; explorer: string } {
+    return { token: this.cfg.usdc, explorer: nearblocks(this.cfg, 'address', account) };
+  }
+
   /** A business's account from its short name. */
   accountOf(short: string): string {
     return `${short}.${this.cfg.root}`;

@@ -1,11 +1,12 @@
 /**
- * Proximity text chat (Phase 4): lines said within 30 m. The feed sits at the top middle
- * (after OneState's layout), the latest lines fading after a while unless the chat is open;
- * open it with Enter or T on a keyboard, or the chat button on touch, and Enter sends. Each
- * line also shows as a bubble over the speaker's head for a few seconds.
+ * Proximity text chat (Phase 4): lines said within 30 m. The feed is a short box at the top
+ * middle that scrolls (owner, 2026-11-10), its latest lines fading after a while unless the chat
+ * is open; open it with Enter or T on a keyboard, or the chat button or a tap on the feed on
+ * touch, and Enter sends. Each line also shows as a bubble over the speaker's head for a few
+ * seconds.
  */
 import { CHAT } from '@fr33world/protocol';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { Game } from '../game/Game.ts';
 import { isTouchDevice } from '../game/quality.ts';
 
@@ -17,10 +18,15 @@ export function Chat({ game, online }: { game: Game; online: boolean }) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState('');
   const field = useRef<HTMLInputElement>(null);
+  const box = useRef<HTMLDivElement>(null);
+  const feed = useRef<HTMLDivElement>(null);
+  /** At the newest line: new ones keep it there. Scrolled up to read, it stays put. */
+  const pinned = useRef(true);
   const touch = isTouchDevice();
   const now = performance.now();
-  const lines = game.chat.slice(open ? -FEED_LINES * 2 : -FEED_LINES);
-  const shown = open ? lines : lines.filter((l) => now - l.at < FEED_MS);
+  // Open, everything kept can be scrolled back through.
+  const shown = open ? game.chat : game.chat.slice(-FEED_LINES).filter((l) => now - l.at < FEED_MS);
+  const newest = shown[shown.length - 1];
 
   // Enter or T opens the chat (when the game has the keyboard).
   useEffect(() => {
@@ -41,22 +47,58 @@ export function Chat({ game, online }: { game: Game; online: boolean }) {
     if (open) field.current?.focus();
   }, [open]);
 
+  // A tap anywhere else puts an empty chat away; scrolling the feed mustn't.
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: PointerEvent) => {
+      if (!box.current?.contains(e.target as Node) && !field.current?.value) setOpen(false);
+    };
+    window.addEventListener('pointerdown', onDown);
+    return () => window.removeEventListener('pointerdown', onDown);
+  }, [open]);
+
+  // Never scrollIntoView here: it scrolls the whole game page.
+  useLayoutEffect(() => {
+    const el = feed.current;
+    if (el && pinned.current) el.scrollTop = el.scrollHeight;
+  }, [newest?.key, open]);
+  useLayoutEffect(() => {
+    if (open) pinned.current = true;
+  }, [open]);
+
+  const close = () => {
+    setDraft('');
+    setOpen(false);
+  };
   const send = () => {
     game.say(draft);
     setDraft('');
-    setOpen(false);
+    pinned.current = true;
+    // On touch it stays open to read the answer; a keyboard needs its keys back for the game.
+    if (touch) field.current?.focus();
+    else setOpen(false);
   };
 
   return (
     <>
-      <div className={`chat${open ? ' open' : ''}`}>
+      <div ref={box} className={`chat${open ? ' open glass' : ''}`}>
         {shown.length > 0 && (
-          <div className="chat-feed">
+          <div
+            ref={feed}
+            className="chat-feed"
+            style={{
+              opacity: open || !newest ? 1 : Math.min(1, (FEED_MS - (now - newest.at)) / 2000),
+            }}
+            onScroll={(e) => {
+              const el = e.currentTarget;
+              pinned.current = el.scrollHeight - el.scrollTop - el.clientHeight < 12;
+            }}
+            onClick={() => online && !open && setOpen(true)}
+          >
             {shown.map((l) => (
               <div
                 key={l.key}
                 className={`chat-line${l.you ? ' you' : ''}${l.system ? ' system' : ''}`}
-                style={{ opacity: open ? 1 : Math.min(1, (FEED_MS - (now - l.at)) / 2000) }}
               >
                 {l.system ? (
                   l.text
@@ -71,10 +113,11 @@ export function Chat({ game, online }: { game: Game; online: boolean }) {
         )}
         {open && (
           <form
-            className="chat-input glass"
+            className="chat-input"
             onSubmit={(e) => {
               e.preventDefault();
-              send();
+              if (draft.trim()) send();
+              else if (!touch) close();
             }}
           >
             <input
@@ -85,15 +128,14 @@ export function Chat({ game, online }: { game: Game; online: boolean }) {
               placeholder="Say something nearby, or /help"
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === 'Escape') {
-                  setDraft('');
-                  setOpen(false);
-                }
+                if (e.key === 'Escape') close();
               }}
-              onBlur={() => !draft && setOpen(false)}
             />
             <button type="submit" className="btn btn-primary" disabled={!draft.trim()}>
               Send
+            </button>
+            <button type="button" className="chat-close" aria-label="Close chat" onClick={close}>
+              ×
             </button>
           </form>
         )}

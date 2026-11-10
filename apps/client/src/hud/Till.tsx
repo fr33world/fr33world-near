@@ -56,6 +56,7 @@ export function TillSheet({ game }: { game: Game }) {
     try {
       setSaid(await work());
       refresh();
+      void game.refreshUsdc().catch(() => {});
     } catch (e) {
       setSaid(e instanceof Error ? e.message : 'That didn’t go through.');
     } finally {

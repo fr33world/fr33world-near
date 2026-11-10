@@ -20,12 +20,15 @@ import { Phone, PHONE_DEMO } from './Phone.tsx';
 import { Prompt } from './Prompt.tsx';
 import { RideCard } from './Ride.tsx';
 import { TutorialCard } from './TutorialCard.tsx';
+import { UsdcPill, WalletSheet } from './Usdc.tsx';
+import { BarsIcon, CashIcon, ClockIcon } from '../ui/icons.tsx';
 
 /**
- * The HUD (after OneState's layout, owner 2026-10-29): the minimap at the top left with
- * health under it; at the top right, beside the settings gear, one small strip with the
- * time, frame rate and ping, the money under it. Then the speedometer, crosshair, desktop
- * key hints, and the interaction prompt (Prompt.tsx) with the city guide it can open.
+ * The HUD (after the owner's photo, 2026-11-10): the minimap at the top left with health and
+ * the player's card under it; along the top right, up to the settings gear, one bar with the
+ * time, frame rate and ping, the game's `$`, and the USDC balance that opens the wallet. Then
+ * the speedometer, crosshair, desktop key hints, and the interaction prompt (Prompt.tsx) with
+ * the city guide it can open.
  */
 export function Hud({ game }: { game: Game }) {
   const hud = game.hud;
@@ -45,7 +48,9 @@ export function Hud({ game }: { game: Game }) {
         )}
         <HealthBar hp={hud.hp} width={mapSize} />
         <Bag game={game} left={mapSize + 8} />
-        {hud.xp !== null && <LevelBar name={game.playerName} xp={hud.xp} width={mapSize} />}
+        {hud.xp !== null && (
+          <PlayerCard name={game.playerName} xp={hud.xp} portrait={game.portrait} />
+        )}
         {game.waypoints.target && (
           <div className="glass waypoint-chip" style={{ maxWidth: mapSize + 60 }}>
             <i />
@@ -62,12 +67,26 @@ export function Hud({ game }: { game: Game }) {
         )}
       </div>
       <div style={{ ...corner, right: 'calc(var(--safe-r) + 46px)', alignItems: 'flex-end' }}>
-        <div className="glass" style={strip}>
-          <span style={clock}>{hud.clock}</span>
-          <span style={stat}>{Math.round(game.stats.fps)} FPS</span>
-          <span style={{ ...stat, color: pingColour(hud.net, hud.ping) }}>{ping}</span>
+        <div className="hud-top">
+          <div className="glass hud-strip">
+            <span className="time">
+              <ClockIcon />
+              {hud.clock}
+            </span>
+            <span>
+              <BarsIcon />
+              {Math.round(game.stats.fps)} FPS
+            </span>
+            <span style={{ color: pingColour(hud.net, hud.ping) }}>{ping}</span>
+          </div>
+          {hud.money !== null && (
+            <div className="glass hud-cash">
+              <CashIcon />
+              {formatMoney(hud.money)}
+            </div>
+          )}
+          <UsdcPill game={game} />
         </div>
-        {hud.money !== null && <span style={money}>{formatMoney(hud.money)}</span>}
         <TaskPanel game={game} touch={touch} />
       </div>
       {hud.driving && (
@@ -145,6 +164,7 @@ export function Hud({ game }: { game: Game }) {
       <GunStoreSheet game={game} />
       <CounterSheet game={game} />
       <TillSheet game={game} />
+      <WalletSheet game={game} />
       <ComputerSheet game={game} />
       <JoinSheet game={game} />
       <DispatchCard game={game} />
@@ -204,16 +224,28 @@ function pingColour(net: string, ping: number): string {
   return ping < 120 ? 'var(--brand)' : ping < 300 ? 'var(--warn)' : 'var(--danger)';
 }
 
-/** Their name and level, and how far to the next as a thin bar beside it. */
-function LevelBar({ name, xp, width }: { name: string; xp: number; width: number }) {
+/** Under the minimap: their face, name and level, and how far to the next. */
+function PlayerCard({ name, xp, portrait }: { name: string; xp: number; portrait: string | null }) {
   const l = levelOf(xp);
   return (
-    <div className="level-bar" style={{ width }} title={`${l.into} / ${l.next} XP`}>
-      {name && <em>{name}</em>}
-      <b>LV {l.level}</b>
-      <span>
-        <i style={{ width: `${l.next ? Math.min(100, (l.into / l.next) * 100) : 100}%` }} />
-      </span>
+    <div className="glass hud-player">
+      {portrait ? (
+        <img className="hud-player-face" src={portrait} alt="" />
+      ) : (
+        <span className="hud-player-face">{name.slice(0, 1).toUpperCase()}</span>
+      )}
+      <div className="hud-player-text">
+        <div className="hud-player-top">
+          <em>{name}</em>
+          <b className="hud-player-level">{l.level}</b>
+        </div>
+        <small>
+          {l.next ? `XP ${l.into.toLocaleString()} / ${l.next.toLocaleString()}` : 'Top level'}
+        </small>
+        <span className="track">
+          <i style={{ width: `${l.next ? Math.min(100, (l.into / l.next) * 100) : 100}%` }} />
+        </span>
+      </div>
     </div>
   );
 }
@@ -283,25 +315,6 @@ const corner: CSSProperties = {
   gap: 6,
   pointerEvents: 'none',
 };
-const strip: CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 10,
-  height: 38,
-  padding: '0 12px',
-  borderRadius: 12,
-};
-const stat: CSSProperties = {
-  color: 'var(--muted)',
-  font: '700 11px/1 var(--font)',
-  letterSpacing: 0.4,
-};
-const money: CSSProperties = {
-  color: 'var(--brand)',
-  font: '400 22px/1 var(--font-display)',
-  letterSpacing: 0.8,
-  textShadow: '0 1px 8px rgba(0, 0, 0, 0.6)',
-};
 const voiceRow: CSSProperties = {
   display: 'flex',
   alignItems: 'center',
@@ -309,7 +322,6 @@ const voiceRow: CSSProperties = {
   color: 'var(--muted)',
   font: '600 11px/1 var(--font)',
 };
-const clock: CSSProperties = { font: '400 20px/1 var(--font-display)', letterSpacing: 0.8 };
 const healthTrack: CSSProperties = {
   height: 5,
   borderRadius: 3,

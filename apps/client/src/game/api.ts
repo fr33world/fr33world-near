@@ -486,8 +486,17 @@ async function usdcCall<T>(token: string, path: string, body?: unknown): Promise
   return data;
 }
 
-export const fetchUsdc = (token: string) =>
-  usdcCall<{ near: string | null; micro: number }>(token, 'usdc');
+/** A player's USDC wallet: `token` and `explorer` come once it's linked. */
+export interface UsdcWallet {
+  near: string | null;
+  micro: number;
+  /** The one token this wallet shows, for the deposit screen. */
+  token?: string;
+  /** This account's page on the block explorer. */
+  explorer?: string;
+}
+
+export const fetchUsdc = (token: string) => usdcCall<UsdcWallet>(token, 'usdc');
 export const linkUsdc = (token: string) => usdcCall<{ near: string }>(token, 'usdc/link', {});
 export const startUsdcSale = (token: string, good: string) =>
   usdcCall<{ sale: string; micro: number; tx: string; hash: `0x${string}` }>(token, 'usdc/sale', {

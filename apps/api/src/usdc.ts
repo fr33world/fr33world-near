@@ -18,6 +18,8 @@ import { AccountFrozen, EconomyPaused, InsufficientFunds, LedgerError } from './
 export interface PlayerChain {
   accountOf(short: string): string;
   usdcBalance(account: string): Promise<bigint>;
+  /** The token a wallet can hold here and the account's explorer page, for the wallet screen. */
+  walletLinks?(account: string): { token: string; explorer: string };
   getSale(wallet: string, id: string): Promise<string | null>;
   welcomePlayer(account: string): Promise<void>;
   prepare(
@@ -83,7 +85,11 @@ export async function linkWallet(d: UsdcDeps, privyUser: string): Promise<{ near
 export async function usdcWallet(d: UsdcDeps, privyUser: string) {
   const me = await accountOf(d.db, privyUser);
   if (!me.near) return { near: null, micro: 0 };
-  return { near: me.near, micro: Number(await d.chain.usdcBalance(me.near)) };
+  return {
+    near: me.near,
+    micro: Number(await d.chain.usdcBalance(me.near)),
+    ...d.chain.walletLinks?.(me.near),
+  };
 }
 
 /** What Sunny's has and what it costs. */

@@ -11,6 +11,8 @@ import { ACTION_ICONS } from './Prompt.tsx';
 
 const STICK_RADIUS = 56;
 const LOOK_GAIN = 1.7;
+/** How clearly the stick shows at its resting place, with no thumb on it. */
+const STICK_REST = 0.85;
 /** Zoom per pixel the two fingers move together or apart. */
 const PINCH_ZOOM = 0.004;
 
@@ -113,7 +115,7 @@ export function TouchControls({
     const b = base.current;
     const k = knob.current;
     if (!b || !k) return;
-    b.style.opacity = on ? '1' : '0.35';
+    b.style.opacity = on ? '1' : String(STICK_REST);
     b.style.transform = `translate(${x - STICK_RADIUS}px, ${y - STICK_RADIUS}px)`;
     k.style.transform = `translate(${kx}px, ${ky}px)`;
   };
@@ -314,7 +316,7 @@ export function TouchControls({
         <button
           type="button"
           className={`tbtn glass${armed ? ' lit' : ''}`}
-          style={{ right: 'calc(var(--safe-r) + 10px)', bottom: 196 }}
+          style={{ right: 'calc(var(--safe-r) + 192px)', bottom: 110 }}
           aria-label="Weapon"
           onPointerDown={() => input.press('weapon')}
         >
@@ -338,7 +340,7 @@ export function TouchControls({
           style={
             driving
               ? { right: 'calc(var(--safe-r) + 132px)', bottom: 'calc(var(--safe-b) + 146px)' }
-              : { right: 'calc(var(--safe-r) + 10px)', bottom: 122 }
+              : { right: 'calc(var(--safe-r) + 108px)', bottom: 122 }
           }
           // Hold to talk (owner, 2026-10-29): the mic is live only while a finger is on it,
           // so nobody is left talking to the whole street by accident.
@@ -364,10 +366,11 @@ export function TouchControls({
           }
           aria-label={action}
           style={{
-            // Beside the weapon button when there is one.
-            right: !driving && weapons ? 'calc(var(--safe-r) + 84px)' : 'var(--safe-r)',
-            // Above the buttons on foot, above the pedals in a car.
-            bottom: driving ? 'calc(var(--safe-b) + 146px)' : 196,
+            // Top of the column over Jump on foot, above the pedals in a car.
+            ...(!driving && (actionIcon === 'car' || actionIcon === 'exit')
+              ? { right: 'calc(var(--safe-r) + 18px)', width: 46, height: 46 }
+              : { right: 'var(--safe-r)' }),
+            bottom: driving ? 'calc(var(--safe-b) + 146px)' : 220,
           }}
           onPointerDown={(e) => {
             (e.target as Element).setPointerCapture(e.pointerId);
@@ -402,7 +405,7 @@ const stickBase: CSSProperties = {
   borderRadius: '50%',
   background: 'rgba(14, 16, 20, 0.3)',
   border: '1px solid rgba(255, 255, 255, 0.22)',
-  opacity: 0.35,
+  opacity: STICK_REST,
   transform: `translate(${110 - STICK_RADIUS}px, calc(100vh - ${120 + STICK_RADIUS}px))`,
   pointerEvents: 'none',
   backdropFilter: 'blur(var(--glass-blur))',
