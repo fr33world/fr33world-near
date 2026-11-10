@@ -25,6 +25,7 @@ import {
   BED_Y,
   DOOR,
   FLOORS,
+  type Interior,
   interiorAt,
   INTERIORS,
   laneOutside,
@@ -462,8 +463,30 @@ const FACTION_COMMANDS = new Set([
 
 /** The owner of the cars on show at the dealership: nobody drives them. */
 const ON_SHOW = 'dealer';
-/** Owner of the cruisers waiting in the Station's garage, until an officer drives one. */
-const POLICE_POOL = 'police-pool';
+/** The service cars waiting in each garage, by the owner they have until staff drive one. */
+const GARAGE_POOLS: ReadonlyMap<
+  string,
+  { faction: FactionId; model: string; room: Interior; denied: string }
+> = new Map([
+  [
+    'police-pool',
+    {
+      faction: 'police' as const,
+      model: 'police',
+      room: FLOORS.police_garage,
+      denied: 'Cruisers are for police on duty: go on duty at the lockers upstairs.',
+    },
+  ],
+  [
+    'ems-pool',
+    {
+      faction: 'medical' as const,
+      model: 'ambulance',
+      room: FLOORS.hospital_garage,
+      denied: 'Ambulances are for EMS on duty: go on duty at the lockers upstairs.',
+    },
+  ],
+]);
 
 interface Pending {
   conn: Conn;
@@ -528,8 +551,6 @@ const PLACE_WAIT_MS = 2_500;
 const SEAT_SIDES = [0, Math.PI, Math.PI / 2, -Math.PI / 2];
 /** How much room a body needs at the place it comes back to (m). */
 const PLACE_CLEAR_M = 0.3;
-/** How near a building's door a service vehicle can be called (m). */
-const VEHICLE_REACH_M = 60;
 /** Up from a hospital bed: how far from its middle you stand (m). */
 const BED_STEP_M = 1.9;
 const CORRECTION_ACCEPT_RADIUS = 3;
@@ -577,8 +598,8 @@ const freshCounters = () => ({
 export class World {
   readonly city: CityLayout;
   readonly collision: CollisionIndex;
-  /** The ramp out of the Station's garage (city FLOORS), once the city has one. */
-  private readonly garageRamp: InteractionPoint | undefined;
+  /** The ramps out of the garages (city FLOORS). */
+  private readonly garageRamps: InteractionPoint[];
   /** The ground and highest walkable surface at a point (movement height checks). */
   readonly heights = (x: number, z: number): HeightRange => heightRange(this.city, x, z);
   private readonly staffApi: WorldOptions['staffApi'];
@@ -693,7 +714,7 @@ export class World {
       this.vehicles.set(id, v);
       this.track(id, v.pose, true);
     });
-    this.garageRamp = this.city.points.find((q) => q.kind === 'ramp');
+    this.garageRamps = this.city.points.filter((q) => q.kind === 'ramp');
     this.stockGarage();
   }
 
@@ -1230,14 +1251,15 @@ export class World {
       }
     }
     this.moved(p.id, p.pose);
-    const ramp = this.garageRamp;
-    if (vehicle && ramp && Math.hypot(body.x - ramp.x, body.z - ramp.z) <= ramp.radius)
-      this.driveUpRamp(p, vehicle);
+    if (!vehicle) return;
+    for (const ramp of this.garageRamps)
+      if (Math.hypot(body.x - ramp.x, body.z - ramp.z) <= ramp.radius)
+        return this.driveUpRamp(p, vehicle, ramp);
   }
 
-  /** Up the garage's ramp: the car and everyone in it, onto the street outside the Station. */
-  private driveUpRamp(p: Player, v: Vehicle) {
-    const door = this.city.points.find((q) => q.kind === 'entrance' && q.service === 'police');
+  /** Up a garage's ramp: the car and everyone in it, onto the street outside its building. */
+  private driveUpRamp(p: Player, v: Vehicle, ramp: InteractionPoint) {
+    const door = this.city.points.find((q) => q.kind === 'entrance' && q.service === ramp.service);
     if (!door) return;
     const spots = laneOutside(this.city.roads, door);
     const clear = (s: { x: number; z: number }) =>
@@ -1296,15 +1318,16 @@ export class World {
 
   private enterVehicle(p: Player, vehicleId: number) {
     const v = this.vehicles.get(vehicleId);
-    if (v?.owner === POLICE_POOL && (p.membership?.faction !== 'police' || !p.onDuty)) {
+    const pool = v?.owner === undefined ? undefined : GARAGE_POOLS.get(v.owner);
+    if (pool && (p.membership?.faction !== pool.faction || !p.onDuty)) {
       this.sendMsg(p.conn, {
         type: 'error',
         code: ERROR_CODE.SEAT_DENIED,
-        message: 'Cruisers are for police on duty.',
+        message: pool.denied,
       });
       return;
     }
-    if (v?.owner && v.owner !== POLICE_POOL && v.owner !== this.ownerKey(p)) {
+    if (v?.owner && !pool && v.owner !== this.ownerKey(p)) {
       this.sendMsg(p.conn, {
         type: 'error',
         code: ERROR_CODE.SEAT_DENIED,
@@ -1332,7 +1355,7 @@ export class World {
       if (v) this.sendMsg(p.conn, { type: 'seat', vehicle: v.id, driver: v.driver });
       return;
     }
-    if (v.owner === POLICE_POOL) {
+    if (pool) {
       // Theirs while it's out, like any work vehicle; their own car goes back.
       const out = this.ownCar(this.ownerKey(p));
       if (out) this.garageCar(out);
@@ -1655,27 +1678,29 @@ export class World {
     this.tell(p, fuel ? `⛽ Tank full (${price}).` : `🔧 Repaired as new (${price}).`);
   }
 
-  /** A cruiser in every empty bay of the Station's garage. */
+  /** A service car in every empty bay of every garage. */
   private stockGarage() {
-    const model = CAR_MODELS.findIndex((c) => c.id === 'police');
-    if (model < 0) return;
-    for (const b of FLOORS.police_garage.bays ?? []) {
-      const taken = [...this.vehicles.values(), ...this.players.values()].some(
-        (o) => Math.hypot(o.pose.x - b.x, o.pose.z - b.z) < 3,
-      );
-      if (taken) continue;
-      const id = this.allocId();
-      const v: Vehicle = {
-        id,
-        model,
-        color: 0,
-        pose: idle(b.x, 0, b.z, b.yaw),
-        driver: NO_ENTITY,
-        owner: POLICE_POOL,
-        ...fresh(),
-      };
-      this.vehicles.set(id, v);
-      this.track(id, v.pose, true);
+    for (const [owner, pool] of GARAGE_POOLS) {
+      const model = CAR_MODELS.findIndex((c) => c.id === pool.model);
+      if (model < 0) continue;
+      for (const b of pool.room.bays ?? []) {
+        const taken = [...this.vehicles.values(), ...this.players.values()].some(
+          (o) => Math.hypot(o.pose.x - b.x, o.pose.z - b.z) < 3,
+        );
+        if (taken) continue;
+        const id = this.allocId();
+        const v: Vehicle = {
+          id,
+          model,
+          color: 0,
+          pose: idle(b.x, 0, b.z, b.yaw),
+          driver: NO_ENTITY,
+          owner,
+          ...fresh(),
+        };
+        this.vehicles.set(id, v);
+        this.track(id, v.pose, true);
+      }
     }
   }
 
@@ -2109,7 +2134,7 @@ export class World {
     this.reintroduce(p);
     this.tell(
       p,
-      `On duty as ${rankOf(m)?.title ?? ''}: paid for every ${SALARY.everyMs / 60_000} min active.${kind === 'police' ? ' Duty pistol issued (Q). Patrols are on the board in the office, and cruisers in the garage: take the elevator at the end of the aisle.' : ''}`,
+      `On duty as ${rankOf(m)?.title ?? ''}: paid for every ${SALARY.everyMs / 60_000} min active.${kind === 'police' ? ' Duty pistol issued (Q). Patrols are on the board in the office, and cruisers in the garage: take the elevator at the end of the aisle.' : ' Ambulances are in the garage: take the elevator past the lockers.'}`,
     );
   }
 
@@ -2118,7 +2143,8 @@ export class World {
     p.onDuty = false;
     this.reintroduce(p);
     const car = this.ownCar(this.ownerKey(p));
-    if (car && car.driver === NO_ENTITY && CAR_MODELS[car.model]?.id === 'police')
+    const id = car && CAR_MODELS[car.model]?.id;
+    if (car && car.driver === NO_ENTITY && [...GARAGE_POOLS.values()].some((g) => g.model === id))
       this.garageCar(car);
     p.dutyRounds = 0;
     if (p.dutyPistol) {
@@ -2367,14 +2393,11 @@ export class World {
         case 'vehicle': {
           if (!p.onDuty || (kind !== 'police' && kind !== 'medical'))
             return say('Service vehicles are for police and EMS on duty.');
-          if (kind === 'police')
-            return say('Cruisers are in the garage: take the elevator at the end of the office.');
-          const door = this.city.points.find(
-            (q) => q.kind === 'entrance' && q.service === 'hospital',
+          return say(
+            kind === 'police'
+              ? 'Cruisers are in the garage: take the elevator at the end of the office.'
+              : 'Ambulances are in the garage: take the elevator past the lockers in the ward.',
           );
-          if (door && Math.hypot(door.x - p.pose.x, door.z - p.pose.z) > VEHICLE_REACH_M)
-            return say(`Service vehicles are outside the ${INTERIORS.hospital.name}.`);
-          return this.spawnBeside(p, 'ambulance', '🚑 Your ambulance is beside you.');
         }
       }
       if (!api || !p.account) return say('That needs the city’s records, which aren’t reachable.');

@@ -134,10 +134,12 @@ export function RewardToasts({ game }: { game: Game }) {
               <small>{titleOf(r.levelUp)}</small>
             </div>
           )}
-          <div className="toast-line">
-            {r.cents > 0 && <b className="cash">+{formatMoney(r.cents)}</b>}
-            {r.xp > 0 && <b className="xp">+{r.xp} XP</b>}
-          </div>
+          {(r.cents > 0 || r.xp > 0) && (
+            <div className="toast-line">
+              {r.cents > 0 && <b className="cash">+{formatMoney(r.cents)}</b>}
+              {r.xp > 0 && <b className="xp">+{r.xp} XP</b>}
+            </div>
+          )}
           <small>{r.reason}</small>
         </div>
       ))}

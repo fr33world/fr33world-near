@@ -27,6 +27,7 @@ import {
   SEAT_REACH_M,
   SEAT_Y,
   type RoomId,
+  roomById,
   type ServiceId,
 } from '@fr33world/city';
 import {
@@ -1537,7 +1538,10 @@ export class Game {
         break;
       case 'error':
         this.seatPending = false;
-        this.hud.net = m.message;
+        // A refused seat is said to the player; the connection's status is for the connection
+        // (chat goes by it, so a refusal left there took chat offline as well).
+        if (m.code === ERROR_CODE.SEAT_DENIED) this.notice(m.message);
+        else this.hud.net = m.message;
         break;
       default:
         break;
@@ -1648,9 +1652,13 @@ export class Game {
       if (!car) return ride;
       // Getting in needs the car clips: fetched now, while the player walks up.
       this.player?.character?.animator?.preloadCar();
+      // A service car still in its garage is only for staff on duty: said before the press too
+      // (the press asks the server, which says what to do about it).
+      const offDuty =
+        !this.duty && !car.remote?.name && !!this.indoors && !!roomById(this.indoors).floorOf;
       const enter: Interaction = {
         key: `car:${car.id}`,
-        label: 'Enter car',
+        label: offDuty ? 'On duty only' : 'Enter car',
         icon: 'car',
         at: { x: car.pos.x, y: car.pos.y + 1.7, z: car.pos.z },
         distance: Math.hypot(car.pos.x - reach.x, car.pos.z - reach.z),
@@ -1689,37 +1697,23 @@ export class Game {
         return distance <= p.radius ? { p, distance } : null;
       };
       const offers: Interaction[] = [];
-      // Police staff: the elevator between the Station and its garage, on a job or not.
-      if (this.memberOf === 'police') {
-        this.liftPoints ??= this.layout.points.flatMap((p, i) => (p.kind === 'lift' ? [i] : []));
-        for (const i of this.liftPoints) {
-          const n = near(i);
-          if (!n) continue;
-          const down = interiorAt(n.p.x, n.p.z)?.id === 'police';
-          offers.push({
-            key: `lift:${i}`,
-            label: down ? 'Elevator to the garage (floor 0)' : 'Elevator to the Station (floor 1)',
-            icon: 'door',
-            at: { x: n.p.x, y: 2.2, z: n.p.z },
-            distance: n.distance,
-            run: () => this.useDoor(i),
-          });
-        }
-      }
-      // A medic on duty at the Hospital's door: their ambulance (police use the garage).
-      const door =
-        this.duty === 'medical'
-          ? this.layout.points.find((q) => q.kind === 'entrance' && q.service === 'hospital')
-          : undefined;
-      if (door && Math.hypot(door.x - reach.x, door.z - reach.z) < 8)
+      // Staff: the elevator between their building and its garage, on a job or not.
+      this.liftPoints ??= this.layout.points.flatMap((p, i) => (p.kind === 'lift' ? [i] : []));
+      for (const i of this.liftPoints) {
+        const n = near(i);
+        if (!n || factionOfBuilding(n.p.service) !== this.memberOf) continue;
+        const above = interiorAt(n.p.x, n.p.z)?.floorOf;
         offers.push({
-          key: 'service-car',
-          label: 'Get your ambulance',
-          icon: 'car',
-          at: { x: door.x, y: this.groundAt(door.x, door.z) + 2.4, z: door.z },
-          distance: Math.hypot(door.x - reach.x, door.z - reach.z) + 1,
-          run: () => this.command('/vehicle'),
+          key: `lift:${i}`,
+          label: above
+            ? `Elevator to the ${INTERIORS[above].name} (floor 1)`
+            : 'Elevator to the garage (floor 0)',
+          icon: 'door',
+          at: { x: n.p.x, y: 2.2, z: n.p.z },
+          distance: n.distance,
+          run: () => this.useDoor(i),
         });
+      }
       if (this.job) {
         for (const a of this.job.actions) {
           const n = near(a.point);
@@ -1923,6 +1917,19 @@ export class Game {
     else this.waypoints.clear('job');
   }
 
+  /** Says why something the player just tried didn't happen, on the toast stack. */
+  private notice(reason: string) {
+    this.rewards.push({
+      key: ++this.rewardSeq,
+      cents: 0,
+      xp: 0,
+      reason,
+      levelUp: null,
+      at: performance.now(),
+    });
+    if (this.rewards.length > 5) this.rewards.shift();
+  }
+
   private onReward(m: { cents: number; xp: number; totalXp: number; reason: string }) {
     const before = this.hud.xp === null ? null : levelOf(this.hud.xp).level;
     if (this.hud.money !== null) this.hud.money += m.cents;
@@ -1975,7 +1982,9 @@ export class Game {
     if (door.kind === 'lift') {
       this.fadeUntil = performance.now() + DOOR_FADE_MS;
       if (this.net.connected) return this.net.send({ type: 'act', what: ACT.DOOR, arg: point });
-      const to = this.layout.points.find((q) => q.kind === 'lift' && q !== door);
+      const to = this.layout.points.find(
+        (q) => q.kind === 'lift' && q.service === door.service && q !== door,
+      );
       if (to) {
         this.player?.place(to.x, 0.2, to.z, to.yaw);
         this.follow?.face(to.yaw);
