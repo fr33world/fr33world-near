@@ -18,6 +18,10 @@ export const SERVICE_IDS: readonly ServiceId[] = [
   'market',
 ];
 
+/** Floors of a building reached from inside it, with no door of their own on the street. */
+export type FloorId = 'police_garage';
+export type RoomId = ServiceId | FloorId;
+
 /** The rooms' surfaces (client public/assets/textures/room_*.webp). */
 export type RoomTexture =
   'plaster' | 'tile' | 'wood_floor' | 'carpet' | 'ceiling' | 'wood' | 'fabric';
@@ -55,7 +59,7 @@ export interface RoomLabel {
 }
 
 export interface RoomPoint {
-  kind: 'exit' | 'locker' | 'counter' | 'computer' | 'till' | 'join' | 'patrol';
+  kind: 'exit' | 'locker' | 'counter' | 'computer' | 'till' | 'join' | 'patrol' | 'lift' | 'ramp';
   x: number;
   z: number;
   yaw: number;
@@ -87,7 +91,7 @@ export interface RoomProp {
 }
 
 export interface Interior {
-  id: ServiceId;
+  id: RoomId;
   name: string;
   rect: Rect;
   height: number;
@@ -101,6 +105,10 @@ export interface Interior {
   spawn: { x: number; z: number; yaw: number };
   /** Someone who works here, standing at the till (world coordinates). */
   clerk?: { x: number; z: number; yaw: number };
+  /** The building this is a floor of. */
+  floorOf?: ServiceId;
+  /** Where the service cars stand (world coordinates). */
+  bays?: { x: number; z: number; yaw: number }[];
   /** No shooting in here. */
   safe: boolean;
   /** Only this faction's members may go in. */
@@ -275,6 +283,53 @@ class Room {
     return this;
   }
 
+  /**
+   * A lift in a wall: steel doors, the floor lit above them, a call button, and the point in
+   * front of it. `along` is where on the wall; only the north and west walls have been needed.
+   */
+  lift(wall: 'north' | 'west', along: number, floor: string, sign: string) {
+    const north = wall === 'north';
+    const line = north ? this.d : 0;
+    const put = (
+      a0: number,
+      a1: number,
+      d0: number,
+      d1: number,
+      y0: number,
+      y1: number,
+      c: number,
+    ) =>
+      north
+        ? this.box(a0, line - d1, a1, line - d0, y0, y1, c)
+        : this.box(line + d0, a0, line + d1, a1, y0, y1, c);
+    const shine = (
+      a0: number,
+      a1: number,
+      d0: number,
+      d1: number,
+      y0: number,
+      y1: number,
+      c: number,
+    ) =>
+      north
+        ? this.glow(a0, line - d1, a1, line - d0, y0, y1, c)
+        : this.glow(line + d0, a0, line + d1, a1, y0, y1, c);
+    put(along - 1.3, along + 1.3, 0, 0.06, 0, 2.62, DARK);
+    put(along - 1.12, along - 0.02, 0.06, 0.09, 0.02, 2.46, STEEL);
+    put(along + 0.02, along + 1.12, 0.06, 0.09, 0.02, 2.46, STEEL);
+    shine(along - 0.3, along + 0.3, 0.06, 0.08, 2.5, 2.58, 0xffd23f);
+    put(along + 1.5, along + 1.72, 0, 0.04, 1.02, 1.42, DARK);
+    shine(along + 1.56, along + 1.66, 0.04, 0.05, 1.16, 1.28, 0x7def06);
+    const yaw = north ? Math.PI : Math.PI / 2;
+    const at = (a: number, d: number) => (north ? { x: a, z: line - d } : { x: line + d, z: a });
+    const plate = at(along, 0.1);
+    this.label(floor, plate.x, 2.92, plate.z, yaw, 0.9, 0.42, '#14202e', '#ffd23f');
+    this.label(sign, plate.x, 3.42, plate.z, yaw, 3.2, 0.34, '#ffffff', '#1f3a63');
+    const ring = at(along, 1.3);
+    this.point('lift', ring.x, ring.z, yaw, 'Elevator', 1.7);
+    return this;
+  }
+
   /** The way out, on the south wall at x: double glass doors, a green sign over them. */
   door(x: number) {
     this.box(x - 1.12, 0, x + 1.12, 0.05, 0, 2.5, DARK);
@@ -439,7 +494,7 @@ class Room {
 
   /** The room in world coordinates. */
   done(
-    id: ServiceId,
+    id: RoomId,
     name: string,
     spawn: { x: number; z: number; yaw: number },
     opts: { safe: boolean; members: boolean; accent: number },
@@ -541,6 +596,8 @@ function policeStation(x: number, z: number): Interior {
   ] as const)
     r.box(px - 0.26, 9.14, px + 0.26, 9.15, py - 0.2, py + 0.2, c);
   r.point('patrol', 2.3, 10.2, 0, 'Patrol board', 1.8);
+  // Straight up the aisle from the office door: down to the cars.
+  r.lift('north', 6, '1', 'ELEVATOR · GARAGE FLOOR 0');
   // The far end of the office: the only way to the cells.
   r.crossWall(13, 9.1, 18, 14.8, 17.3, inner);
   r.label('HOLDING CELLS', 12.94, 2.86, 16.05, -Math.PI / 2, 2.4, 0.42, '#ffffff', '#1f3a63');
@@ -595,6 +652,65 @@ function policeStation(x: number, z: number): Interior {
       accent: 0x3d8bff,
     },
   );
+}
+
+/**
+ * Floor 0 under the Station (owner, 2026-11-10): the lift on the west wall, four cruisers along
+ * the north wall, and a ramp at the east end. Driving onto the ramp's marker brings the car up
+ * onto the street outside (the server moves it, as with a door), so the ramp itself is only
+ * drawn: nothing here needs a floor that isn't flat.
+ *
+ *   z 20  +------------------------------------+
+ *         |     [P1]  [P2]  [P3]  [P4]         |
+ *   z 14  |         |           |              |  (pillars)
+ *         |L                       ramp >>>>> /|
+ *   z  0  +------------------------------------+
+ */
+function policeGarage(x: number, z: number): Interior {
+  const navy = 0x1f3a63;
+  const concrete = 0xa9adb2;
+  const paint = 0xf2c14e;
+  const r = new Room(x, z, 34, 20, 4.2);
+  r.shell(0x74787e, 'tile', concrete, navy, 5);
+  // The bays: lines on the floor, numbers on the wall behind.
+  const bays: { x: number; z: number; yaw: number }[] = [];
+  for (let i = 0; i <= 4; i += 1) r.box(5.4 + i * 5, 14, 5.5 + i * 5, 19.9, 0, 0.012, paint);
+  for (let i = 0; i < 4; i += 1) {
+    const cx = 8 + i * 5;
+    r.box(cx - 2.45, 14, cx + 2.45, 14.1, 0, 0.012, paint);
+    r.label(`P${i + 1}`, cx, 2.6, 19.96, Math.PI, 1.3, 0.7, '#ffffff', '#1f3a63');
+    bays.push({ x: r.x + cx, z: r.z + 16.9, yaw: Math.PI });
+  }
+  // Two pillars, on the bay lines, and a band round them to see them by.
+  for (const px of [10.45, 20.45]) {
+    r.block(px - 0.32, 13.4, px + 0.32, 14, 0, 4.2, concrete, 'plaster');
+    r.box(px - 0.34, 13.38, px + 0.34, 14.02, 0.9, 1.3, paint);
+  }
+  // The lane to the ramp, dashed down the middle.
+  for (let dash = 5; dash < 28; dash += 3.2)
+    r.box(dash, 6.94, dash + 1.8, 7.06, 0, 0.012, 0xe9e6df);
+  // The ramp, in steps up to the daylight, between two walls.
+  r.block(31, 2.8, 34, 3, 0, 4.2, concrete, 'plaster');
+  r.block(31, 11, 34, 11.2, 0, 4.2, concrete, 'plaster');
+  for (let i = 0; i < 6; i += 1)
+    r.box(31 + i * 0.5, 3, 34, 11, 0, 0.42 * (i + 1), 0x62666c, 'tile');
+  r.glow(33.97, 3, 34, 11, 2.5, 4.2, 0xfff1cf);
+  r.box(30.9, 3, 31, 11, 3.25, 4.2, navy);
+  r.label('STREET EXIT', 30.88, 3.72, 7, -Math.PI / 2, 5, 0.6, '#ffffff', '#1f3a63');
+  r.point('ramp', 30.2, 7, Math.PI / 2, 'Street exit', 3.2);
+  r.lift('west', 7, '0', 'ELEVATOR · STATION FLOOR 1');
+  r.label('POLICE GARAGE · FLOOR 0', 15, 3, 0.04, 0, 8, 0.6, '#ffffff', '#1f3a63');
+  r.label('AUTHORIZED OFFICERS ONLY', 15, 2.3, 0.04, 0, 6, 0.36, '#ffd23f', '#14202e');
+  return {
+    ...r.done(
+      'police_garage',
+      'Police Garage',
+      { x: 3.6, z: 7, yaw: Math.PI / 2 },
+      { safe: true, members: true, accent: 0x3d8bff },
+    ),
+    floorOf: 'police',
+    bays,
+  };
 }
 
 function hospital(x: number, z: number): Interior {
@@ -820,7 +936,17 @@ export const INTERIORS: Record<ServiceId, Interior> = {
   market: market(ORIGIN_X + SPACING * 4, ORIGIN_Z),
 };
 
-const ROOMS = Object.values(INTERIORS);
+/** Floors under or over the buildings above: reached by lift, past the same row of rooms. */
+export const FLOORS: Record<FloorId, Interior> = {
+  police_garage: policeGarage(ORIGIN_X + SPACING * 5, ORIGIN_Z),
+};
+
+/** Every room, floors included. */
+export const ROOMS: readonly Interior[] = [...Object.values(INTERIORS), ...Object.values(FLOORS)];
+
+/** A room by its id. */
+export const roomById = (id: RoomId): Interior =>
+  id === 'police_garage' ? FLOORS.police_garage : INTERIORS[id];
 
 /** The room at (x, z), if any. */
 export function interiorAt(x: number, z: number): Interior | null {

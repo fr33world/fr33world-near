@@ -539,8 +539,10 @@ describe('your own car at a car park', () => {
     send(owner.conn, { type: 'job', op: JOB_OP.START, point: lotPoint });
     await new Promise((r) => setTimeout(r, 0));
     expect(owner.conn.take('chat').at(-1)?.text).toMatch(/Your Compact is waiting in bay \d+/);
-    // (Not one on show at the dealership.)
-    const car = [...inner.vehicles.entries()].find(([, v]) => v.owner && v.owner !== 'dealer');
+    // (Not one on show at the dealership, or waiting in the police garage.)
+    const car = [...inner.vehicles.entries()].find(
+      ([, v]) => v.owner && v.owner !== 'dealer' && v.owner !== 'police-pool',
+    );
     expect(car).toBeDefined();
     const [carId, v] = car as [number, { pose: { x: number; z: number } }];
     // Someone else can't take it; its owner can.

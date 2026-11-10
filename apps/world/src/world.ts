@@ -24,11 +24,14 @@ import {
   type Bed,
   BED_Y,
   DOOR,
+  FLOORS,
   interiorAt,
   INTERIORS,
+  laneOutside,
   isWalkable,
   dropOff,
   type HeightRange,
+  type InteractionPoint,
   heightRange,
   lotHeight,
   RoadGraph,
@@ -103,6 +106,7 @@ import {
   passengerSeats,
   type FactionId,
   FACTIONS,
+  factionOfBuilding,
   factionTag,
   hasPower,
   isFactionId,
@@ -458,6 +462,8 @@ const FACTION_COMMANDS = new Set([
 
 /** The owner of the cars on show at the dealership: nobody drives them. */
 const ON_SHOW = 'dealer';
+/** Owner of the cruisers waiting in the Station's garage, until an officer drives one. */
+const POLICE_POOL = 'police-pool';
 
 interface Pending {
   conn: Conn;
@@ -571,6 +577,8 @@ const freshCounters = () => ({
 export class World {
   readonly city: CityLayout;
   readonly collision: CollisionIndex;
+  /** The ramp out of the Station's garage (city FLOORS), once the city has one. */
+  private readonly garageRamp: InteractionPoint | undefined;
   /** The ground and highest walkable surface at a point (movement height checks). */
   readonly heights = (x: number, z: number): HeightRange => heightRange(this.city, x, z);
   private readonly staffApi: WorldOptions['staffApi'];
@@ -685,6 +693,8 @@ export class World {
       this.vehicles.set(id, v);
       this.track(id, v.pose, true);
     });
+    this.garageRamp = this.city.points.find((q) => q.kind === 'ramp');
+    this.stockGarage();
   }
 
   get playerCount(): number {
@@ -1220,6 +1230,36 @@ export class World {
       }
     }
     this.moved(p.id, p.pose);
+    const ramp = this.garageRamp;
+    if (vehicle && ramp && Math.hypot(body.x - ramp.x, body.z - ramp.z) <= ramp.radius)
+      this.driveUpRamp(p, vehicle);
+  }
+
+  /** Up the garage's ramp: the car and everyone in it, onto the street outside the Station. */
+  private driveUpRamp(p: Player, v: Vehicle) {
+    const door = this.city.points.find((q) => q.kind === 'entrance' && q.service === 'police');
+    if (!door) return;
+    const spots = laneOutside(this.city.roads, door);
+    const clear = (s: { x: number; z: number }) =>
+      ![...this.vehicles.values()].some(
+        (o) => o !== v && Math.hypot(o.pose.x - s.x, o.pose.z - s.z) < 4,
+      );
+    const spot = spots.find(clear) ?? spots[0];
+    if (!spot) return;
+    const now = this.now();
+    Object.assign(v.pose, idle(spot.x, this.heights(spot.x, spot.z).top, spot.z, spot.yaw));
+    this.moved(v.id, v.pose);
+    v.lastAt = 0;
+    const riders = [...(v.passengers ?? [])].flatMap((id) => this.players.get(id) ?? []);
+    for (const q of [p, ...riders]) {
+      Object.assign(q.pose, { x: v.pose.x, y: v.pose.y, z: v.pose.z, yaw: v.pose.yaw });
+      q.rebuild = true;
+      q.movedAt = now;
+      q.validator.reset(now);
+      this.moved(q.id, q.pose);
+    }
+    p.correctionUntil = now + CORRECTION_WINDOW_MS;
+    this.sendMsg(p.conn, { type: 'correction', seq: p.seq & 0xffff, ...v.pose });
   }
 
   /** Fuel burnt over `moved` metres, and condition lost if the car's speed fell like a crash. */
@@ -1256,7 +1296,15 @@ export class World {
 
   private enterVehicle(p: Player, vehicleId: number) {
     const v = this.vehicles.get(vehicleId);
-    if (v?.owner && v.owner !== this.ownerKey(p)) {
+    if (v?.owner === POLICE_POOL && (p.membership?.faction !== 'police' || !p.onDuty)) {
+      this.sendMsg(p.conn, {
+        type: 'error',
+        code: ERROR_CODE.SEAT_DENIED,
+        message: 'Cruisers are for police on duty.',
+      });
+      return;
+    }
+    if (v?.owner && v.owner !== POLICE_POOL && v.owner !== this.ownerKey(p)) {
       this.sendMsg(p.conn, {
         type: 'error',
         code: ERROR_CODE.SEAT_DENIED,
@@ -1283,6 +1331,13 @@ export class World {
       });
       if (v) this.sendMsg(p.conn, { type: 'seat', vehicle: v.id, driver: v.driver });
       return;
+    }
+    if (v.owner === POLICE_POOL) {
+      // Theirs while it's out, like any work vehicle; their own car goes back.
+      const out = this.ownCar(this.ownerKey(p));
+      if (out) this.garageCar(out);
+      v.owner = this.ownerKey(p);
+      v.ownerName = p.name;
     }
     v.driver = p.id;
     p.vehicle = v.id;
@@ -1600,8 +1655,33 @@ export class World {
     this.tell(p, fuel ? `⛽ Tank full (${price}).` : `🔧 Repaired as new (${price}).`);
   }
 
+  /** A cruiser in every empty bay of the Station's garage. */
+  private stockGarage() {
+    const model = CAR_MODELS.findIndex((c) => c.id === 'police');
+    if (model < 0) return;
+    for (const b of FLOORS.police_garage.bays ?? []) {
+      const taken = [...this.vehicles.values(), ...this.players.values()].some(
+        (o) => Math.hypot(o.pose.x - b.x, o.pose.z - b.z) < 3,
+      );
+      if (taken) continue;
+      const id = this.allocId();
+      const v: Vehicle = {
+        id,
+        model,
+        color: 0,
+        pose: idle(b.x, 0, b.z, b.yaw),
+        driver: NO_ENTITY,
+        owner: POLICE_POOL,
+        ...fresh(),
+      };
+      this.vehicles.set(id, v);
+      this.track(id, v.pose, true);
+    }
+  }
+
   /** Street cars left empty or wrecked go back to their spawn, filled and fixed, in time. */
   private resetStreetCars(now: number) {
+    this.stockGarage();
     // Rentals due back go, once nobody's in them.
     const wall = Date.now();
     for (const v of [...this.vehicles.values()]) {
@@ -2029,7 +2109,7 @@ export class World {
     this.reintroduce(p);
     this.tell(
       p,
-      `On duty as ${rankOf(m)?.title ?? ''}: paid for every ${SALARY.everyMs / 60_000} min active.${kind === 'police' ? ' Duty pistol issued (Q). Patrols are on the board in the office.' : ''}`,
+      `On duty as ${rankOf(m)?.title ?? ''}: paid for every ${SALARY.everyMs / 60_000} min active.${kind === 'police' ? ' Duty pistol issued (Q). Patrols are on the board in the office, and cruisers in the garage: take the elevator at the end of the aisle.' : ''}`,
     );
   }
 
@@ -2037,6 +2117,9 @@ export class World {
     if (!p.onDuty) return;
     p.onDuty = false;
     this.reintroduce(p);
+    const car = this.ownCar(this.ownerKey(p));
+    if (car && car.driver === NO_ENTITY && CAR_MODELS[car.model]?.id === 'police')
+      this.garageCar(car);
     p.dutyRounds = 0;
     if (p.dutyPistol) {
       p.dutyPistol = false;
@@ -2284,11 +2367,14 @@ export class World {
         case 'vehicle': {
           if (!p.onDuty || (kind !== 'police' && kind !== 'medical'))
             return say('Service vehicles are for police and EMS on duty.');
-          const place = kind === 'police' ? 'police' : 'hospital';
-          const door = this.city.points.find((q) => q.kind === 'entrance' && q.service === place);
+          if (kind === 'police')
+            return say('Cruisers are in the garage: take the elevator at the end of the office.');
+          const door = this.city.points.find(
+            (q) => q.kind === 'entrance' && q.service === 'hospital',
+          );
           if (door && Math.hypot(door.x - p.pose.x, door.z - p.pose.z) > VEHICLE_REACH_M)
-            return say(`Service vehicles are outside the ${INTERIORS[place].name}.`);
-          return this.serviceVehicle(p, kind);
+            return say(`Service vehicles are outside the ${INTERIORS.hospital.name}.`);
+          return this.spawnBeside(p, 'ambulance', '🚑 Your ambulance is beside you.');
         }
       }
       if (!api || !p.account) return say('That needs the city’s records, which aren’t reachable.');
@@ -2424,15 +2510,6 @@ export class World {
     } catch (e) {
       say(e instanceof Error ? e.message : 'That didn’t work.');
     }
-  }
-
-  /** A cruiser or an ambulance beside an officer or medic on duty (their own car goes back). */
-  private serviceVehicle(p: Player, kind: 'police' | 'medical') {
-    this.spawnBeside(
-      p,
-      kind === 'police' ? 'police' : 'ambulance',
-      kind === 'police' ? '🚓 Your cruiser is beside you.' : '🚑 Your ambulance is beside you.',
-    );
   }
 
   /** A work vehicle (CAR_MODELS id) beside the player, theirs while out (their own car goes back). */
@@ -3015,6 +3092,15 @@ export class World {
     const door = this.city.points[point];
     if (!door?.service || p.vehicle !== NO_ENTITY || p.downedUntil > 0) return;
     if (!canReach(door, p.pose.x, p.pose.z)) return;
+    if (door.kind === 'lift') {
+      if (p.membership?.faction !== factionOfBuilding(door.service))
+        return this.tell(p, 'Staff only.');
+      const to = this.city.points.find(
+        (q) => q.kind === 'lift' && q.service === door.service && q !== door,
+      );
+      if (to) this.placeBody(p, to.x, 0, to.z, to.yaw);
+      return;
+    }
     const room = INTERIORS[door.service];
     if (door.kind === 'entrance') {
       if (room.members && p.membership?.faction !== room.id)

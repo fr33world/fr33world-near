@@ -26,6 +26,7 @@ import {
   type Seat,
   SEAT_REACH_M,
   SEAT_Y,
+  type RoomId,
   type ServiceId,
 } from '@fr33world/city';
 import {
@@ -702,7 +703,7 @@ export class Game {
     this.luz = luz;
   }
 
-  private async addClerk(room: ServiceId, at: { x: number; z: number; yaw: number }) {
+  private async addClerk(room: RoomId, at: { x: number; z: number; yaw: number }) {
     if (this.clerkAsked) return;
     this.clerkAsked = true;
     const look = { ...DEFAULT_APPEARANCE, body: 'female' as const, face: 2, outfit: 4, skin: 2 };
@@ -1003,12 +1004,13 @@ export class Game {
     }
   }
   private parkingPoints: number[] | null = null;
+  private liftPoints: number[] | null = null;
   /** The door marker we're standing on (-1 none), and all of them. */
   private doorInside = -1;
   private doorRestUntil = 0;
   private doorPoints: number[] | null = null;
   /** The room we're in. */
-  private indoors: ServiceId | null = null;
+  private indoors: RoomId | null = null;
   private readonly interiors = new InteriorsView();
   /** The clothes we're in (faction and duty), once the server has said. */
   private wearing: string | null = null;
@@ -1436,8 +1438,14 @@ export class Game {
         // Ignored, the car drove on where the server never saw it, and getting out put the
         // player back where the server last had it (kilometres away, under a freeway).
         const car = this.vehicles?.driven;
-        if (car) car.teleport(m.x, m.y, m.z, m.yaw);
-        else {
+        if (car) {
+          // Up the ramp from a garage to the street.
+          if (interiorAt(car.position.x, car.position.z) !== interiorAt(m.x, m.z)) {
+            this.fadeUntil = performance.now() + DOOR_FADE_MS;
+            this.follow?.face(m.yaw);
+          }
+          car.teleport(m.x, m.y, m.z, m.yaw);
+        } else {
           // Through a door: facing the way in or out, or running on would be walking sideways
           // along the lobby with the view on a wall.
           const p = this.player?.position;
@@ -1681,16 +1689,32 @@ export class Game {
         return distance <= p.radius ? { p, distance } : null;
       };
       const offers: Interaction[] = [];
-      // On duty at their own building's door: their cruiser or ambulance.
-      const service =
-        this.duty === 'police' ? 'police' : this.duty === 'medical' ? 'hospital' : null;
-      const door = service
-        ? this.layout.points.find((q) => q.kind === 'entrance' && q.service === service)
-        : undefined;
+      // Police staff: the elevator between the Station and its garage, on a job or not.
+      if (this.memberOf === 'police') {
+        this.liftPoints ??= this.layout.points.flatMap((p, i) => (p.kind === 'lift' ? [i] : []));
+        for (const i of this.liftPoints) {
+          const n = near(i);
+          if (!n) continue;
+          const down = interiorAt(n.p.x, n.p.z)?.id === 'police';
+          offers.push({
+            key: `lift:${i}`,
+            label: down ? 'Elevator to the garage (floor 0)' : 'Elevator to the Station (floor 1)',
+            icon: 'door',
+            at: { x: n.p.x, y: 2.2, z: n.p.z },
+            distance: n.distance,
+            run: () => this.useDoor(i),
+          });
+        }
+      }
+      // A medic on duty at the Hospital's door: their ambulance (police use the garage).
+      const door =
+        this.duty === 'medical'
+          ? this.layout.points.find((q) => q.kind === 'entrance' && q.service === 'hospital')
+          : undefined;
       if (door && Math.hypot(door.x - reach.x, door.z - reach.z) < 8)
         offers.push({
           key: 'service-car',
-          label: this.duty === 'police' ? 'Get your cruiser' : 'Get your ambulance',
+          label: 'Get your ambulance',
           icon: 'car',
           at: { x: door.x, y: this.groundAt(door.x, door.z) + 2.4, z: door.z },
           distance: Math.hypot(door.x - reach.x, door.z - reach.z) + 1,
@@ -1948,6 +1972,16 @@ export class Game {
   private useDoor(point: number) {
     const door = this.layout.points[point];
     if (!door?.service) return;
+    if (door.kind === 'lift') {
+      this.fadeUntil = performance.now() + DOOR_FADE_MS;
+      if (this.net.connected) return this.net.send({ type: 'act', what: ACT.DOOR, arg: point });
+      const to = this.layout.points.find((q) => q.kind === 'lift' && q !== door);
+      if (to) {
+        this.player?.place(to.x, 0.2, to.z, to.yaw);
+        this.follow?.face(to.yaw);
+      }
+      return;
+    }
     const room = INTERIORS[door.service];
     if (this.net.connected) {
       if (room.members && door.kind === 'entrance' && this.memberOf !== room.id) return;

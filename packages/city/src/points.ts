@@ -24,7 +24,14 @@
  *   join           how to join: a board in the Station and Hospital, a gang's shut door
  */
 import { districtAt, inside, QUARRY } from './plan.ts';
-import { DOOR, INTERIORS, interiorSolids, SERVICE_IDS, type ServiceId } from './interiors.ts';
+import {
+  DOOR,
+  INTERIORS,
+  interiorSolids,
+  ROOMS,
+  SERVICE_IDS,
+  type ServiceId,
+} from './interiors.ts';
 import type { Solid } from './landmarks.ts';
 import { carriageHalfWidth, type Building, type Rect, type Road, roadHalfWidth } from './layout.ts';
 import type { Dealership } from './dealership.ts';
@@ -53,6 +60,8 @@ export type PointKind =
   | 'till'
   | 'join'
   | 'patrol'
+  | 'lift'
+  | 'ramp'
   | 'dock'
   | 'bay';
 
@@ -340,7 +349,7 @@ export function cityPoints(
   // Last, so every older point keeps its index.
   for (const service of SERVICE_IDS) {
     const room = INTERIORS[service];
-    for (const p of room.points) points.push({ ...p, service });
+    for (const p of room.points) if (!isFloorPoint(p.kind)) points.push({ ...p, service });
   }
   // Deliveries for USDC (Phase 17): from a warehouse's dock to Sunny's loading bay.
   const shop = sites.find((q) => q.service === 'market');
@@ -368,8 +377,45 @@ export function cityPoints(
       if (INTERIORS[d.service as ServiceId].members)
         points.push({ ...d, kind: 'join', radius: 3.4, name: 'How to join' });
   }
+  // Added after everything above, which saved job shifts hold by index.
+  for (const room of ROOMS)
+    for (const p of room.points)
+      if (isFloorPoint(p.kind))
+        points.push({ ...p, service: room.floorOf ?? (room.id as ServiceId) });
   solids.push(...interiorSolids());
   return { points, solids };
+}
+
+const isFloorPoint = (kind: PointKind) => kind === 'lift' || kind === 'ramp';
+
+/**
+ * Spots in the lane nearest a door, on its side of the road, driving on the right: where a car
+ * comes up from under the building. The first is level with the door, then either side of it.
+ */
+export function laneOutside(
+  roads: readonly Road[],
+  door: { x: number; z: number },
+): { x: number; z: number; yaw: number }[] {
+  const road = roads
+    .filter((r) => {
+      const along = r.axis === 'ns' ? door.z : door.x;
+      return along >= r.from && along <= r.to;
+    })
+    .sort(
+      (a, b) =>
+        Math.abs((a.axis === 'ns' ? door.x : door.z) - a.center) -
+        Math.abs((b.axis === 'ns' ? door.x : door.z) - b.center),
+    )[0];
+  if (!road) return [];
+  const ns = road.axis === 'ns';
+  const side = (ns ? door.x : door.z) >= road.center ? 1 : -1;
+  const lane = road.center + side * (road.median / 2 + road.laneWidth * (road.lanesPerDir - 0.5));
+  const yaw = ns ? (side > 0 ? Math.PI : 0) : (side * Math.PI) / 2;
+  return [0, -8, 8, -16, 16].map((a) => ({
+    x: ns ? lane : door.x + a,
+    z: ns ? door.z + a : lane,
+    yaw,
+  }));
 }
 
 /** Where each public building goes: near this spot in this district, big enough for it. */

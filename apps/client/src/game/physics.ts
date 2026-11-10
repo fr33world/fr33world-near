@@ -23,7 +23,7 @@ import {
   PIER,
   LAKE,
   type Ramp,
-  INTERIORS,
+  ROOMS,
   type RampPoint,
   type Rect,
   RIVER,
@@ -279,8 +279,7 @@ export class Physics {
     this.fixedCylinder(cx, 0, cz, SLAB_Y + 0.75, FOUNTAIN_RADIUS);
     for (const s of city.solids) this.fixedBox(s.x0, s.y0, s.z0, s.x1, s.y1, s.z1);
     // The rooms' floors (interiors.ts): the walls are among the solids.
-    for (const { rect: r } of Object.values(INTERIORS))
-      this.fixedBox(r.x0 - 1, -1, r.z0 - 1, r.x1 + 1, 0, r.z1 + 1);
+    for (const { rect: r } of ROOMS) this.fixedBox(r.x0 - 1, -1, r.z0 - 1, r.x1 + 1, 0, r.z1 + 1);
     // The hills' big boulders (hillscrub.ts): solid, streamed like the rest.
     for (const b of hillBoulders()) this.fixedCylinder(b.x, b.y - 0.5, b.z, b.r * 1.3 + 0.5, b.r);
     // The pier's deck, at sidewalk height.

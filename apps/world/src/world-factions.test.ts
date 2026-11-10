@@ -1,6 +1,7 @@
 import {
   CollisionIndex,
   DOOR,
+  FLOORS,
   generateCity,
   INTERIORS,
   interiorAt,
@@ -530,6 +531,115 @@ describe('factions in the world', () => {
     });
   });
 
+  describe("the Station's garage", () => {
+    const points = lockers;
+    const liftUp = points.findIndex((p) => p.kind === 'lift' && p.z < 4020 && p.x < 4100);
+    const liftDown = points.findIndex((p) => p.kind === 'lift' && p.x >= 4100);
+    const ramp = points.find((p) => p.kind === 'ramp');
+    const bays = FLOORS.police_garage.bays ?? [];
+    type Car = {
+      id: number;
+      owner?: string;
+      driver: number;
+      pose: { x: number; y: number; z: number; yaw: number };
+    };
+    const cars = (t: ReturnType<typeof setup>) => [
+      ...(t.world as unknown as { vehicles: Map<number, Car> }).vehicles.values(),
+    ];
+    const stand = (t: ReturnType<typeof setup>, id: number, at: { x: number; z: number }) =>
+      Object.assign(t.inner.players.get(id)?.pose ?? {}, { x: at.x, z: at.z });
+    const parked = (t: ReturnType<typeof setup>, bay: number) => {
+      const b = bays[bay];
+      const car = cars(t).find((c) => b && Math.hypot(c.pose.x - b.x, c.pose.z - b.z) < 1);
+      if (!car) throw new Error('no car in that bay');
+      return car;
+    };
+
+    it('takes police staff down and back up, and nobody else', async () => {
+      const t = setup({ cop: { faction: 'police', rank: 2 } });
+      const cop = await t.join('cop');
+      const ada = await t.join('ada');
+      const office = points[liftUp];
+      const garage = points[liftDown];
+      if (!office || !garage) throw new Error('no elevator');
+      stand(t, ada.id, office);
+      t.send(ada.conn, { type: 'act', what: ACT.DOOR, arg: liftUp });
+      expect(interiorAt(t.inner.players.get(ada.id)?.pose.x ?? 0, office.z)?.id).toBe('police');
+      expect(ada.conn.told().join()).toContain('Staff only');
+      stand(t, cop.id, office);
+      t.send(cop.conn, { type: 'act', what: ACT.DOOR, arg: liftUp });
+      const down = t.inner.players.get(cop.id)?.pose;
+      expect(interiorAt(down?.x ?? 0, down?.z ?? 0)?.id).toBe('police_garage');
+      t.send(cop.conn, { type: 'act', what: ACT.DOOR, arg: liftDown });
+      const up = t.inner.players.get(cop.id)?.pose;
+      expect(interiorAt(up?.x ?? 0, up?.z ?? 0)?.id).toBe('police');
+    });
+
+    it('keeps cruisers for police on duty, and fills the bay again once one has gone', async () => {
+      const t = setup({ cop: { faction: 'police', rank: 2 } });
+      const cop = await t.join('cop');
+      const car = parked(t, 0);
+      stand(t, cop.id, { x: car.pose.x + 2, z: car.pose.z });
+      t.send(cop.conn, { type: 'enter_vehicle', vehicle: car.id });
+      expect(cop.conn.take('error').at(-1)?.message).toContain('police on duty');
+      expect(car.driver).toBe(0xffff);
+      await t.duty(cop);
+      cop.conn.told();
+      stand(t, cop.id, { x: car.pose.x + 2, z: car.pose.z });
+      t.send(cop.conn, { type: 'enter_vehicle', vehicle: car.id });
+      expect(car.driver).toBe(cop.id);
+      expect(car.owner).toBe('cop');
+      // Still in the bay: no second car on top of it.
+      t.tick(TICK_HZ * 2);
+      expect(cars(t).filter((c) => c.owner === 'police-pool')).toHaveLength(bays.length - 1);
+      // Driven away, officer and all (no bay is left under either of them).
+      for (const body of [car.pose, t.inner.players.get(cop.id)?.pose ?? car.pose]) body.z -= 12;
+      t.tick(TICK_HZ * 2);
+      expect(cars(t).filter((c) => c.owner === 'police-pool')).toHaveLength(bays.length);
+    });
+
+    it('brings the car up the ramp to the street, and off duty it goes back', async () => {
+      const t = setup({ cop: { faction: 'police', rank: 2 } });
+      const cop = await t.join('cop');
+      await t.duty(cop);
+      const car = parked(t, 3);
+      stand(t, cop.id, { x: car.pose.x + 2, z: car.pose.z });
+      t.send(cop.conn, { type: 'enter_vehicle', vehicle: car.id });
+      if (!ramp) throw new Error('no ramp');
+      Object.assign(car.pose, { x: ramp.x - 4, z: ramp.z });
+      cop.conn.take('correction');
+      t.tick(1);
+      t.send(cop.conn, {
+        type: 'state',
+        seq: 1,
+        x: ramp.x - 2,
+        y: 0,
+        z: ramp.z,
+        vx: 5,
+        vy: 0,
+        vz: 0,
+        yaw: Math.PI / 2,
+        state: 0,
+      });
+      expect(interiorAt(car.pose.x, car.pose.z)).toBeNull();
+      const door = points.find((p) => p.kind === 'entrance' && p.service === 'police');
+      expect(Math.hypot(car.pose.x - (door?.x ?? 0), car.pose.z - (door?.z ?? 0))).toBeLessThan(25);
+      expect(cop.conn.take('correction').at(-1)?.x).toBeCloseTo(car.pose.x);
+      t.send(cop.conn, { type: 'exit_vehicle' });
+      await t.duty(cop);
+      expect(cars(t).some((c) => c.id === car.id)).toBe(false);
+    });
+
+    it('sends police to the garage when they ask for a car', async () => {
+      const t = setup({ cop: { faction: 'police', rank: 2 } });
+      const cop = await t.join('cop');
+      await t.duty(cop);
+      cop.conn.told();
+      await t.say(cop.conn, '/vehicle');
+      expect(cop.conn.told().join()).toContain('garage');
+    });
+  });
+
   describe('duty and the counter', () => {
     it('goes on duty only at the lockers', async () => {
       const t = setup({ cop: { faction: 'police', rank: 2 } });
@@ -540,20 +650,20 @@ describe('factions in the world', () => {
       expect(cop.conn.told().join()).toContain('On duty');
     });
 
-    it('gives out service vehicles outside the building, not indoors or across town', async () => {
-      const t = setup({ cop: { faction: 'police', rank: 2 } });
-      const cop = await t.join('cop');
-      await t.duty(cop);
-      cop.conn.told();
-      await t.say(cop.conn, '/vehicle');
-      expect(cop.conn.told().join()).toContain('outside the Police Station');
-      const door = lockers.find((p) => p.kind === 'entrance' && p.service === 'police');
-      Object.assign(t.inner.players.get(cop.id)?.pose ?? {}, {
+    it('gives medics their ambulance outside the Hospital, not indoors or across town', async () => {
+      const t = setup({ medic: { faction: 'medical', rank: 2 } });
+      const medic = await t.join('medic');
+      await t.duty(medic, 'hospital');
+      medic.conn.told();
+      await t.say(medic.conn, '/vehicle');
+      expect(medic.conn.told().join()).toContain('outside the Hospital');
+      const door = lockers.find((p) => p.kind === 'entrance' && p.service === 'hospital');
+      Object.assign(t.inner.players.get(medic.id)?.pose ?? {}, {
         x: (door?.x ?? 0) + Math.sin(door?.yaw ?? 0) * 8,
         z: (door?.z ?? 0) + Math.cos(door?.yaw ?? 0) * 8,
       });
-      await t.say(cop.conn, '/vehicle');
-      expect(cop.conn.told().join()).toContain('cruiser');
+      await t.say(medic.conn, '/vehicle');
+      expect(medic.conn.told().join()).toContain('ambulance');
     });
 
     it('turns strangers away from the lockers', async () => {

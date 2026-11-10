@@ -7,12 +7,12 @@
  */
 import {
   type Interior,
-  INTERIORS,
   type RoomBox,
   type RoomPoint,
   type RoomProp,
   type RoomTexture,
-  type ServiceId,
+  type RoomId,
+  roomById,
 } from '@fr33world/city';
 import * as THREE from 'three';
 import { beamTexture, markerTexture } from './parking.ts';
@@ -262,6 +262,8 @@ const GLYPHS: Record<RoomPoint['kind'], string> = {
   till: '$',
   join: '?',
   patrol: 'P',
+  lift: 'E',
+  ramp: '↑',
 };
 
 function markers(room: Interior): THREE.Group {
@@ -280,7 +282,8 @@ function markers(room: Interior): THREE.Group {
   });
   const beamShape = new THREE.CylinderGeometry(1, 1, 2.4, 20, 1, true).translate(0, 1.2, 0);
   for (const p of room.points) {
-    const r = p.kind === 'exit' ? p.radius : 0.8;
+    const big = p.kind === 'exit' || p.kind === 'ramp';
+    const r = big ? p.radius : 0.8;
     const ring = new THREE.Mesh(
       new THREE.PlaneGeometry(r * 2, r * 2).rotateX(-Math.PI / 2),
       new THREE.MeshBasicMaterial({
@@ -295,7 +298,7 @@ function markers(room: Interior): THREE.Group {
     ring.position.set(p.x, 0.02, p.z);
     ring.renderOrder = 2;
     group.add(ring);
-    if (p.kind === 'exit') {
+    if (big) {
       const b = new THREE.Mesh(beamShape, beam);
       b.position.set(p.x, 0, p.z);
       b.scale.set(r, 1, r);
@@ -308,20 +311,20 @@ function markers(room: Interior): THREE.Group {
 
 export class InteriorsView {
   readonly group = new THREE.Group();
-  private readonly built = new Map<ServiceId, THREE.Group>();
-  private shown: ServiceId | null = null;
+  private readonly built = new Map<RoomId, THREE.Group>();
+  private shown: RoomId | null = null;
 
   constructor() {
     this.group.name = 'interiors';
   }
 
   /** Puts something in a room, so it shows and hides with it. */
-  place(id: ServiceId, thing: THREE.Object3D): void {
+  place(id: RoomId, thing: THREE.Object3D): void {
     this.built.get(id)?.add(thing);
   }
 
   /** Shows one room (built the first time), or none. */
-  show(id: ServiceId | null): void {
+  show(id: RoomId | null): void {
     if (id === this.shown) return;
     if (this.shown) {
       const was = this.built.get(this.shown);
@@ -331,7 +334,7 @@ export class InteriorsView {
     if (!id) return;
     let room = this.built.get(id);
     if (!room) {
-      const data = INTERIORS[id];
+      const data = roomById(id);
       room = new THREE.Group();
       room.add(roomMeshes(data), markers(data));
       for (const l of data.labels) room.add(plate(l));
