@@ -10,6 +10,7 @@ import { CAR_MODELS, DAMAGE, FUEL, fuelCost, rentalLeft, repairCost } from '@fr3
 import { useEffect, useReducer, useState } from 'react';
 import { formatMoney, type GarageCar } from '../game/api.ts';
 import type { Game } from '../game/Game.ts';
+import { Funds, Modal, Stat, Tile } from '../ui/Modal.tsx';
 
 type OwnedCar = GarageCar;
 
@@ -39,11 +40,8 @@ export function ParkingSheet({ game }: { game: Game }) {
       (c) => alive && setCars(c),
       (e: unknown) => alive && setError(e instanceof Error ? e.message : String(e)),
     );
-    const onKey = (e: KeyboardEvent) => e.code === 'Escape' && setPoint(null);
-    window.addEventListener('keydown', onKey);
     return () => {
       alive = false;
-      window.removeEventListener('keydown', onKey);
     };
   }, [game, point]);
 
@@ -70,60 +68,60 @@ export function ParkingSheet({ game }: { game: Game }) {
     if (game.callCar(point, Number(car.id))) close();
     else setError("You're offline. Your cars come back once you're connected to the city.");
   };
+  const shown = CAR_MODELS[here?.model ?? cars?.[0]?.model ?? -1];
   return (
-    <div className="sheet-backdrop" onClick={close}>
-      <div className="sheet glass guide parking-sheet" onClick={(e) => e.stopPropagation()}>
-        <div className="guide-head">
-          <span className="parking-p">P</span>
-          <div>
-            <div className="sheet-title">{lot?.name ?? 'Car park'}</div>
-            <div className="sheet-note">Pick a car. It'll be waiting in a free bay.</div>
-          </div>
-        </div>
-        {error && <div className="login-error">{error}</div>}
-        {here && (
-          <ServiceCard
-            model={here.model}
-            fuel={here.fuel}
-            health={here.health}
-            onFuel={() => serve(SERVICE.FUEL)}
-            onRepair={() => serve(SERVICE.REPAIR)}
-          />
-        )}
-        {!cars && !error && <div className="sheet-note">Opening your garage…</div>}
-        {cars && cars.length === 0 && (
-          <div className="sheet-note">
-            No cars: your rental has gone back. Buy one at the Car Dealership on Sol Boulevard.
-          </div>
-        )}
-        {cars && cars.length > 0 && (
-          <div className="car-picks">
-            {cars.map((c) => {
-              const spec = CAR_MODELS[c.model];
-              return (
-                <button key={c.id} type="button" className="car-pick" onClick={() => bring(c)}>
-                  {spec && <img className="car-pick-art" src={`/ui/cars/${spec.id}.webp`} alt="" />}
-                  <span className="car-pick-text">
-                    <b>{c.name}</b>
-                    {c.expiresAt ? (
-                      <small className="rental-note">
-                        Free rental · due back in {rentalLeft(Date.parse(c.expiresAt) - Date.now())}
-                      </small>
-                    ) : (
-                      spec && <small>Top speed {Math.round(spec.topSpeed * 3.6)} km/h</small>
-                    )}
-                  </span>
-                  <span className="car-pick-go">Bring it</span>
+    <Modal
+      title={lot?.name ?? 'Car park'}
+      kicker="Car park"
+      accent="#4c8dff"
+      art={shown ? `/ui/cars/${shown.id}.webp` : '/ui/medals/parking.webp'}
+      ghost="GARAGE"
+      medal="parking"
+      head={<Funds game={game} dollars />}
+      rail={<p className="m-lore">Pick a car. It'll be waiting in a free bay.</p>}
+      onClose={close}
+    >
+      {error && <div className="login-error">{error}</div>}
+      {here && (
+        <ServiceCard
+          model={here.model}
+          fuel={here.fuel}
+          health={here.health}
+          onFuel={() => serve(SERVICE.FUEL)}
+          onRepair={() => serve(SERVICE.REPAIR)}
+        />
+      )}
+      {!cars && !error && <p className="m-empty">Opening your garage…</p>}
+      {cars && cars.length === 0 && (
+        <p className="m-empty">
+          No cars: your rental has gone back. Buy one at the Car Dealership on Sol Boulevard.
+        </p>
+      )}
+      {cars && cars.length > 0 && (
+        <div className="m-tiles wide">
+          {cars.map((c, i) => {
+            const spec = CAR_MODELS[c.model];
+            return (
+              <Tile
+                key={c.id}
+                index={i}
+                art={spec ? `/ui/cars/${spec.id}.webp` : undefined}
+                name={c.name}
+                meta={
+                  c.expiresAt
+                    ? `Free rental · due back in ${rentalLeft(Date.parse(c.expiresAt) - Date.now())}`
+                    : spec && `Top speed ${Math.round(spec.topSpeed * 3.6)} km/h`
+                }
+              >
+                <button type="button" className="m-btn go small" onClick={() => bring(c)}>
+                  Bring it
                 </button>
-              );
-            })}
-          </div>
-        )}
-        <button type="button" className="btn" onClick={close}>
-          Not now
-        </button>
-      </div>
-    </div>
+              </Tile>
+            );
+          })}
+        </div>
+      )}
+    </Modal>
   );
 }
 
@@ -138,40 +136,29 @@ function ServiceCard(props: {
   const spec = CAR_MODELS[props.model];
   const fill = fuelCost(props.fuel);
   const fix = repairCost(props.health);
-  const bar = (label: string, v: number, warn: boolean) => (
-    <div className="service-bar">
-      <span>{label}</span>
-      <span className="dealer-bar-track">
-        <span
-          style={{
-            width: `${Math.round(v * 100)}%`,
-            background: warn ? '#ff5a52' : v < 0.45 ? '#ffb547' : '#7def06',
-          }}
-        />
-      </span>
-      <b>{Math.round(v * 100)}%</b>
-    </div>
-  );
+  const warn = props.fuel < FUEL.low;
   return (
-    <div className="service-card">
-      <div className="service-head">
-        {spec && <img src={`/ui/cars/${spec.id}.webp`} alt="" />}
-        <div>
-          <b>Your {spec?.name ?? 'car'}</b>
-          <small>
-            {props.health <= 0 ? 'Wrecked: it needs a repair to go' : 'In this car park'}
-          </small>
-        </div>
+    <div className={`m-service${warn ? ' warn' : ''}`}>
+      <div className="m-row-text">
+        <b>Your {spec?.name ?? 'car'}</b>
+        <small>{props.health <= 0 ? 'Wrecked: it needs a repair to go' : 'In this car park'}</small>
       </div>
-      {bar('Fuel', props.fuel, props.fuel < FUEL.low)}
-      {DAMAGE.enabled && bar('Condition', props.health, props.health <= 0)}
-      <div className="service-actions">
-        <button type="button" className="btn" disabled={fill === 0} onClick={props.onFuel}>
+      <Stat label="Fuel" value={props.fuel}>{`${Math.round(props.fuel * 100)}%`}</Stat>
+      {DAMAGE.enabled && (
+        <Stat label="Condition" value={props.health}>{`${Math.round(props.health * 100)}%`}</Stat>
+      )}
+      <div className="m-actions">
+        <button type="button" className="m-btn small" disabled={fill === 0} onClick={props.onFuel}>
           {fill === 0 ? 'Tank full' : `Refuel · ${formatMoney(fill)}`}
         </button>
         {/* Damage is off for launch: nothing to repair. */}
         {DAMAGE.enabled && (
-          <button type="button" className="btn" disabled={fix === 0} onClick={props.onRepair}>
+          <button
+            type="button"
+            className="m-btn small"
+            disabled={fix === 0}
+            onClick={props.onRepair}
+          >
             {fix === 0 ? 'Like new' : `Repair · ${formatMoney(fix)}`}
           </button>
         )}

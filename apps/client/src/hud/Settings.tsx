@@ -16,7 +16,16 @@ import {
   saveGraphicsSetting,
 } from '../game/quality.ts';
 import { onSettings, type PlayerSettings, updateSettings } from '../game/settings.ts';
+import {
+  Award01Icon,
+  ComputerIcon,
+  GameController01Icon,
+  UserIcon,
+  VolumeHighIcon,
+} from '@hugeicons/core-free-icons';
+import type { IconSvgElement } from '@hugeicons/react';
 import { GearIcon } from '../ui/icons.tsx';
+import { Ico, Modal } from '../ui/Modal.tsx';
 
 const LABELS: Record<GraphicsSetting, { name: string; about: string }> = {
   auto: { name: 'Auto', about: 'Picks for your device and keeps the game smooth' },
@@ -58,12 +67,12 @@ export function Settings({
   const [tab, setTab] = useState<Tab>('graphics');
   const [s, setS] = useState<PlayerSettings | null>(null);
   useEffect(() => onSettings(setS), []);
-  const tabs: [Tab, string][] = [
-    ['graphics', 'Graphics'],
-    ['sound', 'Sound'],
-    ['controls', 'Controls'],
-    ...(account ? ([['account', 'Account']] as [Tab, string][]) : []),
-    ['credits', 'Credits'],
+  const tabs: [Tab, string, IconSvgElement][] = [
+    ['graphics', 'Graphics', ComputerIcon],
+    ['sound', 'Sound', VolumeHighIcon],
+    ['controls', 'Controls', GameController01Icon],
+    ...(account ? ([['account', 'Account', UserIcon]] as [Tab, string, IconSvgElement][]) : []),
+    ['credits', 'Credits', Award01Icon],
   ];
   return (
     <>
@@ -82,89 +91,97 @@ export function Settings({
         <GearIcon />
       </button>
       {open && s && (
-        <div className="sheet-backdrop" onClick={() => setOpen(false)}>
-          <div className="sheet glass settings" onClick={(e) => e.stopPropagation()}>
-            <div className="sheet-title">Settings</div>
-            <div className="creator-tabs" role="tablist">
-              {tabs.map(([t, label]) => (
-                <button
-                  key={t}
-                  type="button"
-                  role="tab"
-                  aria-selected={tab === t}
-                  className={tab === t ? 'on' : ''}
-                  onClick={() => setTab(t)}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-            <div className="settings-body">
-              {tab === 'graphics' && <Graphics current={current} />}
-              {tab === 'sound' && (
-                <>
-                  <Level
-                    label="Master"
-                    value={s.master}
-                    set={(master) => updateSettings({ master })}
+        <Modal
+          title={tabs.find(([t]) => t === tab)?.[1] ?? 'Settings'}
+          kicker="Settings"
+          accent="#c9ced6"
+          medal="settings"
+          size="lg"
+          className="m-settings"
+          rail={
+            <>
+              <img className="m-brand" src="/brand/emblem.webp" alt="" draggable={false} />
+              <nav className="m-nav" role="tablist" aria-orientation="vertical">
+                {tabs.map(([t, label, icon]) => (
+                  <button
+                    key={t}
+                    type="button"
+                    role="tab"
+                    aria-selected={tab === t}
+                    className={tab === t ? 'on' : ''}
+                    onClick={() => setTab(t)}
+                  >
+                    <Ico icon={icon} size={19} />
+                    {label}
+                  </button>
+                ))}
+              </nav>
+            </>
+          }
+          onClose={() => setOpen(false)}
+        >
+          <div className="settings-body">
+            {tab === 'graphics' && <Graphics current={current} />}
+            {tab === 'sound' && (
+              <>
+                <Level
+                  label="Master"
+                  value={s.master}
+                  set={(master) => updateSettings({ master })}
+                />
+                <Level label="Music" value={s.music} set={(music) => updateSettings({ music })} />
+                <Level
+                  label="Effects"
+                  value={s.effects}
+                  set={(effects) => updateSettings({ effects })}
+                />
+                <Level
+                  label="Voices nearby"
+                  value={s.voice}
+                  set={(voice) => updateSettings({ voice })}
+                />
+              </>
+            )}
+            {tab === 'controls' && (
+              <>
+                <Row label={`Look speed · ${s.lookSpeed.toFixed(1)}×`}>
+                  <input
+                    type="range"
+                    min={0.3}
+                    max={3}
+                    step={0.1}
+                    value={s.lookSpeed}
+                    onChange={(e) => updateSettings({ lookSpeed: Number(e.target.value) })}
                   />
-                  <Level label="Music" value={s.music} set={(music) => updateSettings({ music })} />
-                  <Level
-                    label="Effects"
-                    value={s.effects}
-                    set={(effects) => updateSettings({ effects })}
-                  />
-                  <Level
-                    label="Voices nearby"
-                    value={s.voice}
-                    set={(voice) => updateSettings({ voice })}
-                  />
-                </>
-              )}
-              {tab === 'controls' && (
-                <>
-                  <Row label={`Look speed · ${s.lookSpeed.toFixed(1)}×`}>
-                    <input
-                      type="range"
-                      min={0.3}
-                      max={3}
-                      step={0.1}
-                      value={s.lookSpeed}
-                      onChange={(e) => updateSettings({ lookSpeed: Number(e.target.value) })}
-                    />
-                  </Row>
-                  <Row label="Look up and down">
-                    <div className="segmented">
-                      {(['Normal', 'Inverted'] as const).map((n, i) => (
-                        <button
-                          key={n}
-                          type="button"
-                          className={s.invertY === (i === 1) ? 'on' : ''}
-                          onClick={() => updateSettings({ invertY: i === 1 })}
-                        >
-                          {n}
-                        </button>
-                      ))}
-                    </div>
-                  </Row>
-                  <dl className="keys">
-                    {(isTouchDevice() ? TOUCH : KEYS).map(([k, what]) => (
-                      <div key={k}>
-                        <dt>{k}</dt>
-                        <dd>{what}</dd>
-                      </div>
+                </Row>
+                <Row label="Look up and down">
+                  <div className="segmented">
+                    {(['Normal', 'Inverted'] as const).map((n, i) => (
+                      <button
+                        key={n}
+                        type="button"
+                        className={s.invertY === (i === 1) ? 'on' : ''}
+                        onClick={() => updateSettings({ invertY: i === 1 })}
+                      >
+                        {n}
+                      </button>
                     ))}
-                  </dl>
-                </>
-              )}
-              {tab === 'account' && account && <Account account={account} />}
-              {tab === 'credits' && <Credits />}
-            </div>
-            <button className="btn btn-link" onClick={() => setOpen(false)}>
-              Close
-            </button>
+                  </div>
+                </Row>
+                <dl className="keys">
+                  {(isTouchDevice() ? TOUCH : KEYS).map(([k, what]) => (
+                    <div key={k}>
+                      <dt>{k}</dt>
+                      <dd>{what}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </>
+            )}
+            {tab === 'account' && account && <Account account={account} />}
+            {tab === 'credits' && <Credits />}
           </div>
-        </div>
+        </Modal>
       )}
     </>
   );
@@ -307,6 +324,14 @@ function Credits() {
       <div className="sheet-note">
         Characters: Microsoft Rocketbox (MIT). Animations: Mixamo. Textures: Poly Haven and
         ambientCG (CC0). Fonts: Barlow and Bebas Neue (OFL).
+      </div>
+      <div className="sheet-note">
+        Medallion shapes:{' '}
+        <a href="https://game-icons.net" target="_blank" rel="noreferrer">
+          game-icons.net
+        </a>{' '}
+        by Lorc, Delapouite and contributors (CC BY 3.0), modelled in 3D for the game. Interface
+        icons: Hugeicons. The USDC mark belongs to Circle.
       </div>
     </div>
   );

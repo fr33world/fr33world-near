@@ -2027,3 +2027,42 @@ assets:
     attribution_required: true
     notes: 'Unbranded (fictional makes). Changed: re-oriented and re-scaled, parts regrouped, textures resized to 1024/512/256 and KTX2, hidden detail simplified, meshopt. Credited in Settings → Credits.'
   # END cars
+  # The modals' pictures (scripts/assets/shop-art.mjs): modelled in Blender for this game.
+  - id: shop_goods
+    file: '../ui/shop/{pistol,pistol_rounds,rifle,rifle_rounds,licence,water,sandwich,meal}.webp'
+    class: icon
+    source_url: scripts/blender/shop_art.py
+    source_name: Modelled for fr33world in Blender
+    license: { name: Project-owned, url: 'LICENSE', verified_at: '2026-11-10' }
+    license_snapshot: project-owned.txt
+    notes: Original renders; no third-party models or textures.
+  - id: medals
+    file: '../ui/medals/{police,ems,vipers,kings,gun,dealer,pharmacy,shop,parking,guide,settings,desk,black}.webp'
+    class: icon
+    source_url: https://game-icons.net
+    source_name: 'game-icons.net (Lorc, Delapouite and contributors), via @iconify-json/game-icons; extruded and rendered as medallions'
+    license:
+      {
+        name: CC BY 3.0,
+        url: 'https://creativecommons.org/licenses/by/3.0/',
+        verified_at: '2026-11-10',
+      }
+    license_snapshot: cc-by-3.0.txt
+    notes: Credited in Settings > Credits. Changed from the original icons by modelling them in 3D.
+  - id: usdc_mark
+    file: '../ui/{usdc.svg,usdc.webp}'
+    class: icon
+    source_url: https://cryptologos.cc/logos/usd-coin-usdc-logo.svg
+    source_name: USDC mark, Circle Internet Financial; the coin is rendered from it in Blender
+    license:
+      { name: Trademark, nominative use, url: 'https://www.circle.com', verified_at: '2026-11-10' }
+    license_snapshot: usdc-mark-notice.txt
+    notes: Identifies the token in the wallet. Not a licence to use it in marketing.
+  - id: hugeicons
+    file: '../src/ui/Modal.tsx'
+    class: icon
+    source_url: https://hugeicons.com
+    source_name: Hugeicons free set (@hugeicons/core-free-icons)
+    license: { name: MIT, url: 'https://github.com/hugeicons/hugeicons', verified_at: '2026-11-10' }
+    license_snapshot: hugeicons-mit.txt
+    notes: Interface icons, tree-shaken into the client.

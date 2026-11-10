@@ -27,7 +27,7 @@ if (run.status !== 0 || !/BUILT/.test(run.stdout)) {
 for (const item of ['bandage', 'medicine']) {
   await sharp(join(stage, `${item}.png`))
     .trim({ threshold: 1 })
-    .resize({ width: 168, height: 168, fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+    .resize({ width: 360, height: 360, fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
     .webp({ quality: 86, alphaQuality: 92 })
     .toFile(join(out, `${item}.webp`));
   console.log('care', item);

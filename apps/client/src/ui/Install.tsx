@@ -5,6 +5,7 @@
  * once installed, or where installing isn't possible.
  */
 import { useEffect, useState } from 'react';
+import { Modal } from './Modal.tsx';
 
 interface InstallPrompt extends Event {
   prompt: () => Promise<void>;
@@ -82,43 +83,45 @@ export function InstallButton({ className = 'chip glass install-chip' }: { class
 /** Add to Home Screen, step by step, as Safari (and Chrome) on iOS show it. */
 function IosSheet({ onClose }: { onClose: () => void }) {
   return (
-    <div className="sheet-backdrop" onClick={onClose}>
-      <div className="sheet glass install-sheet" onClick={(e) => e.stopPropagation()}>
-        <div className="login-heading">Install fr33world</div>
-        <div className="login-note">
-          On iPhone the installed app is the way to play full screen, in landscape.
-        </div>
-        <ol className="install-steps">
-          <li>
-            <span className="install-icon">
-              <ShareIcon />
-            </span>
-            <span>
-              Tap <b>Share</b> in the browser's toolbar
-            </span>
-          </li>
-          <li>
-            <span className="install-icon">
-              <AddIcon />
-            </span>
-            <span>
-              Scroll down and tap <b>Add to Home Screen</b>, then <b>Add</b>
-            </span>
-          </li>
-          <li>
-            <span className="install-icon">
-              <img src="/brand/icon-192.png" alt="" />
-            </span>
-            <span>
-              Open <b>fr33world</b> from your Home Screen
-            </span>
-          </li>
-        </ol>
-        <button type="button" className="btn btn-primary" onClick={onClose}>
+    <Modal
+      title="Install fr33world"
+      kicker="iPhone"
+      subtitle="The installed app is the way to play full screen, in landscape."
+      size="sm"
+      onClose={onClose}
+      footer={
+        <button type="button" className="m-btn go" onClick={onClose}>
           Got it
         </button>
-      </div>
-    </div>
+      }
+    >
+      <ol className="install-steps">
+        <li>
+          <span className="install-icon">
+            <ShareIcon />
+          </span>
+          <span>
+            Tap <b>Share</b> in the browser's toolbar
+          </span>
+        </li>
+        <li>
+          <span className="install-icon">
+            <AddIcon />
+          </span>
+          <span>
+            Scroll down and tap <b>Add to Home Screen</b>, then <b>Add</b>
+          </span>
+        </li>
+        <li>
+          <span className="install-icon">
+            <img src="/brand/icon-192.png" alt="" />
+          </span>
+          <span>
+            Open <b>fr33world</b> from your Home Screen
+          </span>
+        </li>
+      </ol>
+    </Modal>
   );
 }
 

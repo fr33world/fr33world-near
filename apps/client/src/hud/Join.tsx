@@ -8,6 +8,14 @@ import { FACTION_GUIDE, type FactionId, FACTIONS, JOIN_STEPS } from '@fr33world/
 import { useEffect, useState } from 'react';
 import type { FactionStatus } from '../game/api.ts';
 import type { Game } from '../game/Game.ts';
+import { Modal, type Medal } from '../ui/Modal.tsx';
+
+const MEDALS: Record<FactionId, Medal> = {
+  police: 'police',
+  medical: 'ems',
+  vipers: 'vipers',
+  kings: 'kings',
+};
 
 /** Which of JOIN_STEPS the player is on for this faction: 0 to apply, 3 once in. */
 export function joinStep(s: FactionStatus | null, faction: FactionId): number {
@@ -38,12 +46,6 @@ export function JoinSheet({ game }: { game: Game }) {
       game.onJoin = () => {};
     };
   }, [game]);
-  useEffect(() => {
-    if (!faction) return;
-    const onKey = (e: KeyboardEvent) => e.code === 'Escape' && setFaction(null);
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [faction]);
 
   if (!faction) return null;
   const f = FACTIONS[faction];
@@ -70,88 +72,83 @@ export function JoinSheet({ game }: { game: Game }) {
     close();
     game.onPhone('faction');
   };
+  const canApply = s && step === 0 && !elsewhere && !applying;
   return (
-    <div className="sheet-backdrop" onClick={close}>
-      <div className="sheet glass guide join-sheet" onClick={(e) => e.stopPropagation()}>
-        <div className="guide-head">
-          <span className="gun-badge" style={{ color: f.colour, borderColor: f.colour }}>
-            {f.short.slice(0, 1)}
-          </span>
-          <div>
-            <div className="sheet-title">{f.name}</div>
-            <div className="sheet-note">{guide.tagline}</div>
-          </div>
-        </div>
-        <div className="join-scroll">
-          {guide.door && <p className="join-door">{guide.door}</p>}
-          <p className="join-about">{guide.about}</p>
-          <ul className="join-perks">
-            {guide.perks.map((p) => (
-              <li key={p}>{p}</li>
-            ))}
-          </ul>
-          <div className="join-title">How to join</div>
-          <ol className="join-steps">
-            {JOIN_STEPS.map((j, i) => (
-              <li key={j.title} className={i < step ? 'done' : i === step ? 'now' : ''}>
-                <i>{i < step ? '✓' : i + 1}</i>
-                <span>
-                  <b>{j.title}</b>
-                  <small>{j.text}</small>
-                </span>
-              </li>
-            ))}
-          </ol>
-          {error && <div className="login-error">{error}</div>}
-          {elsewhere && (
-            <div className="sheet-note">
-              You’re in the {FACTIONS[elsewhere.faction].name}. Leave them first, in the phone’s
-              Faction app.
-            </div>
-          )}
-          {applying && (
-            <div className="sheet-note">
-              You’ve applied to the {FACTIONS[applying.faction].name}. Finish or withdraw that
-              first.
-            </div>
-          )}
-          {s && step === 0 && !elsewhere && !applying && (
+    <Modal
+      title={f.name}
+      kicker="How to join"
+      subtitle={guide.tagline}
+      accent={f.colour}
+      art={`/ui/medals/${MEDALS[faction]}.webp`}
+      ghost={f.short.toUpperCase()}
+      rail={
+        <ul className="m-perks">
+          {guide.perks.map((p) => (
+            <li key={p}>{p}</li>
+          ))}
+        </ul>
+      }
+      footer={
+        <>
+          {canApply && (
             <input
-              className="field"
+              className="m-input"
               maxLength={200}
               placeholder="Why do you want in? (optional)"
               value={note}
               onChange={(e) => setNote(e.target.value)}
             />
           )}
-          {step === 2 && (
-            <div className="sheet-note">
-              {s?.application?.interviewAt
-                ? `Your interview: ${new Date(s.application.interviewAt).toLocaleString([], {
-                    dateStyle: 'medium',
-                    timeStyle: 'short',
-                  })}. Be here.`
-                : 'You passed. A boss will set your interview, and your phone will tell you.'}
-            </div>
-          )}
-          {step === 3 && <div className="sheet-note">You’re a member.</div>}
-        </div>
-        <div className="join-actions">
-          {s && step === 0 && !elsewhere && !applying && (
-            <button type="button" className="btn btn-primary" disabled={busy} onClick={apply}>
+          {canApply && (
+            <button type="button" className="m-btn go" disabled={busy} onClick={apply}>
               {busy ? 'Sending…' : `Apply to ${f.short}`}
             </button>
           )}
           {step === 1 && (
-            <button type="button" className="btn btn-primary" onClick={toPhone}>
+            <button type="button" className="m-btn go" onClick={toPhone}>
               Start training
             </button>
           )}
-          <button type="button" className="btn" onClick={close}>
-            Close
-          </button>
-        </div>
-      </div>
-    </div>
+        </>
+      }
+      onClose={close}
+    >
+      {guide.door && <p className="m-callout">{guide.door}</p>}
+      <p className="m-copy">{guide.about}</p>
+      <ol className="m-steps">
+        {JOIN_STEPS.map((j, i) => (
+          <li key={j.title} className={i < step ? 'done' : i === step ? 'now' : ''}>
+            <i>{i < step ? '✓' : i + 1}</i>
+            <span>
+              <b>{j.title}</b>
+              <small>{j.text}</small>
+            </span>
+          </li>
+        ))}
+      </ol>
+      {error && <div className="login-error">{error}</div>}
+      {elsewhere && (
+        <p className="m-empty">
+          You’re in the {FACTIONS[elsewhere.faction].name}. Leave them first, in the phone’s Faction
+          app.
+        </p>
+      )}
+      {applying && (
+        <p className="m-empty">
+          You’ve applied to the {FACTIONS[applying.faction].name}. Finish or withdraw that first.
+        </p>
+      )}
+      {step === 2 && (
+        <p className="m-empty">
+          {s?.application?.interviewAt
+            ? `Your interview: ${new Date(s.application.interviewAt).toLocaleString([], {
+                dateStyle: 'medium',
+                timeStyle: 'short',
+              })}. Be here.`
+            : 'You passed. A boss will set your interview, and your phone will tell you.'}
+        </p>
+      )}
+      {step === 3 && <p className="m-empty">You’re a member.</p>}
+    </Modal>
   );
 }

@@ -9,6 +9,7 @@ import { CAR_MODELS, CARS_FOR_SALE, DEALER, DEALER_MODELS } from '@fr33world/sha
 import { useEffect, useMemo, useState } from 'react';
 import type { GarageCar } from '../game/api.ts';
 import type { Game } from '../game/Game.ts';
+import { Funds, Modal, Stat, Tile } from '../ui/Modal.tsx';
 
 type OwnedCar = GarageCar;
 type Stage =
@@ -48,11 +49,8 @@ export function DealerSheet({ game }: { game: Game }) {
       (c) => alive && setOwned(c),
       () => alive && setOwned(null),
     );
-    const onKey = (e: KeyboardEvent) => e.code === 'Escape' && setPoint(null);
-    window.addEventListener('keydown', onKey);
     return () => {
       alive = false;
-      window.removeEventListener('keydown', onKey);
     };
   }, [game, point]);
 
@@ -98,139 +96,106 @@ export function DealerSheet({ game }: { game: Game }) {
   };
 
   return (
-    <div className="sheet-backdrop" onClick={close}>
-      <div className="sheet glass dealer-sheet" onClick={(e) => e.stopPropagation()}>
-        <div className="guide-head">
-          <span className="dealer-badge">$</span>
-          <div className="dealer-head-text">
-            <div className="sheet-title">{game.layout.points[point]?.name ?? 'Dealership'}</div>
-            <div className="sheet-note">
-              {money === null ? 'New cars on Sol Boulevard' : `${dollars(money)} in your bank`}
-            </div>
+    <Modal
+      title={game.layout.points[point]?.name ?? 'Dealership'}
+      kicker="Sol Boulevard"
+      accent="#e0b43e"
+      art={`/ui/cars/${spec.id}.webp`}
+      ghost={spec.name.toUpperCase()}
+      medal="dealer"
+      size="lg"
+      className="m-showroom"
+      head={<Funds game={game} dollars />}
+      rail={
+        <>
+          <div className="m-car-name">
+            <b>{spec.name}</b>
+            <span>{dollars(price)}</span>
           </div>
-          <button type="button" className="dealer-close" onClick={close} aria-label="Close">
-            ×
-          </button>
-        </div>
-
-        <div className="dealer-body">
-          <div className="dealer-hero">
-            <img
-              className="dealer-photo"
-              src={`/ui/cars/${spec.id}.webp`}
-              alt={spec.name}
-              draggable={false}
-            />
-            <div className="dealer-name">
-              <b>{spec.name}</b>
-              <span className="dealer-price">{dollars(price)}</span>
-            </div>
-            <Bar label="Top speed" value={spec.topSpeed / TOP}>
-              {`${Math.round(spec.topSpeed * 3.6)} km/h`}
-            </Bar>
-            <Bar label="Power" value={spec.engine / POWER}>
-              {spec.engine >= 3500 ? 'Fast' : spec.engine >= 2800 ? 'Strong' : 'Easy'}
-            </Bar>
-            <Bar label="Size" value={spec.length / 6}>
-              {`${spec.length.toFixed(1)} m`}
-            </Bar>
-
-            {error && <div className="login-error">{error}</div>}
-            {stage.at === 'bought' ? (
-              <div className="dealer-done">
-                <div className="dealer-done-title">The {stage.car.name} is yours</div>
-                <div className="sheet-note">
-                  It's in your garage now: bring it to any car park from the blue P.
-                </div>
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={() => driveAway(stage.car)}
-                >
-                  Drive it away
-                </button>
-                <button type="button" className="btn" onClick={close}>
+          <Stat label="Top speed" value={spec.topSpeed / TOP}>
+            {`${Math.round(spec.topSpeed * 3.6)} km/h`}
+          </Stat>
+          <Stat label="Power" value={spec.engine / POWER}>
+            {spec.engine >= 3500 ? 'Fast' : spec.engine >= 2800 ? 'Strong' : 'Easy'}
+          </Stat>
+          <Stat label="Size" value={spec.length / 6}>
+            {`${spec.length.toFixed(1)} m`}
+          </Stat>
+          {error && <div className="login-error">{error}</div>}
+          {stage.at === 'bought' ? (
+            <div className="m-confirm">
+              <p>
+                <b>The {stage.car.name} is yours.</b> Bring it to any car park from the blue P.
+              </p>
+              <div className="m-actions">
+                <button type="button" className="m-btn" onClick={close}>
                   Later
                 </button>
-              </div>
-            ) : stage.at === 'browse' ? (
-              <button
-                type="button"
-                className="btn btn-primary"
-                disabled={short || full}
-                onClick={confirm}
-              >
-                {full
-                  ? `Garage full (${DEALER.garageMax} cars)`
-                  : short
-                    ? `${dollars(price - (money ?? 0))} short`
-                    : `Buy for ${dollars(price)}`}
-              </button>
-            ) : (
-              <div className="dealer-confirm">
-                <div className="sheet-note">
-                  Pay {dollars(price)} from your bank for the {spec.name}?
-                </div>
-                <div className="dealer-confirm-row">
-                  <button
-                    type="button"
-                    className="btn"
-                    disabled={stage.at === 'buying'}
-                    onClick={() => setStage({ at: 'browse' })}
-                  >
-                    Back
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-primary"
-                    disabled={stage.at === 'buying'}
-                    onClick={() => void buy()}
-                  >
-                    {stage.at === 'buying' ? 'Paying…' : 'Buy it'}
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="dealer-list">
-            {DEALER_MODELS.map((m, i) => {
-              const s = CAR_MODELS[m];
-              if (!s) return null;
-              const mine = counts.get(m) ?? 0;
-              return (
-                <button
-                  key={s.id}
-                  type="button"
-                  className={`dealer-car${i === pick ? ' on' : ''}`}
-                  onClick={() => choose(i)}
-                >
-                  <img src={`/ui/cars/${s.id}.webp`} alt="" draggable={false} />
-                  <span className="dealer-car-text">
-                    <b>{s.name}</b>
-                    <small>{dollars(CARS_FOR_SALE[i]?.price ?? 0)}</small>
-                  </span>
-                  {mine > 0 && (
-                    <span className="dealer-owned">{mine > 1 ? `×${mine}` : 'Owned'}</span>
-                  )}
+                <button type="button" className="m-btn go" onClick={() => driveAway(stage.car)}>
+                  Drive it away
                 </button>
-              );
-            })}
-          </div>
-        </div>
+              </div>
+            </div>
+          ) : stage.at === 'browse' ? (
+            <button type="button" className="m-btn go" disabled={short || full} onClick={confirm}>
+              {full
+                ? `Garage full (${DEALER.garageMax} cars)`
+                : short
+                  ? `${dollars(price - (money ?? 0))} short`
+                  : `Buy for ${dollars(price)}`}
+            </button>
+          ) : (
+            <div className="m-confirm">
+              <p>
+                Pay {dollars(price)} from your bank for the {spec.name}?
+              </p>
+              <div className="m-actions">
+                <button
+                  type="button"
+                  className="m-btn"
+                  disabled={stage.at === 'buying'}
+                  onClick={() => setStage({ at: 'browse' })}
+                >
+                  Back
+                </button>
+                <button
+                  type="button"
+                  className="m-btn go"
+                  disabled={stage.at === 'buying'}
+                  onClick={() => void buy()}
+                >
+                  {stage.at === 'buying' ? 'Paying…' : 'Buy it'}
+                </button>
+              </div>
+            </div>
+          )}
+        </>
+      }
+      onClose={close}
+    >
+      <div className="m-tiles cars">
+        {DEALER_MODELS.map((m, i) => {
+          const s = CAR_MODELS[m];
+          if (!s) return null;
+          const mine = counts.get(m) ?? 0;
+          return (
+            <button
+              key={s.id}
+              type="button"
+              className={`m-pick${i === pick ? ' on' : ''}`}
+              onClick={() => choose(i)}
+            >
+              <Tile
+                index={i}
+                art={`/ui/cars/${s.id}.webp`}
+                name={s.name}
+                meta={dollars(CARS_FOR_SALE[i]?.price ?? 0)}
+              />
+              {mine > 0 && <span className="m-owned">{mine > 1 ? `×${mine}` : 'Owned'}</span>}
+            </button>
+          );
+        })}
       </div>
-    </div>
-  );
-}
-
-function Bar({ label, value, children }: { label: string; value: number; children: string }) {
-  return (
-    <div className="dealer-bar">
-      <span>{label}</span>
-      <span className="dealer-bar-track">
-        <span style={{ width: `${Math.round(Math.min(1, value) * 100)}%` }} />
-      </span>
-      <span className="dealer-bar-value">{children}</span>
-    </div>
+    </Modal>
   );
 }

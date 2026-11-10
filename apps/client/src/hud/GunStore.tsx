@@ -8,6 +8,7 @@ import { ARMORY, levelOf, WEAPONS } from '@fr33world/shared';
 import { useEffect, useState } from 'react';
 import { formatMoney } from '../game/api.ts';
 import type { Game } from '../game/Game.ts';
+import { Funds, Modal, Price, Said, Tile } from '../ui/Modal.tsx';
 
 export function GunStoreSheet({ game }: { game: Game }) {
   const [point, setPoint] = useState<number | null>(null);
@@ -23,12 +24,6 @@ export function GunStoreSheet({ game }: { game: Game }) {
       game.onGunStore = () => {};
     };
   }, [game]);
-  useEffect(() => {
-    if (point === null) return;
-    const onKey = (e: KeyboardEvent) => e.code === 'Escape' && setPoint(null);
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [point]);
 
   if (point === null) return null;
   const p = game.layout.points[point];
@@ -45,42 +40,46 @@ export function GunStoreSheet({ game }: { game: Game }) {
     .map((item, i) => ({ item, index: i + 1 }))
     .filter(({ item }) => item.where === (black ? 'black_market' : 'store'));
   return (
-    <div className="sheet-backdrop" onClick={close}>
-      <div className="sheet glass guide gun-sheet" onClick={(e) => e.stopPropagation()}>
-        <div className="guide-head">
-          <span className="gun-badge">{black ? '?' : '◎'}</span>
-          <div>
-            <div className="sheet-title">{black ? 'By the containers' : 'Gun Store'}</div>
-            <div className="sheet-note">
-              {black
-                ? '“Keep your voice down. Only for people I know.”'
-                : 'Licensed firearms. Safe zones are gun-free.'}
-            </div>
-          </div>
-        </div>
+    <Modal
+      title={black ? 'By the containers' : 'Gun Store'}
+      kicker={black ? 'Off the books' : 'Mid City'}
+      accent={black ? '#ff5a52' : '#e0b43e'}
+      art={`/ui/shop/${black ? 'rifle' : 'pistol'}.webp`}
+      ghost={black ? 'NO NAMES' : 'ARMS'}
+      medal={black ? 'black' : 'gun'}
+      head={<Funds game={game} dollars />}
+      rail={
+        <p className="m-lore">
+          {black
+            ? '“Keep your voice down. Only for people I know.”'
+            : 'Licensed firearms. Safe zones are gun-free.'}
+        </p>
+      }
+      onClose={close}
+    >
+      <div className="m-tiles">
         {!black && (
-          <div className="gun-row">
-            <span className="gun-what">
-              <b>Pistol licence</b>
-              <small>
-                {arms?.licence
-                  ? 'You hold one.'
-                  : level < ARMORY.licence.minLevel
-                    ? `From level ${ARMORY.licence.minLevel} (you're ${level}).`
-                    : 'Lets you buy and carry a pistol.'}
-              </small>
-            </span>
-            <button
-              type="button"
-              className="btn btn-primary"
-              disabled={arms?.licence || level < ARMORY.licence.minLevel}
+          <Tile
+            art="/ui/shop/licence.webp"
+            name="Pistol licence"
+            dim={arms?.licence}
+            meta={
+              arms?.licence
+                ? 'You hold one.'
+                : level < ARMORY.licence.minLevel
+                  ? `From level ${ARMORY.licence.minLevel} (you're ${level}).`
+                  : 'Lets you buy and carry a pistol.'
+            }
+          >
+            <Price
+              label={arms?.licence ? 'Owned' : formatMoney(ARMORY.licence.price)}
+              locked={!arms?.licence && level < ARMORY.licence.minLevel}
+              disabled={arms?.licence}
               onClick={() => buy(0)}
-            >
-              {formatMoney(ARMORY.licence.price)}
-            </button>
-          </div>
+            />
+          </Tile>
         )}
-        {rows.map(({ item, index }) => {
+        {rows.map(({ item, index }, i) => {
           const owned = arms?.weapons.includes(item.weapon) ?? false;
           const rounds = arms?.rounds[item.weapon] ?? 0;
           const max = ARMORY.maxRounds[item.weapon] ?? 0;
@@ -98,28 +97,27 @@ export function GunStoreSheet({ game }: { game: Game }) {
           const off = item.rounds
             ? !owned || rounds + item.rounds > max
             : owned || (!black && !arms?.licence);
+          const label = !item.rounds && owned ? 'Owned' : formatMoney(item.price);
           return (
-            <div key={item.id} className="gun-row">
-              <span className="gun-what">
-                <b>{item.name}</b>
-                <small>{blocked ?? (black ? 'For gang members of rank.' : 'Yours to keep.')}</small>
-              </span>
-              <button
-                type="button"
-                className="btn btn-primary"
+            <Tile
+              key={item.id}
+              index={i + 1}
+              art={`/ui/shop/${item.id}.webp`}
+              name={item.name}
+              dim={!item.rounds && owned}
+              meta={blocked ?? (black ? 'For gang members of rank.' : 'Yours to keep.')}
+            >
+              <Price
+                label={label}
+                locked={off && !(!item.rounds && owned)}
                 disabled={off}
                 onClick={() => buy(index)}
-              >
-                {formatMoney(item.price)}
-              </button>
-            </div>
+              />
+            </Tile>
           );
         })}
-        {said && <div className="sheet-note">{said}</div>}
-        <button type="button" className="btn" onClick={close}>
-          Leave
-        </button>
       </div>
-    </div>
+      <Said text={said} />
+    </Modal>
   );
 }

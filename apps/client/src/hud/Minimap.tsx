@@ -441,6 +441,13 @@ export function listed(game: Game): Listed[] {
  * the map on it and be guided there.
  */
 function BigMap({ game, onClose }: { game: Game; onClose: () => void }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.code === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
   const ref = useRef<HTMLCanvasElement>(null);
   /** The view: the centre (m) and the zoom (screen px per metre, before the pixel ratio). */
   const view = useRef({ cx: (WORLD.x0 + WORLD.x1) / 2, cz: (WORLD.z0 + WORLD.z1) / 2, zoom: 0 });
@@ -568,17 +575,17 @@ function BigMap({ game, onClose }: { game: Game; onClose: () => void }) {
   };
 
   return (
-    <div className="sheet-backdrop" onClick={onClose}>
-      <div className="bigmap glass" onClick={(e) => e.stopPropagation()}>
+    <div className="m-scrim" onClick={onClose}>
+      <div className="bigmap" onClick={(e) => e.stopPropagation()}>
         <div className="bigmap-head">
-          <span className="sheet-title">Los Soles</span>
+          <span className="m-title">Los Soles</span>
           <span className="bigmap-hint">
             {game.waypoints.target
               ? `Route to ${game.waypoints.target.label}`
               : 'Tap the map or a place to set a route'}
           </span>
-          <button type="button" className="btn btn-link" onClick={onClose}>
-            Close
+          <button type="button" className="m-x" aria-label="Close" onClick={onClose}>
+            ×
           </button>
         </div>
         <div className="bigmap-body">

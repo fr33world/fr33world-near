@@ -252,7 +252,7 @@ def render(out):
     s.cycles.device = "CPU"
     s.cycles.use_denoising = False
     s.render.film_transparent = True
-    s.render.resolution_x = s.render.resolution_y = 512
+    s.render.resolution_x = s.render.resolution_y = 640
     s.render.image_settings.file_format = "PNG"
     s.render.image_settings.color_mode = "RGBA"
     s.view_settings.view_transform = "Standard"

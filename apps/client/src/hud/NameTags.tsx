@@ -9,6 +9,14 @@ import { FACTIONS } from '@fr33world/shared';
 import { useEffect, useRef, useState } from 'react';
 import { REPORT_REASONS } from '../game/api.ts';
 import type { Game } from '../game/Game.ts';
+import { Ico, Modal } from '../ui/Modal.tsx';
+import {
+  Flag02Icon,
+  SmileIcon,
+  UserBlock01Icon,
+  VolumeHighIcon,
+  VolumeOffIcon,
+} from '@hugeicons/core-free-icons';
 
 export function NameTags({ game }: { game: Game }) {
   const layer = useRef<HTMLDivElement>(null);
@@ -104,59 +112,62 @@ function PlayerCard({
   };
 
   return (
-    <div className="sheet-backdrop" onClick={onClose}>
-      <div className="sheet glass player-card" onClick={(e) => e.stopPropagation()}>
-        <div className="player-card-name">{who.name}</div>
-        <div className="sheet-note">In Los Soles · nearby</div>
-        {reporting ? (
-          <ReportForm
-            game={game}
-            name={who.name}
-            onDone={(message) => {
-              setReporting(false);
-              setNote(message);
+    <Modal
+      title={who.name}
+      kicker="Nearby"
+      subtitle="In Los Soles"
+      size="sm"
+      accent="#9ad7ff"
+      head={<span className="m-avatar big">{who.name.slice(0, 1).toUpperCase()}</span>}
+      onClose={onClose}
+    >
+      {reporting ? (
+        <ReportForm
+          game={game}
+          name={who.name}
+          onDone={(message) => {
+            setReporting(false);
+            setNote(message);
+          }}
+        />
+      ) : (
+        <div className="m-grid-actions">
+          <button
+            type="button"
+            onClick={() => {
+              game.emote(0);
+              onClose();
             }}
-          />
-        ) : (
-          <div className="player-card-actions">
-            <button
-              type="button"
-              className="btn"
-              onClick={() => {
-                game.emote(0);
-                onClose();
-              }}
-            >
-              Wave
-            </button>
-            <button
-              type="button"
-              className="btn"
-              onClick={() => {
-                game.setMuted(who.id, !muted);
-                setMuted(!muted);
-              }}
-            >
-              {muted ? 'Unmute' : 'Mute'}
-            </button>
-            {game.canModerate && (
-              <>
-                <button type="button" className="btn" disabled={busy} onClick={toggleBlock}>
-                  {blocked ? 'Unblock' : 'Block'}
-                </button>
-                <button type="button" className="btn danger" onClick={() => setReporting(true)}>
-                  Report
-                </button>
-              </>
-            )}
-          </div>
-        )}
-        {note && <div className="login-fine">{note}</div>}
-        <button type="button" className="btn btn-link" onClick={onClose}>
-          Close
-        </button>
-      </div>
-    </div>
+          >
+            <Ico icon={SmileIcon} size={22} />
+            Wave
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              game.setMuted(who.id, !muted);
+              setMuted(!muted);
+            }}
+          >
+            <Ico icon={muted ? VolumeHighIcon : VolumeOffIcon} size={22} />
+            {muted ? 'Unmute' : 'Mute'}
+          </button>
+          {game.canModerate && (
+            <>
+              <button type="button" disabled={busy} onClick={toggleBlock}>
+                <Ico icon={UserBlock01Icon} size={22} />
+                {blocked ? 'Unblock' : 'Block'}
+              </button>
+              <button type="button" className="danger" onClick={() => setReporting(true)}>
+                <Ico icon={Flag02Icon} size={22} />
+                Report
+              </button>
+            </>
+          )}
+        </div>
+      )}
+      {note && <div className="m-said">{note}</div>}
+    </Modal>
   );
 }
 

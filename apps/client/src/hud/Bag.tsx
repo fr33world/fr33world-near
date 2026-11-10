@@ -7,8 +7,9 @@ import { CONSUMABLES } from '@fr33world/shared';
 import { useEffect, useState } from 'react';
 import type { Game } from '../game/Game.ts';
 
-/** Sunny's goods, until they have pictures of their own. */
-const FOOD: Record<string, string> = { water: '💧', sandwich: '🥪', meal: '🍲' };
+/** Where an item's picture is: the Hospital's in ui/care, Sunny's in ui/shop. */
+const picture = (id: string) =>
+  `/ui/${id === 'bandage' || id === 'medicine' ? 'care' : 'shop'}/${id}.webp`;
 
 export function Bag({ game, left }: { game: Game; left: number }) {
   const [open, setOpen] = useState(false);
@@ -70,11 +71,7 @@ export function Bag({ game, left }: { game: Game; left: number }) {
                     setOpen(false);
                   }}
                 >
-                  {FOOD[item.id] ? (
-                    <span className="bag-food">{FOOD[item.id]}</span>
-                  ) : (
-                    <img src={`/ui/care/${item.id}.webp`} alt="" draggable={false} />
-                  )}
+                  <img src={picture(item.id)} alt="" draggable={false} />
                   <b className="bag-count">{count}</b>
                 </button>
               ))}

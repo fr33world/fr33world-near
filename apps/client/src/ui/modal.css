@@ -1,0 +1,1206 @@
+/*
+ * The game's modals (ui/Modal.tsx). One language throughout: an opaque dark panel, a showcase rail
+ * with the thing itself on a lit stage and a huge outlined word behind it, and cut corners on
+ * whatever can be pressed or bought. --accent is the place's colour; brand green stays for the
+ * action that matters.
+ */
+
+.m-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: var(--safe-t) var(--safe-r) var(--safe-b) var(--safe-l);
+  background: radial-gradient(120% 130% at 50% 45%, rgba(4, 7, 12, 0.55), rgba(2, 3, 6, 0.88));
+  animation: m-fade 160ms ease-out both;
+}
+
+.m {
+  --rail: clamp(190px, 29%, 280px);
+  --m-tile: #151a23;
+  --m-line: rgba(255, 255, 255, 0.1);
+  --cut: 14px;
+  position: relative;
+  display: flex;
+  width: min(860px, 100%);
+  height: min(500px, 100%);
+  overflow: hidden;
+  border-radius: 20px;
+  background: linear-gradient(180deg, #11151c, #0b0e13);
+  box-shadow:
+    0 30px 80px rgba(0, 0, 0, 0.6),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.11);
+  color: var(--ink);
+  font: 500 14px/1.35 var(--font);
+  animation: m-in 240ms cubic-bezier(0.2, 0.9, 0.25, 1) both;
+}
+/* The hairline of the place's colour along the top. */
+.m::before {
+  content: '';
+  position: absolute;
+  z-index: 3;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--accent), rgba(var(--accent-rgb), 0.15) 70%, transparent);
+}
+.m-lg {
+  width: min(980px, 100%);
+  height: min(560px, 100%);
+}
+.m-wallet {
+  height: min(430px, 100%);
+}
+.m-sm {
+  width: min(400px, 100%);
+  height: auto;
+  max-height: 100%;
+}
+
+/* ---- the rail: the showcase ---------------------------------------------------------------- */
+
+.m-rail {
+  position: relative;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: var(--rail);
+  padding: 14px;
+  overflow: hidden;
+  isolation: isolate;
+  border-right: 1px solid var(--m-line);
+  background:
+    radial-gradient(95% 52% at 50% 40%, rgba(var(--accent-rgb), 0.34), transparent 74%),
+    linear-gradient(180deg, #181d27, #0d1016);
+}
+/* The stage's floor, running away from the viewer. */
+.m-rail::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  left: -40%;
+  right: -40%;
+  bottom: -4%;
+  height: 48%;
+  background:
+    repeating-linear-gradient(90deg, rgba(var(--accent-rgb), 0.2) 0 1px, transparent 1px 46px),
+    repeating-linear-gradient(0deg, rgba(var(--accent-rgb), 0.2) 0 1px, transparent 1px 30px);
+  transform: perspective(240px) rotateX(60deg);
+  transform-origin: 50% 100%;
+  -webkit-mask-image: linear-gradient(to top, #000 15%, transparent 90%);
+  mask-image: linear-gradient(to top, #000 15%, transparent 90%);
+}
+.m-ghost {
+  position: absolute;
+  z-index: -1;
+  top: 10px;
+  left: 6px;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  color: transparent;
+  font: 400 clamp(76px, 22vh, 128px) / 0.86 var(--font-display);
+  letter-spacing: 5px;
+  white-space: nowrap;
+  -webkit-text-stroke: 1.2px rgba(255, 255, 255, 0.11);
+}
+.m-photo {
+  position: absolute;
+  z-index: -2;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.55;
+  -webkit-mask-image: linear-gradient(to bottom, #000 30%, transparent 92%);
+  mask-image: linear-gradient(to bottom, #000 30%, transparent 92%);
+}
+.m-stage {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  justify-content: center;
+}
+.m-art {
+  display: block;
+  width: 94%;
+  height: 100%;
+  min-height: 0;
+  object-fit: contain;
+  filter: drop-shadow(0 16px 20px rgba(0, 0, 0, 0.65));
+  animation:
+    m-art 420ms cubic-bezier(0.2, 0.9, 0.25, 1) both,
+    m-float 6s ease-in-out 420ms infinite;
+}
+.m-rail-foot {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.m-lore {
+  margin: 0;
+  color: var(--muted);
+  font: 500 12.5px/1.35 var(--font);
+}
+.m-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--warn);
+}
+.m-dot.on {
+  background: var(--brand);
+  box-shadow: 0 0 8px var(--brand-glow);
+}
+.m-perks {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+  line-height: 1.3;
+}
+.m-perks li {
+  position: relative;
+  padding: 2px 0 2px 14px;
+  color: var(--muted);
+}
+.m-perks li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 7px;
+  width: 7px;
+  height: 7px;
+  background: var(--accent);
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+}
+
+/* ---- the header and body -------------------------------------------------------------------- */
+
+.m-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.m-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 12px 8px 16px;
+}
+.m-medal {
+  flex: none;
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+}
+.m-titles {
+  flex: 1;
+  min-width: 0;
+}
+.m-kicker {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--accent);
+  font: 800 10px/1 var(--font);
+  letter-spacing: 1.7px;
+  text-transform: uppercase;
+}
+.m-title {
+  margin: 0;
+  overflow: hidden;
+  font: 400 30px/1 var(--font-display);
+  letter-spacing: 1px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.m-sub {
+  margin: 2px 0 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.m-x {
+  flex: none;
+  align-self: flex-start;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--ink);
+  font: 500 22px/1 var(--font);
+  cursor: pointer;
+}
+.m-x:active {
+  transform: scale(0.92);
+}
+.m-funds {
+  flex: none;
+  display: flex;
+  gap: 5px;
+}
+.m-funds span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 30px;
+  padding: 0 9px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.06);
+  font: 400 16px/1 var(--font-display);
+  letter-spacing: 0.6px;
+}
+.m-funds svg {
+  width: 17px;
+  height: 17px;
+  color: var(--brand);
+}
+.usdc-mark {
+  flex: none;
+  display: block;
+}
+.m-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 4px 16px 14px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
+}
+.m-foot {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--m-line);
+  background: rgba(255, 255, 255, 0.025);
+}
+.m-section {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0 -2px;
+  color: var(--muted);
+  font: 800 11px/1 var(--font);
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+}
+.m-empty {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13.5px;
+}
+.m-copy {
+  margin: 0;
+  color: rgba(244, 246, 248, 0.82);
+  font-size: 13.5px;
+  line-height: 1.42;
+}
+.m-callout {
+  margin: 0;
+  padding: 8px 11px;
+  border-left: 2px solid var(--accent);
+  background: rgba(var(--accent-rgb), 0.1);
+  font: 500 13px/1.35 var(--font);
+}
+.m-said {
+  padding: 7px 10px;
+  border-left: 2px solid var(--accent);
+  background: rgba(255, 255, 255, 0.05);
+  font-size: 13px;
+  animation: m-fade 200ms ease-out both;
+}
+
+/* ---- tiles and prices ------------------------------------------------------------------------ */
+
+.m-tiles {
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(158px, 1fr));
+  gap: 9px;
+}
+.m-tiles.wide {
+  flex: none;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+}
+.m-tiles.wide .m-tile-stage {
+  flex: none;
+  height: 82px;
+}
+.m-tiles.cars {
+  flex: none;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+}
+.m-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 8px 10px 10px;
+  border-radius: 12px;
+  background: var(--m-tile);
+  box-shadow: inset 0 0 0 1px var(--m-line);
+  clip-path: polygon(0 0, calc(100% - var(--cut)) 0, 100% var(--cut), 100% 100%, 0 100%);
+  animation: m-tile 320ms cubic-bezier(0.2, 0.9, 0.25, 1) both;
+  animation-delay: calc(var(--i, 0) * 45ms + 70ms);
+}
+/* A bright edge along the cut. */
+.m-tile::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: var(--cut);
+  height: var(--cut);
+  background: linear-gradient(
+    to top right,
+    transparent 47%,
+    rgba(var(--accent-rgb), 0.85) 47% 54%,
+    transparent 54%
+  );
+}
+.m-tile.dim .m-tile-stage img {
+  opacity: 0.5;
+}
+.m-tile-stage {
+  flex: 1 1 88px;
+  min-height: 64px;
+  background: radial-gradient(62% 72% at 50% 64%, rgba(var(--accent-rgb), 0.24), transparent 74%);
+}
+.m-tile-stage img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 7px 8px rgba(0, 0, 0, 0.55));
+}
+.m-tile-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.m-tile-text b {
+  overflow: hidden;
+  font: 400 18px/1.05 var(--font-display);
+  letter-spacing: 0.6px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.m-tile-text small {
+  color: var(--muted);
+  font: 500 11.5px/1.25 var(--font);
+}
+.m-tile-buy {
+  display: flex;
+  gap: 6px;
+  margin-top: auto;
+  padding-top: 2px;
+}
+.m-tile-buy .m-btn {
+  flex: 1;
+}
+.m-price {
+  flex: 1;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 36px;
+  padding: 0 8px;
+  border: 0;
+  background: var(--brand);
+  color: var(--brand-ink);
+  font: 400 18px/1 var(--font-display);
+  letter-spacing: 0.6px;
+  white-space: nowrap;
+  cursor: pointer;
+  clip-path: polygon(9px 0, 100% 0, 100% calc(100% - 9px), calc(100% - 9px) 100%, 0 100%, 0 9px);
+  -webkit-tap-highlight-color: transparent;
+}
+.m-price.usdc {
+  background: #2775ca;
+  color: #fff;
+}
+.m-price:active {
+  transform: scale(0.96);
+}
+.m-price:disabled {
+  background: rgba(255, 255, 255, 0.09);
+  color: var(--faint);
+  cursor: default;
+}
+.m-price.usdc .usdc-mark {
+  box-sizing: content-box;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 0 1px #fff;
+}
+.m-price.usdc:disabled .usdc-mark {
+  opacity: 0.5;
+}
+
+/* ---- buttons, inputs, rows ---------------------------------------------------------------- */
+
+.m-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  flex: none;
+  height: 42px;
+  padding: 0 20px;
+  border: 0;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--ink);
+  font: 400 19px/1 var(--font-display);
+  letter-spacing: 0.8px;
+  white-space: nowrap;
+  cursor: pointer;
+  clip-path: polygon(
+    10px 0,
+    100% 0,
+    100% calc(100% - 10px),
+    calc(100% - 10px) 100%,
+    0 100%,
+    0 10px
+  );
+  -webkit-tap-highlight-color: transparent;
+}
+.m-btn.small {
+  height: 34px;
+  padding: 0 13px;
+  font-size: 16px;
+}
+.m-btn.go {
+  background: var(--brand);
+  color: var(--brand-ink);
+}
+.m-btn.danger {
+  background: rgba(255, 90, 82, 0.18);
+  color: #ff8d86;
+}
+.m-btn.done {
+  background: rgba(125, 239, 6, 0.16);
+  color: var(--brand);
+}
+.m-btn:active {
+  transform: scale(0.97);
+}
+.m-btn:disabled {
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--faint);
+  cursor: default;
+}
+.m-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.m-input {
+  box-sizing: border-box;
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  height: 40px;
+  padding: 0 11px;
+  border: 0;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 0 0 1px var(--m-line);
+  color: var(--ink);
+  font: 500 14px var(--font);
+  outline: none;
+}
+.m-input:focus {
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+}
+.m-row,
+.m-person,
+.m-service {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 11px;
+  border-radius: 12px;
+  background: var(--m-tile);
+  box-shadow: inset 0 0 0 1px var(--m-line);
+}
+.m-row .m-price {
+  flex: none;
+  min-width: 96px;
+}
+.m-person {
+  align-items: flex-start;
+}
+.m-row-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.m-row-text b {
+  font: 400 18px/1.05 var(--font-display);
+  letter-spacing: 0.6px;
+}
+.m-row-text small {
+  color: var(--muted);
+  font-size: 12px;
+}
+.m-row-text .m-actions {
+  margin-top: 6px;
+}
+.m-avatar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(var(--accent-rgb), 0.18);
+  color: var(--accent);
+  font: 400 22px/1 var(--font-display);
+}
+.m-avatar.big {
+  order: -1;
+  width: 46px;
+  height: 46px;
+  font-size: 28px;
+}
+.m-service {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 7px;
+}
+.m-service.warn {
+  box-shadow: inset 0 0 0 1px rgba(255, 90, 82, 0.5);
+}
+.m-stat {
+  display: grid;
+  grid-template-columns: 62px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  font-size: 11.5px;
+}
+.m-stat > span {
+  color: var(--muted);
+}
+.m-stat > b {
+  min-width: 50px;
+  font-weight: 700;
+  text-align: right;
+}
+.m-stat i {
+  display: block;
+  height: 5px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.11);
+  transform: skewX(-20deg);
+}
+.m-stat u {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, rgba(var(--accent-rgb), 0.55), var(--accent));
+  text-decoration: none;
+  transition: width 260ms ease-out;
+}
+
+/* ---- tabs and lists --------------------------------------------------------------------------- */
+
+.m-tabs {
+  flex: none;
+  display: flex;
+  gap: 2px;
+  border-bottom: 1px solid var(--m-line);
+}
+.m-tabs button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 13px;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font: 700 13px/1 var(--font);
+  cursor: pointer;
+}
+.m-tabs button.on {
+  color: var(--ink);
+}
+.m-tabs button.on::after {
+  content: '';
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: -1px;
+  height: 2px;
+  background: var(--accent);
+  box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.7);
+}
+.m-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 2px 18px;
+  margin: 0;
+}
+.m-facts > div {
+  display: flex;
+  gap: 10px;
+  padding: 7px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  animation: m-tile 260ms ease-out both;
+  animation-delay: calc(var(--i, 0) * 28ms);
+}
+.m-fact-ico {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: rgba(var(--accent-rgb), 0.13);
+  color: var(--accent);
+}
+.m-facts dt {
+  font: 400 16px/1.1 var(--font-display);
+  letter-spacing: 0.6px;
+}
+.m-facts dd {
+  margin: 1px 0 0;
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.32;
+}
+.m-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.m-steps li {
+  position: relative;
+  display: flex;
+  gap: 10px;
+  padding: 0 0 10px;
+}
+.m-steps li:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  left: 12.5px;
+  top: 26px;
+  bottom: 0;
+  width: 1px;
+  background: var(--m-line);
+}
+.m-steps i {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--muted);
+  font: 400 16px/1 var(--font-display);
+  font-style: normal;
+  clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+}
+.m-steps .now i {
+  background: var(--accent);
+  color: #0b0e13;
+}
+.m-steps .done i {
+  background: rgba(var(--accent-rgb), 0.24);
+  color: var(--accent);
+}
+.m-steps b {
+  display: block;
+  font: 400 17px/1.1 var(--font-display);
+  letter-spacing: 0.6px;
+}
+.m-steps small {
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+/* ---- the showroom ------------------------------------------------------------------------------ */
+
+.m-showroom {
+  --rail: 45%;
+}
+.m-showroom .m-stage {
+  min-height: 90px;
+}
+.m-showroom .m-ghost {
+  font-size: clamp(60px, 16vh, 96px);
+}
+.m-car-name {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.m-car-name b {
+  font: 400 28px/1 var(--font-display);
+  letter-spacing: 1px;
+}
+.m-car-name span {
+  color: var(--accent);
+  font: 400 24px/1 var(--font-display);
+  letter-spacing: 0.8px;
+}
+.m-rail-foot > .m-btn,
+.m-confirm .m-btn {
+  flex: 1;
+}
+.m-rail-foot > .m-btn {
+  width: 100%;
+}
+.m-confirm p {
+  margin: 0 0 6px;
+  font-size: 13px;
+}
+.m-pick {
+  position: relative;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.m-pick .m-tile {
+  height: 100%;
+  box-sizing: border-box;
+}
+.m-pick .m-tile-stage {
+  flex: none;
+  height: 64px;
+}
+.m-pick.on .m-tile {
+  box-shadow: inset 0 0 0 2px var(--accent);
+  background: rgba(var(--accent-rgb), 0.12);
+}
+.m-pick .m-tile-text small {
+  color: var(--accent);
+  font: 400 15px/1 var(--font-display);
+  letter-spacing: 0.5px;
+}
+.m-owned {
+  position: absolute;
+  z-index: 1;
+  top: 7px;
+  left: 7px;
+  padding: 3px 6px;
+  border-radius: 5px;
+  background: var(--brand);
+  color: var(--brand-ink);
+  font: 800 9.5px/1 var(--font);
+  text-transform: uppercase;
+}
+
+/* ---- settings ---------------------------------------------------------------------------------- */
+
+.m-settings {
+  --rail: clamp(150px, 20%, 190px);
+}
+.m-brand {
+  display: block;
+  width: 62%;
+  margin: 2px auto 10px;
+}
+.m-settings .m-rail {
+  justify-content: flex-start;
+  padding: 16px 8px 10px;
+  background: linear-gradient(180deg, #171b24, #0d1016);
+}
+.m-settings .m-rail::after {
+  display: none;
+}
+.m-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.m-nav button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  height: 40px;
+  padding: 0 11px;
+  border: 0;
+  border-radius: 9px;
+  background: none;
+  color: var(--muted);
+  font: 700 13.5px/1 var(--font);
+  text-align: left;
+  cursor: pointer;
+}
+.m-nav button.on {
+  background: rgba(255, 255, 255, 0.09);
+  color: var(--ink);
+}
+.m-nav button.on::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 10px;
+  bottom: 10px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--brand);
+}
+.m-settings .settings-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: none;
+  overflow: visible;
+  padding: 0;
+}
+
+/* ---- someone's card ------------------------------------------------------------------------------ */
+
+.m-grid-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(76px, 1fr));
+  gap: 7px;
+}
+.m-grid-actions button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 68px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--m-tile);
+  box-shadow: inset 0 0 0 1px var(--m-line);
+  color: var(--ink);
+  font: 700 12px/1 var(--font);
+  cursor: pointer;
+}
+.m-grid-actions button.danger {
+  color: #ff8d86;
+}
+.m-grid-actions button:active {
+  transform: scale(0.96);
+}
+
+/* ---- the wallet ------------------------------------------------------------------------------- */
+
+.m-wallet .m-rail {
+  align-items: center;
+  text-align: center;
+}
+.m-wallet .m-rail-foot {
+  align-items: center;
+  gap: 3px;
+}
+.w-balance {
+  font: 400 38px/1 var(--font-display);
+  letter-spacing: 1px;
+}
+.w-unit {
+  color: var(--muted);
+  font-size: 11.5px;
+}
+.w-testnet {
+  margin-top: 4px;
+  padding: 3px 7px;
+  border-radius: 5px;
+  background: rgba(255, 181, 71, 0.15);
+  color: var(--warn);
+  font: 700 10px/1 var(--font);
+}
+.w-deposit {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+.w-qr {
+  flex: none;
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  width: min(182px, 44vh);
+  aspect-ratio: 1;
+  padding: 10px;
+  border-radius: 14px;
+  background: #fff;
+  color: #0a1a3a;
+  font-size: 12px;
+  box-shadow:
+    0 0 0 1px var(--m-line),
+    0 0 34px rgba(var(--accent-rgb), 0.3);
+}
+.w-qr svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.w-pane {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+.w-pane .m-input {
+  flex: none;
+}
+.w-amount-row .m-input {
+  flex: 1;
+  width: auto;
+}
+.w-pane .m-input,
+.w-pane > .m-btn.go,
+.w-pane .m-actions {
+  width: 100%;
+}
+.w-pane .m-actions .m-btn {
+  flex: 1;
+}
+.w-label {
+  color: var(--muted);
+  font: 800 10px/1 var(--font);
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+}
+.w-address {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 7px 9px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.07);
+  font:
+    500 12px/1.35 ui-monospace,
+    Menlo,
+    monospace;
+  overflow-wrap: anywhere;
+  user-select: text;
+  -webkit-user-select: text;
+}
+.w-fine {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.w-fine b {
+  color: var(--ink);
+}
+.w-amount {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 400 30px/1 var(--font-display);
+  letter-spacing: 0.8px;
+}
+.w-amount-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+.w-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-right: auto;
+  color: #9cc8ff;
+  font-size: 12.5px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+/* ---- things that aren't modals, in the same language ---------------------------------------- */
+
+.m-scrim .bigmap {
+  background: linear-gradient(180deg, #11151c, #0b0e13);
+  box-shadow:
+    0 30px 80px rgba(0, 0, 0, 0.6),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.11);
+  border-radius: 20px;
+  color: var(--ink);
+  font: 500 14px/1.35 var(--font);
+  animation: m-in 240ms cubic-bezier(0.2, 0.9, 0.25, 1) both;
+}
+.m-scrim .bigmap-place {
+  border-radius: 10px;
+  background: #151a23;
+}
+.bag.glass {
+  z-index: 12;
+  background: rgba(12, 15, 21, 0.94);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.bag .bag-title {
+  font: 400 22px/1 var(--font-display);
+  letter-spacing: 1px;
+}
+.bag .bag-item {
+  border-radius: 10px;
+  background:
+    radial-gradient(70% 70% at 50% 62%, rgba(255, 255, 255, 0.1), transparent 75%), #151a23;
+}
+.bag .bag-item img {
+  filter: drop-shadow(0 4px 5px rgba(0, 0, 0, 0.6));
+}
+.dispatch-head img {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  vertical-align: -4px;
+  margin-right: 5px;
+}
+
+/* ---- a phone's short screen --------------------------------------------------------------------- */
+
+@media (max-height: 460px) {
+  .m-head {
+    padding: 9px 9px 5px 13px;
+  }
+  .m-medal {
+    width: 34px;
+    height: 34px;
+  }
+  .m-title {
+    font-size: 25px;
+  }
+  .m-kicker {
+    font-size: 9px;
+  }
+  .m-body {
+    padding: 3px 13px 10px;
+    gap: 7px;
+  }
+  .m-foot {
+    padding: 7px 13px;
+  }
+  .m-rail {
+    padding: 9px;
+  }
+  .m-tiles {
+    gap: 7px;
+  }
+  .m-tile {
+    padding: 6px 8px 8px;
+  }
+  .m-btn {
+    height: 38px;
+  }
+  .m-showroom .m-rail-foot {
+    gap: 3px;
+  }
+  .m-car-name b {
+    font-size: 22px;
+  }
+  .m-car-name span {
+    font-size: 20px;
+  }
+  .m-showroom .m-rail-foot .m-btn {
+    height: 34px;
+    font-size: 17px;
+  }
+  .w-balance {
+    font-size: 30px;
+  }
+  .m-brand {
+    width: 48%;
+    margin-bottom: 4px;
+  }
+  .m-settings .m-rail {
+    padding-top: 9px;
+  }
+  .m-nav button {
+    height: 36px;
+  }
+}
+
+/* The smallest phones: the title needs the medal's room. */
+@media (max-width: 720px) {
+  .m-medal {
+    display: none;
+  }
+}
+
+/* Before the game: the login screens can be upright on a phone. */
+@media (orientation: portrait) {
+  .m.has-rail {
+    flex-direction: column;
+    --rail: 100%;
+  }
+  .m-rail {
+    height: 30%;
+    border-right: 0;
+    border-bottom: 1px solid var(--m-line);
+  }
+}
+
+@keyframes m-fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes m-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.985);
+  }
+}
+@keyframes m-tile {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+@keyframes m-art {
+  from {
+    opacity: 0;
+    transform: translateX(-26px) scale(0.94);
+  }
+}
+@keyframes m-float {
+  50% {
+    transform: translateY(-5px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .m,
+  .m-scrim,
+  .m-art,
+  .m-tile,
+  .m-facts > div,
+  .m-said {
+    animation: none;
+  }
+}

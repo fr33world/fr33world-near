@@ -1,0 +1,2 @@
+Made for fr33world, modelled and rendered in Blender from scratch by the project (see
+scripts/blender/shop_art.py). No third-party models or textures. All rights reserved by the project.

@@ -7,6 +7,7 @@ import { CARE, carePrice } from '@fr33world/shared';
 import { useEffect, useState } from 'react';
 import { formatMoney } from '../game/api.ts';
 import type { Game } from '../game/Game.ts';
+import { Funds, Modal, Price, Said, Tile } from '../ui/Modal.tsx';
 
 export function CounterSheet({ game }: { game: Game }) {
   const [open, setOpen] = useState(false);
@@ -22,57 +23,50 @@ export function CounterSheet({ game }: { game: Game }) {
       game.onCounter = () => {};
     };
   }, [game]);
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.code === 'Escape' && setOpen(false);
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open]);
 
   if (!open) return null;
   const staffed = game.counterStaffed();
   const care = game.arms()?.care ?? {};
   return (
-    <div className="sheet-backdrop" onClick={() => setOpen(false)}>
-      <div className="sheet glass guide gun-sheet" onClick={(e) => e.stopPropagation()}>
-        <div className="guide-head">
-          <span className="gun-badge">+</span>
-          <div>
-            <div className="sheet-title">Pharmacy</div>
-            <div className="sheet-note">
-              {staffed
-                ? 'An EMS worker is serving.'
-                : `Self-service: ${Math.round((CARE.selfServe - 1) * 100)}% more with no staff in.`}
-            </div>
-          </div>
-        </div>
+    <Modal
+      title="Pharmacy"
+      kicker="Hospital"
+      accent="#2dd4bf"
+      art="/ui/care/medicine.webp"
+      ghost="CARE"
+      medal="pharmacy"
+      head={<Funds game={game} dollars />}
+      rail={
+        <p className="m-lore">
+          <i className={`m-dot${staffed ? ' on' : ''}`} />
+          {staffed
+            ? 'An EMS worker is serving.'
+            : `Self-service: ${Math.round((CARE.selfServe - 1) * 100)}% more with no staff in.`}
+        </p>
+      }
+      onClose={() => setOpen(false)}
+    >
+      <div className="m-tiles">
         {CARE.items.map((item, i) => {
           const have = care[item.id] ?? 0;
           return (
-            <div key={item.id} className="gun-row">
-              <img className="care-picture" src={`/ui/care/${item.id}.webp`} alt="" />
-              <span className="gun-what">
-                <b>{item.name}</b>
-                <small>
-                  +{item.heal} health · you carry {have} of {CARE.max}
-                </small>
-              </span>
-              <button
-                type="button"
-                className="btn btn-primary"
+            <Tile
+              key={item.id}
+              index={i}
+              art={`/ui/care/${item.id}.webp`}
+              name={item.name}
+              meta={`+${item.heal} health · you carry ${have} of ${CARE.max}`}
+            >
+              <Price
+                label={have >= CARE.max ? 'Bag full' : formatMoney(carePrice(item.price, staffed))}
                 disabled={have >= CARE.max}
                 onClick={() => setSaid(game.buyCare(i) ? 'One moment…' : "You're offline.")}
-              >
-                {formatMoney(carePrice(item.price, staffed))}
-              </button>
-            </div>
+              />
+            </Tile>
           );
         })}
-        {said && <div className="sheet-note">{said}</div>}
-        <button type="button" className="btn" onClick={() => setOpen(false)}>
-          Leave
-        </button>
       </div>
-    </div>
+      <Said text={said} />
+    </Modal>
   );
 }

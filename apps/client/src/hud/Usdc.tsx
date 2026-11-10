@@ -4,10 +4,19 @@
  * wallet: deposit, withdraw, and the record on the chain. Withdrawing is signed on this device,
  * so the game can't move a player's USDC for them. Nothing here turns `$` into USDC or back.
  */
+import {
+  ArrowDown02Icon,
+  ArrowUp02Icon,
+  Copy01Icon,
+  LinkSquare02Icon,
+  Tick02Icon,
+} from '@hugeicons/core-free-icons';
 import { formatUsdc, USDC } from '@fr33world/shared';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { encode } from 'uqr';
 import { finishUsdcSend, startUsdcSend } from '../game/api.ts';
 import type { Game } from '../game/Game.ts';
+import { Ico, Modal, Tabs, UsdcMark } from '../ui/Modal.tsx';
 
 /** Between looks at the balance while playing (ms): deposits and delivery pay show up by this. */
 const READ_EVERY = 60_000;
@@ -35,9 +44,7 @@ export function UsdcPill({ game }: { game: Game }) {
       aria-label="Open USDC wallet"
       onClick={() => game.onWallet()}
     >
-      <span className="usdc-coin" aria-hidden="true">
-        ◎
-      </span>
+      <UsdcMark size={20} />
       {game.usdc ? figure(game.usdc.micro) : '…'}
       <small>USDC</small>
     </button>
@@ -55,9 +62,7 @@ export function UsdcCard({ game }: { game: Game }) {
   return (
     <div className="bank-card usdc-card">
       <div className="usdc-head">
-        <span className="usdc-mark" aria-hidden="true">
-          ◎
-        </span>
+        <UsdcMark size={18} />
         <div className="bank-name">USDC wallet</div>
         <span className="usdc-tag">Testnet: no real value</span>
       </div>
@@ -104,12 +109,6 @@ export function WalletSheet({ game }: { game: Game }) {
       game.onWallet = () => {};
     };
   }, [game]);
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.code === 'Escape' && setOpen(false);
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open]);
 
   if (!open || !access) return null;
 
@@ -156,128 +155,179 @@ export function WalletSheet({ game }: { game: Game }) {
   };
 
   return (
-    <div className="sheet-backdrop" onClick={() => setOpen(false)}>
-      <div className="sheet glass wallet-sheet" onClick={(e) => e.stopPropagation()}>
-        <div className="wallet-head">
-          <span className="usdc-coin" aria-hidden="true">
-            ◎
-          </span>
-          <div className="sheet-title">USDC wallet</div>
-          <span className="usdc-tag">Testnet: no real value</span>
-          <button
-            type="button"
-            className="chat-close"
-            aria-label="Close wallet"
-            onClick={() => setOpen(false)}
-          >
-            ×
-          </button>
-        </div>
-        <div className="bank-card usdc-card">
-          <div className="bank-balance">{wallet ? formatUsdc(micro) : '…'}</div>
-          <div className="bank-sub">Yours, on NEAR. Separate from your $.</div>
-        </div>
-        <div className="creator-tabs" role="tablist">
-          {(['deposit', 'withdraw'] as const).map((t) => (
+    <Modal
+      title="USDC wallet"
+      kicker="Yours, on NEAR"
+      accent="#4f9cf0"
+      art="/ui/usdc.webp"
+      ghost="USDC"
+      className="m-wallet"
+      rail={
+        <>
+          <div className="w-balance">{wallet ? figure(micro) : '…'}</div>
+          <div className="w-unit">USDC · Separate from your $</div>
+          <span className="w-testnet">Testnet: no real value</span>
+        </>
+      }
+      footer={
+        wallet?.explorer ? (
+          <a className="w-link" href={wallet.explorer} target="_blank" rel="noreferrer">
+            All activity on NearBlocks <Ico icon={LinkSquare02Icon} size={15} />
+          </a>
+        ) : undefined
+      }
+      onClose={() => setOpen(false)}
+    >
+      <Tabs
+        tabs={
+          [
+            ['deposit', 'Deposit', ArrowDown02Icon],
+            ['withdraw', 'Withdraw', ArrowUp02Icon],
+          ] as const
+        }
+        value={tab}
+        onChange={(t) => {
+          setTab(t);
+          setNote(null);
+          setReview(false);
+        }}
+      />
+      {tab === 'deposit' ? (
+        <div className="w-deposit">
+          <div className="w-qr">
+            {wallet?.near ? <DepositQr value={wallet.near} /> : <span>Setting up…</span>}
+          </div>
+          <div className="w-pane">
+            <label className="w-label">Your NEAR address</label>
+            <div className="w-address">{wallet?.near ?? 'Setting up your wallet…'}</div>
             <button
-              key={t}
               type="button"
-              role="tab"
-              aria-selected={tab === t}
-              className={tab === t ? 'on' : ''}
-              onClick={() => {
-                setTab(t);
-                setNote(null);
-                setReview(false);
-              }}
-            >
-              {t === 'deposit' ? 'Deposit' : 'Withdraw'}
-            </button>
-          ))}
-        </div>
-        {tab === 'deposit' ? (
-          <div className="wallet-pane">
-            <div className="wallet-label">Your NEAR address</div>
-            <div className="wallet-address">{wallet?.near ?? 'Setting up your wallet…'}</div>
-            <button
-              type="button"
-              className="btn"
+              className={`m-btn small${copied ? ' done' : ''}`}
               disabled={!wallet?.near}
               onClick={() => void copy()}
             >
+              <Ico icon={copied ? Tick02Icon : Copy01Icon} size={16} />
               {copied ? 'Copied' : 'Copy address'}
             </button>
-            <div className="wallet-small">
-              Send only {wallet?.token ?? 'USDC'} on NEAR to this address. Anything else won’t show
-              up here. New deposits appear within a minute.
-            </div>
+            <p className="w-fine">
+              Send only <b>{wallet?.token ?? 'USDC'}</b> on NEAR. Anything else won’t show up here.
+              Deposits appear within a minute.
+            </p>
           </div>
-        ) : review ? (
-          <div className="wallet-pane">
-            <div className="wallet-label">You’re sending</div>
-            <div className="wallet-review">{formatUsdc(value)}</div>
-            <div className="wallet-label">To</div>
-            <div className="wallet-address">{account}</div>
-            <div className="wallet-small">This can’t be undone once it’s on the chain.</div>
-            <div className="wallet-row">
-              <button
-                type="button"
-                className="btn"
-                disabled={busy}
-                onClick={() => setReview(false)}
-              >
-                Back
-              </button>
-              <button
-                type="button"
-                className="btn btn-primary"
-                disabled={busy}
-                onClick={() => void withdraw()}
-              >
-                {busy ? 'Sending…' : 'Confirm'}
-              </button>
-            </div>
+        </div>
+      ) : review ? (
+        <div className="w-pane w-review">
+          <label className="w-label">You’re sending</label>
+          <div className="w-amount">
+            <UsdcMark size={26} />
+            {formatUsdc(value)}
           </div>
-        ) : (
-          <div className="wallet-pane">
-            <input
-              className="wallet-input"
-              placeholder="NEAR account to send to"
-              value={to}
-              onChange={(e) => setTo(e.target.value)}
-              autoCapitalize="off"
-              autoCorrect="off"
-              spellCheck={false}
-            />
-            <div className="wallet-row">
-              <input
-                className="wallet-input"
-                placeholder="Amount in USDC"
-                inputMode="decimal"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-              />
-              <button
-                type="button"
-                className="btn wallet-max"
-                disabled={!micro}
-                onClick={() => setAmount(String(micro / USDC))}
-              >
-                Max
-              </button>
-            </div>
-            <button type="button" className="btn btn-primary" disabled={!micro} onClick={toReview}>
-              Withdraw USDC
+          <label className="w-label">To</label>
+          <div className="w-address">{account}</div>
+          <p className="w-fine">This can’t be undone once it’s on the chain.</p>
+          <div className="m-actions">
+            <button
+              type="button"
+              className="m-btn"
+              disabled={busy}
+              onClick={() => setReview(false)}
+            >
+              Back
+            </button>
+            <button
+              type="button"
+              className="m-btn go"
+              disabled={busy}
+              onClick={() => void withdraw()}
+            >
+              {busy ? 'Sending…' : 'Confirm'}
             </button>
           </div>
-        )}
-        {note && <div className="wallet-note">{note}</div>}
-        {wallet?.explorer && (
-          <a className="wallet-link" href={wallet.explorer} target="_blank" rel="noreferrer">
-            See all activity on NearBlocks ›
-          </a>
-        )}
-      </div>
-    </div>
+        </div>
+      ) : (
+        <div className="w-pane">
+          <label className="w-label">Send to</label>
+          <input
+            className="m-input"
+            placeholder="NEAR account"
+            value={to}
+            onChange={(e) => setTo(e.target.value)}
+            autoCapitalize="off"
+            autoCorrect="off"
+            spellCheck={false}
+          />
+          <label className="w-label">Amount</label>
+          <div className="w-amount-row">
+            <input
+              className="m-input"
+              placeholder="0.00"
+              inputMode="decimal"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+            />
+            <button
+              type="button"
+              className="m-btn small"
+              disabled={!micro}
+              onClick={() => setAmount(String(micro / USDC))}
+            >
+              Max
+            </button>
+          </div>
+          <button type="button" className="m-btn go" disabled={!micro} onClick={toReview}>
+            Withdraw USDC
+          </button>
+        </div>
+      )}
+      {note && <div className="m-said">{note}</div>}
+    </Modal>
+  );
+}
+
+/**
+ * The deposit address as a QR code. Rounded modules and eyes in the wallet's navy, with USDC's mark
+ * in the middle: the highest error correction leaves room for it and still scans.
+ */
+function DepositQr({ value }: { value: string }) {
+  const { size, dots } = useMemo(() => {
+    const qr = encode(value, { ecc: 'H', border: 0 });
+    const n = qr.size;
+    const eye = (x: number, y: number) =>
+      (x < 7 && y < 7) || (x >= n - 7 && y < 7) || (x < 7 && y >= n - 7);
+    const mid = (n - 1) / 2;
+    let d = '';
+    for (let y = 0; y < n; y += 1)
+      for (let x = 0; x < n; x += 1) {
+        if (!qr.data[y]?.[x] || eye(x, y) || Math.hypot(x - mid, y - mid) < n * 0.17) continue;
+        d += `M${x + 0.3} ${y}h.4a.3.3 0 0 1 .3.3v.4a.3.3 0 0 1-.3.3h-.4a.3.3 0 0 1-.3-.3v-.4a.3.3 0 0 1 .3-.3z`;
+      }
+    return { size: n, dots: d };
+  }, [value]);
+  const eyes = [
+    [0, 0],
+    [size - 7, 0],
+    [0, size - 7],
+  ] as const;
+  const logo = size * 0.27;
+  return (
+    <svg viewBox={`0 0 ${size} ${size}`} role="img" aria-label="QR code of your NEAR address">
+      <path d={dots} fill="#0a1a3a" />
+      {eyes.map(([x, y]) => (
+        <g key={`${x}-${y}`} fill="#0a1a3a">
+          <path
+            fillRule="evenodd"
+            d={`M${x + 1.6} ${y}h3.8a1.6 1.6 0 0 1 1.6 1.6v3.8a1.6 1.6 0 0 1-1.6 1.6h-3.8a1.6 1.6 0 0 1-1.6-1.6v-3.8a1.6 1.6 0 0 1 1.6-1.6zM${x + 1.9} ${y + 1}a.9.9 0 0 0-.9.9v3.2a.9.9 0 0 0 .9.9h3.2a.9.9 0 0 0 .9-.9v-3.2a.9.9 0 0 0-.9-.9z`}
+          />
+          <rect x={x + 2} y={y + 2} width={3} height={3} rx={0.7} fill="#2775ca" />
+        </g>
+      ))}
+      <image
+        href="/ui/usdc.svg"
+        x={(size - logo) / 2}
+        y={(size - logo) / 2}
+        width={logo}
+        height={logo}
+      />
+    </svg>
   );
 }

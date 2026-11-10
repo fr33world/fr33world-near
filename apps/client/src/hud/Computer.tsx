@@ -8,6 +8,7 @@ import { FACTIONS } from '@fr33world/shared';
 import { useCallback, useEffect, useState } from 'react';
 import type { FactionDesk } from '../game/api.ts';
 import type { Game } from '../game/Game.ts';
+import { Modal, Said } from '../ui/Modal.tsx';
 
 const WHEN: [string, number][] = [
   ['15 min', 15],
@@ -43,12 +44,6 @@ export function ComputerSheet({ game }: { game: Game }) {
       game.onComputer = () => {};
     };
   }, [game, load]);
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.code === 'Escape' && setOpen(false);
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open]);
 
   if (!open) return null;
   const cmd = (text: string, done: string) => {
@@ -56,48 +51,50 @@ export function ComputerSheet({ game }: { game: Game }) {
     window.setTimeout(load, 1200);
   };
   return (
-    <div className="sheet-backdrop" onClick={() => setOpen(false)}>
-      <div className="sheet glass guide gun-sheet" onClick={(e) => e.stopPropagation()}>
-        <div className="guide-head">
-          <span className="gun-badge">≡</span>
-          <div>
-            <div className="sheet-title">Applications</div>
-            <div className="sheet-note">
-              {desk && desk.factions.length === 0
-                ? 'For sergeants and above.'
-                : 'Set an interview, meet them here, then decide.'}
-            </div>
-          </div>
-        </div>
-        {error && <div className="login-error">{error}</div>}
-        {!desk && !error && <div className="sheet-note">Opening…</div>}
-        {desk?.factions.length !== 0 && desk?.applicants.length === 0 && (
-          <div className="sheet-note">No applications right now.</div>
-        )}
-        {desk?.applicants.map((a) => (
-          <div key={a.name} className="desk-row">
-            <div className="gun-what">
-              <b>{a.name}</b>
-              <small>
-                {FACTIONS[a.faction].short} ·{' '}
-                {a.stage === 'training'
-                  ? 'In training'
-                  : a.interviewAt
-                    ? `Interview ${new Date(a.interviewAt).toLocaleString([], {
-                        dateStyle: 'short',
-                        timeStyle: 'short',
-                      })}`
-                    : 'Passed training'}
-                {a.note ? ` · “${a.note}”` : ''}
-              </small>
-            </div>
+    <Modal
+      title="Applications"
+      kicker="The boss's desk"
+      accent="#7fb0ff"
+      art="/ui/medals/desk.webp"
+      ghost="DESK"
+      rail={
+        <p className="m-lore">
+          {desk && desk.factions.length === 0
+            ? 'For sergeants and above.'
+            : 'Set an interview, meet them here, then decide.'}
+        </p>
+      }
+      onClose={() => setOpen(false)}
+    >
+      {error && <div className="login-error">{error}</div>}
+      {!desk && !error && <p className="m-empty">Opening…</p>}
+      {desk?.factions.length !== 0 && desk?.applicants.length === 0 && (
+        <p className="m-empty">No applications right now.</p>
+      )}
+      {desk?.applicants.map((a) => (
+        <div key={a.name} className="m-person">
+          <span className="m-avatar">{a.name.slice(0, 1).toUpperCase()}</span>
+          <div className="m-row-text">
+            <b>{a.name}</b>
+            <small>
+              {FACTIONS[a.faction].short} ·{' '}
+              {a.stage === 'training'
+                ? 'In training'
+                : a.interviewAt
+                  ? `Interview ${new Date(a.interviewAt).toLocaleString([], {
+                      dateStyle: 'short',
+                      timeStyle: 'short',
+                    })}`
+                  : 'Passed training'}
+              {a.note ? ` · “${a.note}”` : ''}
+            </small>
             {a.stage === 'interview' && (
-              <div className="desk-actions">
+              <div className="m-actions">
                 {WHEN.map(([label, minutes]) => (
                   <button
                     key={label}
                     type="button"
-                    className="btn"
+                    className="m-btn small"
                     onClick={() =>
                       cmd(`/interview "${a.name}" ${minutes}`, `${a.name}: interview set.`)
                     }
@@ -109,14 +106,14 @@ export function ComputerSheet({ game }: { game: Game }) {
                   <>
                     <button
                       type="button"
-                      className="btn btn-primary"
+                      className="m-btn small go"
                       onClick={() => cmd(`/accept "${a.name}"`, `${a.name}: accepted.`)}
                     >
                       Accept
                     </button>
                     <button
                       type="button"
-                      className="btn"
+                      className="m-btn small danger"
                       onClick={() => cmd(`/reject "${a.name}"`, `${a.name}: turned down.`)}
                     >
                       Reject
@@ -126,12 +123,9 @@ export function ComputerSheet({ game }: { game: Game }) {
               </div>
             )}
           </div>
-        ))}
-        {said && <div className="sheet-note">{said}</div>}
-        <button type="button" className="btn" onClick={() => setOpen(false)}>
-          Close
-        </button>
-      </div>
-    </div>
+        </div>
+      ))}
+      <Said text={said} />
+    </Modal>
   );
 }

@@ -1,0 +1,8 @@
+USDC mark (assets/brand/usdc.svg; apps/client/public/ui/usdc.svg and usdc.webp)
+
+USDC and its logo are trademarks of Circle Internet Financial. They are used in fr33world only to
+identify the USDC token a player holds, sends or spends, as any wallet does. fr33world is not
+affiliated with or endorsed by Circle. Check Circle's brand guidelines (circle.com) before any
+marketing use of the mark outside the game's wallet screens.
+
+Vector file obtained 2026-11-10 from https://cryptologos.cc/logos/usd-coin-usdc-logo.svg

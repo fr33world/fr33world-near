@@ -4,11 +4,35 @@
  * (/help, reports from a player's card).
  */
 import { ARMORY, RENTAL } from '@fr33world/shared';
-import { useEffect, useState } from 'react';
+import { type CSSProperties, useEffect, useState } from 'react';
 import type { Game } from '../game/Game.ts';
-import { InfoIcon } from '../ui/icons.tsx';
+import {
+  BookOpen01Icon,
+  Car01Icon,
+  CustomerSupportIcon,
+  FuelStationIcon,
+  GameController01Icon,
+  Money03Icon,
+  Shield01Icon,
+  Store01Icon,
+  UserGroupIcon,
+  Alert02Icon,
+  Target02Icon,
+} from '@hugeicons/core-free-icons';
+import type { IconSvgElement } from '@hugeicons/react';
+import { Ico, Modal, Tabs } from '../ui/Modal.tsx';
 
 type Tab = 'start' | 'controls' | 'rules' | 'help';
+
+const ICONS: Record<string, IconSvgElement> = {
+  Earn: Money03Icon,
+  'Your car': Car01Icon,
+  Fuel: FuelStationIcon,
+  Trade: Store01Icon,
+  Weapons: Target02Icon,
+  Factions: UserGroupIcon,
+  Trouble: Alert02Icon,
+};
 
 const START: [string, string][] = [
   [
@@ -65,6 +89,15 @@ const RULES: [string, string][] = [
   ['Admins have the last word', 'Follow their calls in game; appeal afterwards.'],
 ];
 
+const HELP: [string, string][] = [
+  [
+    '/help',
+    'Type it in chat (add what happened) and the admins online are told where you are. Stuck in a wall or a car stuck somewhere? This is the way.',
+  ],
+  ['Report', "Tap a player's name tag, then Report. Block hides their chat and voice."],
+  ['/commands', 'Lists every chat command you can use.'],
+];
+
 export function Guide({ game, touch }: { game: Game; touch: boolean }) {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<Tab>('start');
@@ -78,15 +111,9 @@ export function Guide({ game, touch }: { game: Game; touch: boolean }) {
       game.onGuide = () => {};
     };
   }, [game]);
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.code === 'Escape' && setOpen(false);
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open]);
 
   if (!open) return null;
-  const rows =
+  const rows: [string, string][] =
     tab === 'start'
       ? START
       : tab === 'controls'
@@ -95,70 +122,52 @@ export function Guide({ game, touch }: { game: Game; touch: boolean }) {
           : KEYS
         : tab === 'rules'
           ? RULES
-          : null;
+          : HELP;
   return (
-    <div className="sheet-backdrop" onClick={() => setOpen(false)}>
-      <div className="sheet glass guide" onClick={(e) => e.stopPropagation()}>
-        <div className="guide-head">
-          <span className="guide-i">
-            <InfoIcon />
-          </span>
-          <div>
-            <div className="sheet-title">Los Soles city guide</div>
-            <div className="sheet-note">Welcome to the city. Here's how it works.</div>
-          </div>
-        </div>
-        <div className="chips">
-          {(
-            [
-              ['start', 'Getting started'],
-              ['controls', 'Controls'],
-              ['rules', 'House rules'],
-              ['help', 'Getting help'],
-            ] as const
-          ).map(([value, label]) => (
-            <button
-              key={value}
-              type="button"
-              className={tab === value ? 'on' : ''}
-              onClick={() => setTab(value)}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-        {rows ? (
-          <dl className="guide-rows">
-            {rows.map(([k, v]) => (
-              <div key={k}>
-                <dt>{k}</dt>
-                <dd>{v}</dd>
-              </div>
-            ))}
-          </dl>
-        ) : (
-          <dl className="guide-rows">
-            <div>
-              <dt>/help</dt>
-              <dd>
-                Type it in chat (add what happened) and the admins online are told where you are.
-                Stuck in a wall or a car stuck somewhere? This is the way.
-              </dd>
-            </div>
-            <div>
-              <dt>Report</dt>
-              <dd>Tap a player's name tag, then Report. Block hides their chat and voice.</dd>
-            </div>
-            <div>
-              <dt>/commands</dt>
-              <dd>Lists every chat command you can use.</dd>
-            </div>
-          </dl>
-        )}
-        <button type="button" className="btn btn-primary" onClick={() => setOpen(false)}>
+    <Modal
+      title="City guide"
+      kicker="Welcome to Los Soles"
+      subtitle="Here's how it works."
+      accent="#7def06"
+      size="lg"
+      photo="/slides/downtown.webp"
+      art="/ui/medals/guide.webp"
+      ghost="LOS SOLES"
+      rail={<p className="m-lore">Play your character. Look after your city.</p>}
+      footer={
+        <button type="button" className="m-btn go" onClick={() => setOpen(false)}>
           Got it
         </button>
-      </div>
-    </div>
+      }
+      onClose={() => setOpen(false)}
+    >
+      <Tabs
+        tabs={
+          [
+            ['start', 'Start', BookOpen01Icon],
+            ['controls', 'Controls', GameController01Icon],
+            ['rules', 'Rules', Shield01Icon],
+            ['help', 'Help', CustomerSupportIcon],
+          ] as const
+        }
+        value={tab}
+        onChange={setTab}
+      />
+      <dl className="m-facts">
+        {rows.map(([k, v], i) => (
+          <div key={k} style={{ '--i': i } as CSSProperties}>
+            {ICONS[k] && (
+              <span className="m-fact-ico">
+                <Ico icon={ICONS[k]} size={17} />
+              </span>
+            )}
+            <span>
+              <dt>{k}</dt>
+              <dd>{v}</dd>
+            </span>
+          </div>
+        ))}
+      </dl>
+    </Modal>
   );
 }

@@ -11,7 +11,10 @@ export function DispatchCard({ game }: { game: Game }) {
   const calls = [...game.dispatch].sort((a, b) => b.id - a.id).slice(0, 3);
   return (
     <div className={`glass dispatch ${duty}`}>
-      <div className="dispatch-head">{duty === 'police' ? '🚓 Dispatch' : '🚑 Dispatch'}</div>
+      <div className="dispatch-head">
+        <img src={`/ui/medals/${duty === 'police' ? 'police' : 'ems'}.webp`} alt="" />
+        Dispatch
+      </div>
       {calls.map((c) => (
         <div key={c.id} className="dispatch-call">
           <span className="dispatch-text">

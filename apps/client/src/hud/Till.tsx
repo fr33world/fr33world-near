@@ -16,6 +16,7 @@ import {
   takeUsdcJob,
 } from '../game/api.ts';
 import type { Game } from '../game/Game.ts';
+import { Funds, Modal, Price, Said, Tile, UsdcMark } from '../ui/Modal.tsx';
 
 export function TillSheet({ game }: { game: Game }) {
   const [open, setOpen] = useState(false);
@@ -41,12 +42,6 @@ export function TillSheet({ game }: { game: Game }) {
       game.onTill = () => {};
     };
   }, [game]);
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.code === 'Escape' && setOpen(false);
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open]);
 
   if (!open) return null;
 
@@ -81,67 +76,66 @@ export function TillSheet({ game }: { game: Game }) {
     });
 
   return (
-    <div className="sheet-backdrop" onClick={() => setOpen(false)}>
-      <div className="sheet glass guide gun-sheet" onClick={(e) => e.stopPropagation()}>
-        <div className="guide-head">
-          <span className="gun-badge">◆</span>
-          <div>
-            <div className="sheet-title">Sunny's Grocery</div>
-            <div className="sheet-note">Run by itself: its stock, its prices, its own wallet.</div>
-          </div>
-        </div>
-        {shelf.map((item) => (
-          <div key={item.id} className="till-row">
-            <div className="till-good">
-              <b>{item.name}</b>
-              <span>
-                +{item.heal} health · {item.stock > 0 ? `${item.stock} left` : 'sold out'}
-              </span>
-            </div>
+    <Modal
+      title="Sunny's Grocery"
+      kicker="Open all hours"
+      accent="#ffb02e"
+      art="/ui/shop/meal.webp"
+      ghost="SUNNY'S"
+      medal="shop"
+      head={<Funds game={game} />}
+      rail={<p className="m-lore">Run by itself: its stock, its prices, its own wallet.</p>}
+      onClose={() => setOpen(false)}
+    >
+      <div className="m-tiles">
+        {shelf.map((item, n) => (
+          <Tile
+            key={item.id}
+            index={n}
+            art={`/ui/shop/${item.id}.webp`}
+            name={item.name}
+            dim={item.stock === 0}
+            meta={`+${item.heal} health · ${item.stock > 0 ? `${item.stock} left` : 'sold out'}`}
+          >
             {item.cents !== null && (
-              <button
-                type="button"
-                className="btn"
+              <Price
+                label={formatMoney(item.cents)}
                 disabled={busy || item.stock === 0}
                 onClick={() => {
                   const i = GOODS.findIndex((g) => g.id === item.id);
                   setSaid(game.buyGood(i) ? 'One moment…' : "You're offline.");
                   window.setTimeout(refresh, 1200);
                 }}
-              >
-                {formatMoney(item.cents)}
-              </button>
+              />
             )}
-            <button
-              type="button"
-              className="btn till-usdc"
+            <Price
+              usdc
+              label={formatUsdc(item.micro).replace(' USDC', '')}
               disabled={busy || item.stock === 0 || !access}
               onClick={() => void buyUsdc(item)}
-            >
-              ◎ {formatUsdc(item.micro)}
-            </button>
-          </div>
+            />
+          </Tile>
         ))}
-        <div className="bank-title">Deliveries that pay USDC</div>
-        {jobs.length === 0 && <div className="bank-empty">No deliveries needed right now.</div>}
-        {jobs.map((job) => (
-          <div key={job.id} className="till-row">
-            <div className="till-good">
-              <b>Bring an order from Harbor Wholesale</b>
-              <span>Level {JOB_RULES.minLevel}+, full accounts</span>
-            </div>
-            <button
-              type="button"
-              className="btn till-usdc"
-              disabled={busy || !access}
-              onClick={() => void take(job)}
-            >
-              ◎ {formatUsdc(Number(job.amount))}
-            </button>
-          </div>
-        ))}
-        {said && <div className="sheet-note">{said}</div>}
       </div>
-    </div>
+      <Said text={said} />
+      <h3 className="m-section">
+        <UsdcMark /> Deliveries that pay USDC
+      </h3>
+      {jobs.length === 0 && <p className="m-empty">No deliveries needed right now.</p>}
+      {jobs.map((job) => (
+        <div key={job.id} className="m-row">
+          <div className="m-row-text">
+            <b>Bring an order from Harbor Wholesale</b>
+            <small>Level {JOB_RULES.minLevel}+, full accounts</small>
+          </div>
+          <Price
+            usdc
+            label={formatUsdc(Number(job.amount)).replace(' USDC', '')}
+            disabled={busy || !access}
+            onClick={() => void take(job)}
+          />
+        </div>
+      ))}
+    </Modal>
   );
 }
