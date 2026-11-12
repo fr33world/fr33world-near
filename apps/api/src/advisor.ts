@@ -27,12 +27,16 @@ export function nearAi(key: string, model: string): Ask {
       body: JSON.stringify({
         model,
         temperature: 0.2,
+        // No chain of thought: with it this model took 30 to 80 s per answer (measured
+        // 2026-11-12), without it 2 to 7 s, and the answers were as sound. `reasoning_effort`
+        // alone still thought for up to 80 s, and overrides this when both are sent.
+        chat_template_kwargs: { thinking: false },
         messages: [
           { role: 'system', content: system },
           { role: 'user', content: user },
         ],
       }),
-      signal: AbortSignal.timeout(30_000),
+      signal: AbortSignal.timeout(60_000),
     });
     if (!r.ok) throw new Error(`NEAR AI answered ${r.status}`);
     const j = (await r.json()) as { choices?: { message?: { content?: string } }[] };
