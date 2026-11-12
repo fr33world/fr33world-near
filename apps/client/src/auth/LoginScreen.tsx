@@ -8,7 +8,7 @@
  */
 import { useGuestAccounts, useLoginWithOAuth, usePrivy, type User } from '@privy-io/react-auth';
 import { useCreateWallet, useSignRawHash } from '@privy-io/react-auth/extended-chains';
-import { decodeAppearance, decodeGear } from '@fr33world/shared';
+import { decodeAppearance, decodeGear, handleFor } from '@fr33world/shared';
 import { useEffect, useRef, useState } from 'react';
 import type { GameSession } from '../game/Game.ts';
 import { TERMS_VERSION } from '@fr33world/shared';
@@ -48,16 +48,18 @@ export interface LoginResult extends GameSession {
   signHash?: (hash: `0x${string}`) => Promise<string>;
 }
 
+/**
+ * The account's name: the one the person gave their login (their Google name, their Discord
+ * or X handle), never their email address (owner, 2026-11-12); otherwise a game handle such
+ * as "Golden Coyote 27", the same on every login. In the city everyone goes by their
+ * character's name, which they type themselves.
+ */
 function displayName(user: User | null): string {
   if (!user) return '';
-  const fromEmail = user.email?.address.split('@')[0];
-  return (
-    user.google?.name ??
-    user.discord?.username ??
-    user.twitter?.username ??
-    fromEmail ??
-    `Guest ${user.id.slice(-4).toUpperCase()}`
-  ).slice(0, 24);
+  const given = [user.google?.name, user.discord?.username, user.twitter?.username]
+    .map((n) => n?.trim())
+    .find(Boolean);
+  return (given ?? handleFor(user.id)).slice(0, 24);
 }
 
 export function LoginScreen({ onReady }: { onReady: (r: LoginResult) => void }) {

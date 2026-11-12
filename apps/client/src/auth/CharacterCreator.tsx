@@ -15,10 +15,13 @@ import {
   FACIAL_HAIR,
   type Gear,
   NO_GEAR,
+  randomCharacterName,
   ROCKETBOX_FACES,
   ROCKETBOX_OUTFITS,
   SKIN_TONES,
 } from '@fr33world/shared';
+import { DiceIcon } from '@hugeicons/core-free-icons';
+import { HugeiconsIcon } from '@hugeicons/react';
 import { useEffect, useRef, useState } from 'react';
 import { checkCharacterNameFree } from '../game/api.ts';
 import type { CharacterPreview } from '../game/character/preview.ts';
@@ -164,13 +167,25 @@ export function CharacterCreator({
             <>
               <label className="field">
                 <span>Name</span>
-                <input
-                  value={name}
-                  maxLength={30}
-                  autoComplete="off"
-                  placeholder="First and last name"
-                  onChange={(e) => setName(e.target.value)}
-                />
+                <div className="name-row">
+                  <input
+                    value={name}
+                    maxLength={30}
+                    autoComplete="off"
+                    placeholder="First and last name"
+                    onChange={(e) => setName(e.target.value)}
+                  />
+                  {/* No name in mind: one that sounds real, as games offer. */}
+                  <button
+                    type="button"
+                    className="name-dice"
+                    aria-label="Random name"
+                    title="Random name"
+                    onClick={() => setName(randomCharacterName(look.body))}
+                  >
+                    <HugeiconsIcon icon={DiceIcon} size={22} strokeWidth={1.8} />
+                  </button>
+                </div>
               </label>
               <div className={`creator-name ${nameState.kind}`}>
                 {nameState.kind === 'checking'

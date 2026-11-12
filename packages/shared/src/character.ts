@@ -209,3 +209,169 @@ export function checkCharacterName(raw: unknown): { name: string } | { error: st
     .join(' ');
   return { name };
 }
+
+const HANDLE_WORDS: readonly (readonly string[])[] = [
+  [
+    'Swift',
+    'Lucky',
+    'Quiet',
+    'Bold',
+    'Golden',
+    'Midnight',
+    'Desert',
+    'Silver',
+    'Rapid',
+    'Steady',
+    'Sunny',
+    'Wild',
+    'Clever',
+    'Brave',
+    'Cool',
+    'Lone',
+    'Neon',
+    'Velvet',
+    'Rusty',
+    'Hidden',
+    'Sly',
+    'Royal',
+    'Iron',
+    'Electric',
+  ],
+  [
+    'Falcon',
+    'Coyote',
+    'Rider',
+    'Fox',
+    'Hawk',
+    'Wolf',
+    'Comet',
+    'Drifter',
+    'Ranger',
+    'Pilot',
+    'Raven',
+    'Tiger',
+    'Voyager',
+    'Maverick',
+    'Rover',
+    'Panther',
+    'Outlaw',
+    'Cobra',
+    'Nomad',
+    'Bandit',
+    'Racer',
+    'Phoenix',
+    'Bison',
+    'Mustang',
+  ],
+];
+
+/**
+ * A name for an account whose login gave none (an email address, a guest): two words and a
+ * number, as games make them ("Golden Coyote 27"), the same every time for the same seed. Never
+ * made from an email address (owner, 2026-11-12).
+ */
+export function handleFor(seed: string): string {
+  // FNV-1a: small, stable, and spreads similar ids well.
+  let h = 0x811c9dc5;
+  for (const ch of seed) {
+    h ^= ch.codePointAt(0) ?? 0;
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  const [first, second] = HANDLE_WORDS as [readonly string[], readonly string[]];
+  const a = first[h % first.length];
+  const b = second[Math.floor(h / first.length) % second.length];
+  const n = 10 + (Math.floor(h / (first.length * second.length)) % 90);
+  return `${a} ${b} ${n}`;
+}
+
+/** First names by the character's body, so the dice suggests one that fits. */
+const FIRST_NAMES: Record<Body, readonly string[]> = {
+  male: [
+    'Marcus',
+    'Jordan',
+    'Tyler',
+    'Andre',
+    'Darius',
+    'Caleb',
+    'Mason',
+    'Isaiah',
+    'Logan',
+    'Elijah',
+    'Carter',
+    'Miles',
+    'Dante',
+    'Xavier',
+    'Wesley',
+    'Jalen',
+    'Owen',
+    'Reggie',
+    'Cody',
+    'Malik',
+  ],
+  female: [
+    'Jasmine',
+    'Maya',
+    'Aaliyah',
+    'Brooke',
+    'Sierra',
+    'Naomi',
+    'Vanessa',
+    'Kayla',
+    'Destiny',
+    'Harper',
+    'Riley',
+    'Monique',
+    'Tessa',
+    'Camila',
+    'Lena',
+    'Imani',
+    'Paige',
+    'Gabriela',
+    'Nia',
+  ],
+};
+const LAST_NAMES = [
+  'Carter',
+  'Brooks',
+  'Hayes',
+  'Reed',
+  'Morales',
+  'Jenkins',
+  'Price',
+  'Bennett',
+  'Coleman',
+  'Foster',
+  'Ramirez',
+  'Holloway',
+  'Sanders',
+  'Wallace',
+  'Vaughn',
+  'Delgado',
+  'Mitchell',
+  'Lawson',
+  'Pierce',
+  'Hudson',
+  'Navarro',
+  'Whitfield',
+  'Grant',
+  'Shelby',
+  'Monroe',
+  'Ellison',
+  'Tucker',
+  'Booker',
+  'Ortega',
+  'Fletcher',
+  'Dawson',
+  'Marsh',
+];
+
+/** A first and last name for the character screen's dice, valid by `checkCharacterName`. */
+export function randomCharacterName(body: Body, rand: () => number = Math.random): string {
+  const pick = (list: readonly string[]) => list[Math.floor(rand() * list.length)] as string;
+  let first = pick(FIRST_NAMES[body]);
+  let last = pick(LAST_NAMES);
+  // "Carter Carter" reads like a mistake.
+  for (let i = 0; first === last && i < 8; i += 1) last = pick(LAST_NAMES);
+  if (first === last) first = body === 'male' ? 'Jordan' : 'Maya';
+  return `${first} ${last}`;
+}

@@ -8,8 +8,10 @@ import {
   DEFAULT_APPEARANCE,
   encodeAppearance,
   FACIAL_HAIR,
+  handleFor,
   HEIGHTS,
   isAppearance,
+  randomCharacterName,
   ROCKETBOX_FACES,
   ROCKETBOX_OUTFITS,
   SKIN_TONES,
@@ -72,5 +74,26 @@ describe('character', () => {
       7,
     ])
       expect(checkCharacterName(bad)).toHaveProperty('error');
+  });
+});
+
+describe('names nobody typed', () => {
+  it('make a game handle, the same for the same login, never from an email', () => {
+    const a = handleFor('did:privy:cm1abc');
+    expect(a).toMatch(/^[A-Z][a-z]+ [A-Z][a-z]+ \d{2}$/);
+    expect(handleFor('did:privy:cm1abc')).toBe(a);
+    expect(handleFor('did:privy:cm1abd')).not.toBe(a);
+    const many = new Set(Array.from({ length: 200 }, (_, i) => handleFor(`did:privy:${i}`)));
+    expect(many.size).toBeGreaterThan(190);
+    for (const h of many) expect(h.length).toBeLessThanOrEqual(24);
+  });
+
+  it('offer real-sounding character names the rules accept', () => {
+    let seed = 1;
+    const rand = () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646;
+    for (let i = 0; i < 300; i += 1) {
+      const name = randomCharacterName(i % 2 ? 'female' : 'male', rand);
+      expect(checkCharacterName(name)).toEqual({ name });
+    }
   });
 });

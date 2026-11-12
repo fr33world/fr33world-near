@@ -14,6 +14,7 @@ import {
   encodeAppearance,
   encodeGear,
   FAUCETS,
+  handleFor,
   TERMS_VERSION,
 } from '@fr33world/shared';
 import { type Db, inTx, type Tx } from './db.ts';
@@ -93,8 +94,7 @@ export function cleanName(raw: unknown, fallbackSeed: string): string {
     .trim()
     .slice(0, 24);
   if (printable) return printable;
-  const n = parseInt(fallbackSeed.replace(/[^0-9a-f]/gi, '').slice(-4) || '0', 16) % 10000;
-  return `Player ${String(n).padStart(4, '0')}`;
+  return handleFor(fallbackSeed);
 }
 
 const ACCOUNT_COLUMNS = `id, display_name, is_guest, to_char(birth_date, 'YYYY-MM-DD') as birth_date,

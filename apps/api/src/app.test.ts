@@ -253,8 +253,8 @@ describe('names', () => {
     expect(cleanName('  Ada   Lovelace  ', 'x')).toBe('Ada Lovelace');
     expect(cleanName('a\u0000b​c', 'x')).toBe('abc');
     expect(cleanName('x'.repeat(40), 'x')).toHaveLength(24);
-    expect(cleanName('', 'did:privy:abc123')).toMatch(/^Player \d{4}$/);
-    expect(cleanName(42, 'did:privy:abc123')).toMatch(/^Player \d{4}$/);
+    expect(cleanName('', 'did:privy:abc123')).toMatch(/^[A-Z][a-z]+ [A-Z][a-z]+ \d{2}$/);
+    expect(cleanName(42, 'did:privy:abc123')).toBe(cleanName('', 'did:privy:abc123'));
   });
 });
 
