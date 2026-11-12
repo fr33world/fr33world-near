@@ -32,6 +32,21 @@ Needs Node 24, pnpm and PostgreSQL. No NEAR account is needed for steps 1 to 3.
 4. **Do (needs testnet keys in `.env`):** `pnpm --filter @fr33world/chain smoke:near`. **See:** a sale, a supplier payment and a delivery paid on the real chain, then each attack refused with its reason. Ends in `All good.`
 5. **Do (needs testnet keys in `.env`):** `pnpm --filter @fr33world/api economy:live`. **See:** one player's whole story through the real API routes and the real chain: wallet linked, a Hot Meal bought with USDC, Sunny's reordering and paying its supplier, the delivery paid to the player, USDC sent on, with a NearBlocks link for each payment. Only Privy is stood in for, by a local key signing the same hash. Ends in `All good.`
 
+## Built with (Q-005)
+
+No hackathon template or starter was used. The NEAR work uses:
+
+- **Contract:** Rust with [near-sdk](https://crates.io/crates/near-sdk) 5.30, built with cargo-near.
+- **Chain access:** [near-api-js](https://www.npmjs.com/package/near-api-js) 7.4, with FastNEAR's public testnet RPC.
+- **Player wallets:** [Privy](https://privy.io) embedded NEAR wallets (`@privy-io/react-auth`, `@privy-io/node`), signed on the player's device.
+- **AI:** [NEAR AI Cloud](https://cloud.near.ai) (OpenAI-compatible), model `deepseek-ai/DeepSeek-V4.1-Flash-1017`.
+- **Test token and faucet:** `usdc.fakes.testnet` and `v2.faucet.nonofficial.testnet`, both community-run.
+- **Around it, from before the hackathon:** Fastify and PostgreSQL (API), Three.js, React and Vite (client), Cloudflare Workers and Render (hosting).
+
+## Other submissions (Q-015)
+
+The people behind fr33world submit no other project to this hackathon.
+
 ## Honest limits
 
 - This public copy leaves out the character animation files, whose licence doesn't allow sharing them on their own. Steps 1 to 4 don't need them. To play with animations, use the hosted game.
@@ -111,10 +126,6 @@ Locally: `livekit-server --dev` (installed with Homebrew); `.env` already points
 3. Render → `fr33world-world` → Environment: set `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, then save (it redeploys).
 
 The world server then gives every player a voice pass; the free Build plan allows 5,000 participant-minutes a month.
-
-## Car certificates on Solana (Devnet)
-
-`pnpm --filter @fr33world/chain spike` mints a car to a test wallet, checks the game's freeze and transfer rights, and retries everything to prove it's idempotent. Results and how to run it against a local validator are in [docs/devnet-spike.md](docs/devnet-spike.md).
 
 ## Asset pipeline
 
