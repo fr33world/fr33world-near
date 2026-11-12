@@ -8,13 +8,14 @@ import {
   ArrowDown02Icon,
   ArrowUp02Icon,
   Copy01Icon,
+  DropletIcon,
   LinkSquare02Icon,
   Tick02Icon,
 } from '@hugeicons/core-free-icons';
 import { formatUsdc, USDC } from '@fr33world/shared';
 import { useEffect, useMemo, useState } from 'react';
 import { encode } from 'uqr';
-import { finishUsdcSend, startUsdcSend } from '../game/api.ts';
+import { claimTestUsdc, fetchTestUsdc, finishUsdcSend, startUsdcSend } from '../game/api.ts';
 import type { Game } from '../game/Game.ts';
 import { Ico, Modal, Tabs, UsdcMark } from '../ui/Modal.tsx';
 
@@ -84,6 +85,8 @@ export function WalletSheet({ game }: { game: Game }) {
   const [note, setNote] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
+  /** The testnet faucet: null until asked, or where there's none. */
+  const [faucet, setFaucet] = useState<{ micro: number; refused: string | null } | null>(null);
   const access = game.usdcAccess();
 
   const read = async (link = false) => {
@@ -91,6 +94,17 @@ export function WalletSheet({ game }: { game: Game }) {
       await game.refreshUsdc(link);
     } catch (e) {
       setNote(e instanceof Error ? e.message : 'The wallet didn’t answer. Try again.');
+    }
+  };
+
+  const checkFaucet = async () => {
+    const a = game.usdcAccess();
+    if (!a) return;
+    try {
+      const f = await fetchTestUsdc(await a.token());
+      setFaucet(f.micro > 0 ? f : null);
+    } catch {
+      setFaucet(null);
     }
   };
 
@@ -102,7 +116,7 @@ export function WalletSheet({ game }: { game: Game }) {
       setCopied(false);
       setOpen(true);
       // Opening it is what sets the wallet up, the first time.
-      void read(true);
+      void read(true).then(checkFaucet);
     };
     return () => {
       game.onWallet = () => {};
@@ -123,6 +137,22 @@ export function WalletSheet({ game }: { game: Game }) {
       setCopied(true);
     } catch {
       setNote('Couldn’t copy.');
+    }
+  };
+
+  const claim = async () => {
+    if (!access) return;
+    setBusy(true);
+    setNote(null);
+    try {
+      const got = await claimTestUsdc(await access.token());
+      setNote(`${figure(got.micro)} test USDC is in your wallet.`);
+      await read();
+    } catch (e) {
+      setNote(e instanceof Error ? e.message : 'The faucet didn’t answer. Try again.');
+    } finally {
+      setBusy(false);
+      void checkFaucet();
     }
   };
 
@@ -209,6 +239,22 @@ export function WalletSheet({ game }: { game: Game }) {
             <p className="w-fine">
               Only <b>{wallet?.token ?? 'USDC'}</b> on NEAR.
             </p>
+            {faucet && (
+              <div className="w-faucet">
+                <button
+                  type="button"
+                  className="m-btn small go"
+                  disabled={busy || faucet.refused !== null}
+                  onClick={() => void claim()}
+                >
+                  <Ico icon={DropletIcon} size={13} />
+                  {busy ? 'Asking…' : `Get ${figure(faucet.micro)} test USDC`}
+                </button>
+                <p className="w-fine">
+                  {faucet.refused ?? 'Free from the testnet faucet, once a day.'}
+                </p>
+              </div>
+            )}
           </div>
         </div>
       ) : review ? (

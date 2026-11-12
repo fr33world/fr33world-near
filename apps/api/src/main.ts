@@ -34,6 +34,8 @@ function nearDeps() {
       prepareSpend(near, account, spend),
     submit: (account: string, tx: string, signature: string) =>
       submitSigned(near, account, tx, signature),
+    // The public faucet is testnet's: elsewhere the wallet offers no test USDC.
+    requestTestUsdc: near.cfg.network === 'testnet' ? near.requestTestUsdc.bind(near) : undefined,
   });
   return {
     economy: {

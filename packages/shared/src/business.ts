@@ -182,3 +182,21 @@ export const VAN_AFTER_MS = 6 * 3_600_000;
 export function formatUsdc(micro: number): string {
   return `${(micro / USDC).toFixed(micro % 10_000 === 0 ? 2 : 4)} USDC`;
 }
+
+/**
+ * Test USDC for players, testnet only: the wallet's "Get test USDC" asks the public community
+ * faucet (v2.faucet.nonofficial.testnet) to send it straight to the player's own NEAR account.
+ * The game adds no USDC of its own. The limits keep one person from draining the faucet or the
+ * operator's gas: a claim is small, at most once a day for each game account and each wallet,
+ * only while the wallet is nearly empty, and capped across everyone.
+ */
+export const TEST_USDC = {
+  /** One claim: enough for about twenty Hot Meals. */
+  micro: 5 * USDC,
+  /** Hours between claims, for the same game account or the same NEAR wallet. */
+  everyHours: 24,
+  /** A wallet holding this much or more can't claim. */
+  holdingBelow: 5 * USDC,
+  /** Claims a day across all players. */
+  perDay: 100,
+} as const;

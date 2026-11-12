@@ -5,11 +5,11 @@
  * on chain at the right amount. No function here takes `$` and gives USDC, or the reverse.
  */
 import { randomUUID } from 'node:crypto';
-import { BUSINESSES, GOODS, levelOf, unitPrice } from '@fr33world/shared';
+import { BUSINESSES, GOODS, levelOf, TEST_USDC, unitPrice } from '@fr33world/shared';
 import { add, armsOf } from './armory.ts';
 import { BankError } from './bank.ts';
 import { takeJob } from './business.ts';
-import type { Db } from './db.ts';
+import type { Db, Tx } from './db.ts';
 import { inTx } from './db.ts';
 import { spend } from './economy.ts';
 import { AccountFrozen, EconomyPaused, InsufficientFunds, LedgerError } from './ledger.ts';
@@ -32,6 +32,8 @@ export interface PlayerChain {
     },
   ): Promise<{ tx: string; hash: string }>;
   submit(account: string, tx: string, signature: string): Promise<{ tx: string }>;
+  /** Testnet only: the public faucet sends test USDC to the account. Absent: no faucet here. */
+  requestTestUsdc?(account: string, micro: number): Promise<{ tx: string }>;
 }
 
 export interface UsdcDeps {
@@ -260,6 +262,85 @@ export async function takeDelivery(d: UsdcDeps, privyUser: string, body: { job?:
     level: levelOf(Number(row.xp)).level,
     ageHours: Number(row.age),
   });
+}
+
+/** Whether a claim would be refused now, and why: the wallet screen asks before offering it. */
+async function faucetRefusal(
+  db: Db | Tx,
+  me: { id: string; near: string },
+  held: bigint,
+): Promise<string | null> {
+  if (held >= BigInt(TEST_USDC.holdingBelow))
+    return 'You have enough test USDC for now. Spend some first.';
+  const r = await db.query<{ mine: string | null; total: number }>(
+    `select max(at) filter (where account_id = $1 or near_account = $2) as mine,
+            count(*) filter (where at > now() - interval '1 day')::int as total
+     from test_usdc_claims where at > now() - make_interval(hours => $3)`,
+    [me.id, me.near, Math.max(TEST_USDC.everyHours, 24)],
+  );
+  const row = r.rows[0];
+  const mine = row?.mine ? new Date(row.mine).getTime() : null;
+  if (mine !== null) {
+    const next = mine + TEST_USDC.everyHours * 3_600_000;
+    if (next > Date.now()) {
+      const hours = Math.ceil((next - Date.now()) / 3_600_000);
+      return `You can get more in ${hours} hour${hours === 1 ? '' : 's'}.`;
+    }
+  }
+  if ((row?.total ?? 0) >= TEST_USDC.perDay)
+    return 'The faucet has given out today’s test USDC. Try tomorrow.';
+  return null;
+}
+
+/** What the wallet's faucet button shows: whether a claim would go through, and if not why. */
+export async function testUsdcStatus(d: UsdcDeps, privyUser: string) {
+  if (!d.chain.requestTestUsdc) return { micro: 0, refused: 'Test USDC is only on testnet.' };
+  const me = await needWallet(d.db, privyUser);
+  const held = await d.chain.usdcBalance(me.near);
+  return { micro: TEST_USDC.micro, refused: await faucetRefusal(d.db, me, held) };
+}
+
+/**
+ * Test USDC from the public testnet faucet, sent straight to the player's own wallet. Full
+ * accounts with a character only, within shared TEST_USDC's limits. The claim is written down
+ * before the faucet is asked, under a lock, so racing requests can't pass a limit; if the USDC
+ * doesn't arrive, the claim is taken back so the player can try again.
+ */
+export async function claimTestUsdc(d: UsdcDeps, privyUser: string) {
+  const faucet = d.chain.requestTestUsdc?.bind(d.chain);
+  if (!faucet) throw new BankError('Test USDC is only on testnet.', 404);
+  const me = await needWallet(d.db, privyUser);
+  const c = await d.db.query('select 1 from characters where account_id = $1', [me.id]);
+  if (c.rowCount === 0) throw new BankError('Make your character first.', 403);
+  const before = await d.chain.usdcBalance(me.near);
+  const claim = await inTx(d.db, async (tx) => {
+    // One lock for every claim: the daily total across players must hold too.
+    await tx.query("select pg_advisory_xact_lock(hashtext('test-usdc'))");
+    const refused = await faucetRefusal(tx, me, before);
+    if (refused) throw new BankError(refused, 429);
+    const r = await tx.query<{ id: number }>(
+      `insert into test_usdc_claims (account_id, near_account, micro) values ($1, $2, $3)
+       returning id`,
+      [me.id, me.near, TEST_USDC.micro],
+    );
+    return r.rows[0]!.id;
+  });
+  try {
+    const sent = await faucet(me.near, TEST_USDC.micro);
+    let now = before;
+    for (let i = 0; i < 5 && now < before + BigInt(TEST_USDC.micro); i += 1) {
+      now = await d.chain.usdcBalance(me.near);
+      if (now < before + BigInt(TEST_USDC.micro))
+        await new Promise((r) => setTimeout(r, d.confirmGapMs ?? 1000));
+    }
+    if (now < before + BigInt(TEST_USDC.micro)) throw new Error('the test USDC didn’t arrive');
+    await d.db.query('update test_usdc_claims set tx = $2 where id = $1', [claim, sent.tx]);
+    return { micro: TEST_USDC.micro, tx: sent.tx };
+  } catch (e) {
+    await d.db.query('delete from test_usdc_claims where id = $1', [claim]);
+    console.error('test usdc', e);
+    throw new BankError('The faucet didn’t answer. Try again in a minute.', 502);
+  }
 }
 
 /** Sales never signed give their stock back. */

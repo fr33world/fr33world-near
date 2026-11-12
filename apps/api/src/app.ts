@@ -79,6 +79,8 @@ import {
   takeDelivery,
   usdcWallet,
   type UsdcDeps,
+  claimTestUsdc,
+  testUsdcStatus,
 } from './usdc.ts';
 import { openFlags, reviewFlag } from './anomalies.ts';
 import { BankError, pay, statement } from './bank.ts';
@@ -547,6 +549,13 @@ export function buildApp(deps: AppDeps): FastifyInstance {
   );
   app.get('/v1/usdc', (req, reply) => withUsdc(req, reply, (d, u) => usdcWallet(d, u)));
   app.post('/v1/usdc/link', (req, reply) => withUsdc(req, reply, (d, u) => linkWallet(d, u)));
+  // Test USDC from the public testnet faucet, within shared TEST_USDC's limits (usdc.ts).
+  app.get('/v1/usdc/faucet', (req, reply) => withUsdc(req, reply, (d, u) => testUsdcStatus(d, u)));
+  app.post('/v1/usdc/faucet', (req, reply) =>
+    limited(req.ip, 'faucet', 3)
+      ? reply.code(429).send({ error: 'Slow down.' })
+      : withUsdc(req, reply, (d, u) => claimTestUsdc(d, u)),
+  );
   app.post('/v1/usdc/sale', (req, reply) =>
     withUsdc(req, reply, (d, u) => startSale(d, u, usdcBody(req))),
   );

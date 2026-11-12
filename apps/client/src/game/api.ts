@@ -510,6 +510,11 @@ export const startUsdcSend = (token: string, to: string, micro: number) =>
   usdcCall<{ tx: string; hash: `0x${string}` }>(token, 'usdc/send', { to, micro });
 export const finishUsdcSend = (token: string, tx: string, signature: string) =>
   usdcCall<{ tx: string }>(token, 'usdc/send/finish', { tx, signature });
+/** Test USDC from the public testnet faucet: whether a claim would go through, and claiming. */
+export const fetchTestUsdc = (token: string) =>
+  usdcCall<{ micro: number; refused: string | null }>(token, 'usdc/faucet');
+export const claimTestUsdc = (token: string) =>
+  usdcCall<{ micro: number; tx: string }>(token, 'usdc/faucet', {});
 export const takeUsdcJob = (token: string, job: string) =>
   usdcCall<{ ok: boolean }>(token, 'usdc/job', { job });
 

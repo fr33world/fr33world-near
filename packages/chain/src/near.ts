@@ -115,6 +115,8 @@ const REGISTER = 1_250_000_000_000_000_000_000n;
  * refunds what's unused, so this must cover the biggest call; a send really costs far less.
  */
 const PLAYER_GAS = '0.08';
+/** The public community faucet for testnet tokens, including `usdc.fakes.testnet`. */
+const TEST_FAUCET = 'v2.faucet.nonofficial.testnet';
 
 export class NearEconomy {
   readonly cfg: NearConfig;
@@ -235,6 +237,20 @@ export class NearEconomy {
     this.queue = next.catch(() => {});
     await next;
     await this.registerUsdc(account);
+  }
+
+  /**
+   * Testnet only: asks the public community faucet to send test USDC straight to a player's
+   * account. The USDC is the faucet's, not the game's; the caller enforces the limits.
+   */
+  async requestTestUsdc(account: string, micro: number): Promise<Sent> {
+    if (this.cfg.network !== 'testnet') throw new Error('test USDC is only on testnet');
+    await this.registerUsdc(account);
+    return this.call(TEST_FAUCET, 'ft_request_funds', {
+      ft_contract_id: this.cfg.usdc,
+      receiver_id: account,
+      amount: String(micro),
+    });
   }
 
   /** Lets an account hold USDC; the game pays the small fee. Does nothing if it's registered. */
