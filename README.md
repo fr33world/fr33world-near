@@ -8,7 +8,7 @@ fr33world is a multiplayer open-world life game in the browser. For this hackath
 
 ## Disclosure (hackathon rules Q-001 to Q-004)
 
-fr33world existed before this work, as a game with a Solana integration. **Only the NEAR work is the submission.** Tag `pre-hackathon` marks the game before it, and Solana was removed after it. The diff between `pre-hackathon` and `hackathon-submission` holds the NEAR integration, which is what to judge. That diff also holds ordinary game work done in the same weeks, which is not part of the submission and touches no USDC: faction join points, uniforms, police patrols, 911 screens, passengers, daily rewards, private messages and accessory fixes.
+fr33world existed before this work, as a game with a Solana integration. **Only the NEAR work is the submission.** Tag `pre-hackathon` marks the game before it, and Solana was removed after it. [The diff between `pre-hackathon` and `hackathon-submission`](https://github.com/fr33world/fr33world-near/compare/pre-hackathon...hackathon-submission) holds the NEAR integration, which is what to judge. That diff also holds ordinary game work done in the same weeks, which is not part of the submission and touches no USDC: faction join points, uniforms, police patrols, 911 screens, passengers, daily rewards, private messages and accessory fixes.
 
 ## How the money works
 
