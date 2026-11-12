@@ -13,6 +13,7 @@ fr33world existed before this work, as a game with a Solana integration. **Only 
 ## How the money works
 
 - **All USDC comes from players.** The game adds none: no treasury, no minting. Businesses start with stock and no cash, and their first USDC is a player's first purchase.
+- **Test USDC for trying it:** on testnet the wallet's "Get 5 test USDC" asks the public community faucet (`v2.faucet.nonofficial.testnet`) to pay the player's own account directly. The game adds none of its own. Limits: once a day per game account and per wallet, only while the wallet holds under 5, 100 claims a day across all players ([`TEST_USDC`](packages/shared/src/business.ts)). There's no faucet on mainnet.
 - **Goods and services only.** Nothing here is a wager.
 - **Two currencies, no bridge.** In-game `$` is off chain. No code path turns `$` into USDC.
 - **Players hold their own USDC** in a Privy NEAR wallet, signed on their device. The game can't move it.
