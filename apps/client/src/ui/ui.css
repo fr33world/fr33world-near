@@ -196,8 +196,8 @@
   align-items: center;
   justify-content: center;
   gap: 3px;
-  width: 62px;
-  height: 62px;
+  width: 50px;
+  height: 50px;
   padding: 0;
   border-radius: 50%;
   pointer-events: auto;
@@ -212,16 +212,16 @@
     background 120ms ease;
 }
 .tbtn svg {
-  width: 26px;
-  height: 26px;
+  width: 22px;
+  height: 22px;
 }
 .tbtn.big {
-  width: 82px;
-  height: 82px;
+  width: 72px;
+  height: 72px;
 }
 .tbtn.big svg {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
 }
 .tbtn:active {
   transform: scale(0.92);
@@ -244,14 +244,58 @@
   width: 20px;
   height: 20px;
 }
-/* Getting in or out of a car: a round car-door button, a little smaller than the rest. */
-.tbtn.car-door {
-  width: 56px;
-  height: 56px;
-}
+/* Getting in or out of a car: a round car-door button, the size of the rest. */
 .tbtn.car-door svg {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
+}
+
+/*
+ * The buttons on the right stand on a grid, so none ever sits on another (owner, 2026-11-12),
+ * whichever are showing. Columns from the right edge: A, Jump with phone, chat and the action
+ * above it; B, Punch or Fire with the mic above; C, emotes or (gun in hand) reload, with the
+ * weapon button above and the rounds above that. Big buttons are 72px, the rest 50px, 12px
+ * apart. In a car (body.driving) the pedals take the corner and the rest move up (below).
+ */
+.tb-jump,
+.tb-hit {
+  bottom: calc(var(--safe-b) + 14px);
+}
+.tb-jump {
+  right: var(--safe-r);
+}
+.tb-hit {
+  right: calc(var(--safe-r) + 84px);
+}
+.tb-side,
+.tb-weapon {
+  right: calc(var(--safe-r) + 168px);
+}
+.tb-side {
+  bottom: calc(var(--safe-b) + 25px);
+}
+.tb-weapon {
+  bottom: calc(var(--safe-b) + 87px);
+}
+.tb-mic {
+  right: calc(var(--safe-r) + 95px);
+  bottom: calc(var(--safe-b) + 98px);
+  font-size: 8.5px;
+}
+.tb-action {
+  right: var(--safe-r);
+  bottom: calc(var(--safe-b) + 210px);
+}
+.tb-action.car-door {
+  right: calc(var(--safe-r) + 11px);
+}
+body.driving .tb-mic {
+  right: calc(var(--safe-r) + 83px);
+  bottom: calc(var(--safe-b) + 104px);
+}
+body.driving .tb-action {
+  right: calc(var(--safe-r) + 7px);
+  bottom: calc(var(--safe-b) + 214px);
 }
 
 /* ---- login ------------------------------------------------------------------------- */
@@ -989,10 +1033,8 @@
 }
 .chat-button {
   position: fixed;
-  right: calc(var(--safe-r) + 18px);
-  bottom: 168px;
-  width: 46px;
-  height: 46px;
+  right: calc(var(--safe-r) + 11px);
+  bottom: calc(var(--safe-b) + 152px);
 }
 .bubbles {
   position: fixed;
@@ -1028,12 +1070,11 @@
 
 /* ---- emotes -------------------------------------------------------------------------- */
 
+/* Column C of the touch grid (.tb-side): only on foot with no gun in hand. */
 .emote-button {
   position: fixed;
-  right: calc(var(--safe-r) + 202px);
-  bottom: 34px;
-  width: 46px;
-  height: 46px;
+  right: calc(var(--safe-r) + 168px);
+  bottom: calc(var(--safe-b) + 25px);
 }
 .emotes {
   position: fixed;
@@ -1977,22 +2018,21 @@
 
 .phone-button {
   position: fixed;
-  right: calc(var(--safe-r) + 18px);
-  bottom: 116px;
-  width: 46px;
-  height: 46px;
+  right: calc(var(--safe-r) + 11px);
+  bottom: calc(var(--safe-b) + 94px);
 }
 /*
  * Phone and chat stand in a column above Jump, after the owner's photo (2026-11-10). In a
- * car (body.driving, set by the HUD): above the pedals, beside the mic.
+ * car (body.driving, set by the HUD): the phone above the accelerator, chat above the mic,
+ * which is above the brake.
  */
 body.driving .phone-button {
-  right: var(--safe-r);
-  bottom: calc(var(--safe-b) + 204px);
+  right: calc(var(--safe-r) + 7px);
+  bottom: calc(var(--safe-b) + 146px);
 }
 body.driving .chat-button {
-  right: calc(var(--safe-r) + 54px);
-  bottom: calc(var(--safe-b) + 204px);
+  right: calc(var(--safe-r) + 83px);
+  bottom: calc(var(--safe-b) + 162px);
 }
 
 /* The run lock: above the stick, shown while it's held, lit when it's on. */
@@ -2504,28 +2544,28 @@ body.driving .chat-button {
 .hud-player {
   display: flex;
   align-items: center;
-  gap: 7px;
-  width: 148px;
-  padding: 5px 8px 5px 5px;
+  gap: 5px;
+  width: 118px;
+  padding: 3px 7px 3px 3px;
   border-radius: 999px;
 }
 .hud-player-face {
   flex: none;
   display: grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   object-fit: cover;
   background: rgba(255, 255, 255, 0.12);
-  font: 400 18px/1 var(--font-display);
+  font: 400 14px/1 var(--font-display);
 }
 .hud-player-text {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
 }
 .hud-player-top {
   display: flex;
@@ -2535,9 +2575,9 @@ body.driving .chat-button {
 }
 .hud-player em {
   overflow: hidden;
-  font: 800 10.5px/1.1 var(--font);
+  font: 800 9px/1.1 var(--font);
   font-style: normal;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.2px;
   text-overflow: ellipsis;
   text-transform: uppercase;
   white-space: nowrap;
@@ -2546,15 +2586,15 @@ body.driving .chat-button {
   flex: none;
   display: grid;
   place-items: center;
-  width: 17px;
-  height: 17px;
+  width: 14px;
+  height: 14px;
   border: 1.5px solid var(--brand);
   border-radius: 50%;
-  font: 800 9.5px/1 var(--font);
+  font: 800 8px/1 var(--font);
 }
 .hud-player small {
   color: var(--muted);
-  font: 600 9px/1 var(--font);
+  font: 600 7.5px/1 var(--font);
 }
 .hud-player span.track {
   display: block;
@@ -2571,57 +2611,72 @@ body.driving .chat-button {
   transition: width 400ms ease-out;
 }
 
+/* The settings gear, in the top right corner: the size of the top bar beside it. */
+.settings-button {
+  position: fixed;
+  right: var(--safe-r);
+  top: var(--safe-t);
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+}
+.settings-button svg {
+  width: 16px;
+  height: 16px;
+}
+
 /* The top bar, right of the screen: time and connection, then the two kinds of money. */
 .hud-top {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
 }
+/* Small and out of the way (owner, 2026-11-12): 28px high, the same as the settings gear. */
 .hud-strip,
 .hud-cash,
 .hud-usdc {
   display: flex;
   align-items: center;
-  height: 38px;
-  padding: 0 11px;
-  border-radius: 12px;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: 9px;
   white-space: nowrap;
 }
 .hud-strip {
-  gap: 8px;
+  gap: 6px;
 }
 .hud-strip svg {
-  width: 13px;
-  height: 13px;
+  width: 11px;
+  height: 11px;
   flex: none;
 }
 .hud-strip > span {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
   color: var(--muted);
-  font: 700 11px/1 var(--font);
-  letter-spacing: 0.3px;
+  font: 700 9.5px/1 var(--font);
+  letter-spacing: 0.2px;
 }
 .hud-strip > span.time {
   color: var(--ink);
-  font: 400 18px/1 var(--font-display);
-  letter-spacing: 0.8px;
+  font: 400 14px/1 var(--font-display);
+  letter-spacing: 0.6px;
 }
 .hud-strip > span + span {
-  padding-left: 8px;
+  padding-left: 6px;
   border-left: 1px solid var(--glass-line);
 }
 .hud-cash,
 .hud-usdc {
-  gap: 6px;
+  gap: 4px;
   color: var(--ink);
-  font: 400 19px/1 var(--font-display);
-  letter-spacing: 0.7px;
+  font: 400 15px/1 var(--font-display);
+  letter-spacing: 0.5px;
 }
 .hud-cash svg {
-  width: 20px;
-  height: 20px;
+  width: 15px;
+  height: 15px;
   color: var(--brand);
 }
 /* USDC is real money: its own colour, mark and word beside the game's $ (D-44). */
@@ -2636,7 +2691,7 @@ body.driving .chat-button {
 }
 .hud-usdc small {
   color: #9cc8ff;
-  font: 800 9px/1 var(--font);
+  font: 800 8px/1 var(--font);
   letter-spacing: 0.4px;
 }
 .progress-card {
@@ -3019,21 +3074,21 @@ body.driving .chat-button {
   text-transform: none;
 }
 
-/* Rounds in the magazine and the rest (Hud.tsx), bottom right while a weapon's in hand. */
+/* Rounds in the magazine and the rest (Hud.tsx), above the weapon button (column C). */
 .ammo {
   position: fixed;
-  right: calc(var(--safe-r) + 84px);
-  bottom: calc(var(--safe-b) + 122px);
+  right: calc(var(--safe-r) + 168px);
+  bottom: calc(var(--safe-b) + 150px);
   display: flex;
   align-items: baseline;
   gap: 6px;
-  padding: 6px 12px;
-  border-radius: 12px;
-  font: 600 14px/1 var(--font);
+  padding: 5px 10px;
+  border-radius: 10px;
+  font: 600 12px/1 var(--font);
   pointer-events: none;
 }
 .ammo b {
-  font: 400 28px/1 var(--font-display);
+  font: 400 22px/1 var(--font-display);
 }
 .ammo span {
   color: var(--muted);
@@ -3046,7 +3101,7 @@ body.driving .chat-button {
 /* The dispatch for police and medics on duty (Dispatch.tsx). */
 .dispatch {
   position: fixed;
-  right: calc(var(--safe-r) + 46px);
+  right: calc(var(--safe-r) + 34px);
   top: calc(var(--safe-t) + 96px);
   display: flex;
   flex-direction: column;

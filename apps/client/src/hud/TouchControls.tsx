@@ -276,29 +276,20 @@ export function TouchControls({
           </button>
         </>
       ) : (
-        <button
-          className="tbtn big glass"
-          style={{ right: 'var(--safe-r)', bottom: 28 }}
-          onPointerDown={() => input.press('jump')}
-        >
+        <button className="tbtn big glass tb-jump" onPointerDown={() => input.press('jump')}>
           <JumpIcon />
           Jump
         </button>
       )}
       {!driving && !armed && (
-        <button
-          className="tbtn big glass"
-          style={{ right: 'calc(var(--safe-r) + 98px)', bottom: 28 }}
-          onPointerDown={() => input.press('punch')}
-        >
+        <button className="tbtn big glass tb-hit" onPointerDown={() => input.press('punch')}>
           <PunchIcon />
           Punch
         </button>
       )}
       {!driving && armed && (
         <button
-          className="tbtn big glass"
-          style={{ right: 'calc(var(--safe-r) + 98px)', bottom: 28 }}
+          className="tbtn big glass tb-hit"
           // Held, it keeps firing; it aims too (Game).
           onPointerDown={(e) => {
             (e.target as Element).setPointerCapture(e.pointerId);
@@ -315,8 +306,7 @@ export function TouchControls({
       {!driving && weapons && (
         <button
           type="button"
-          className={`tbtn glass${armed ? ' lit' : ''}`}
-          style={{ right: 'calc(var(--safe-r) + 192px)', bottom: 110 }}
+          className={`tbtn glass tb-weapon${armed ? ' lit' : ''}`}
           aria-label="Weapon"
           onPointerDown={() => input.press('weapon')}
         >
@@ -326,8 +316,7 @@ export function TouchControls({
       {!driving && armed && (
         <button
           type="button"
-          className="tbtn glass"
-          style={{ right: 'calc(var(--safe-r) + 196px)', bottom: 40 }}
+          className="tbtn glass tb-side"
           aria-label="Reload"
           onPointerDown={() => input.press('reload')}
         >
@@ -336,12 +325,7 @@ export function TouchControls({
       )}
       {voice && (
         <button
-          className={`tbtn glass${talking ? ' lit' : ''}`}
-          style={
-            driving
-              ? { right: 'calc(var(--safe-r) + 132px)', bottom: 'calc(var(--safe-b) + 146px)' }
-              : { right: 'calc(var(--safe-r) + 108px)', bottom: 122 }
-          }
+          className={`tbtn glass tb-mic${talking ? ' lit' : ''}`}
           // Hold to talk (owner, 2026-10-29): the mic is live only while a finger is on it,
           // so nobody is left talking to the whole street by accident.
           onPointerDown={(e) => {
@@ -359,19 +343,13 @@ export function TouchControls({
       {action && actionIcon && (
         <button
           // Getting in or out of a car: a round car-door button, no words; the rest say what.
+          // Top of the column over Jump on foot, above the phone in a car (ui.css .tb-action).
           className={
             actionIcon === 'car' || actionIcon === 'exit'
-              ? 'tbtn glass car-door'
-              : 'tbtn pill glass'
+              ? 'tbtn glass car-door tb-action'
+              : 'tbtn pill glass tb-action'
           }
           aria-label={action}
-          style={{
-            // Top of the column over Jump on foot, above the pedals in a car.
-            ...(!driving && (actionIcon === 'car' || actionIcon === 'exit')
-              ? { right: 'calc(var(--safe-r) + 18px)', width: 46, height: 46 }
-              : { right: 'var(--safe-r)' }),
-            bottom: driving ? 'calc(var(--safe-b) + 146px)' : 220,
-          }}
           onPointerDown={(e) => {
             (e.target as Element).setPointerCapture(e.pointerId);
             input.press('interact');

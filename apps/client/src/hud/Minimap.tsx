@@ -5,10 +5,12 @@
  * game); over it the game draws the district names, symbols for the landmarks, other players
  * as dots and the player's arrow, so they stay sharp at any size.
  */
+import { Cancel01Icon } from '@hugeicons/core-free-icons';
 import { type CityLayout, HARBOUR, LAKE, PIER, QUARRY, WORLD } from '@fr33world/city';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { Game } from '../game/Game.ts';
+import { Ico } from '../ui/Modal.tsx';
 
 /** How much of the city the minimap shows across (m). */
 const MINI_SPAN = 320;
@@ -585,7 +587,7 @@ function BigMap({ game, onClose }: { game: Game; onClose: () => void }) {
               : 'Tap the map or a place to set a route'}
           </span>
           <button type="button" className="m-x" aria-label="Close" onClick={onClose}>
-            ×
+            <Ico icon={Cancel01Icon} size={20} />
           </button>
         </div>
         <div className="bigmap-body">

@@ -75,15 +75,8 @@ export function Settings({
   return (
     <>
       <button
-        className="tbtn glass"
+        className="tbtn glass settings-button"
         aria-label="Settings"
-        style={{
-          right: 'var(--safe-r)',
-          top: 'var(--safe-t)',
-          width: 38,
-          height: 38,
-          position: 'fixed',
-        }}
         onClick={() => setOpen(true)}
       >
         <GearIcon />

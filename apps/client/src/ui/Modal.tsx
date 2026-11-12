@@ -1,7 +1,7 @@
 /**
- * Every modal in the game is built from these parts (owner, 2026-11-10): a dark panel with a
- * showcase rail on the left (the thing itself, large, on a lit stage), and the content on the
- * right. Landscape first: the rail is what makes a phone's short screen still feel like a game.
+ * Every modal in the game is built from these parts (owner, 2026-11-10), full screen with a
+ * cancel button in the top right (owner, 2026-11-12): a dark panel with a showcase rail on the
+ * left (the thing itself, large, on a lit stage), and the content on the right. Landscape first: the rail is what makes a phone's short screen still feel like a game.
  * The panel is opaque on purpose: blurring the running game behind it costs frames.
  */
 import { Cancel01Icon, SquareLock02Icon } from '@hugeicons/core-free-icons';
@@ -125,7 +125,7 @@ export function Modal({
             </div>
             {head}
             <button type="button" className="m-x" aria-label="Close" onClick={onClose}>
-              <Ico icon={Cancel01Icon} />
+              <Ico icon={Cancel01Icon} size={20} />
             </button>
           </header>
           <div className="m-body">{children}</div>

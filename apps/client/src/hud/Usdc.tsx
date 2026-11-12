@@ -45,7 +45,7 @@ export function UsdcPill({ game }: { game: Game }) {
       aria-label="Open USDC wallet"
       onClick={() => game.onWallet()}
     >
-      <UsdcMark size={20} />
+      <UsdcMark size={15} />
       {game.usdc ? figure(game.usdc.micro) : '…'}
       <small>USDC</small>
     </button>

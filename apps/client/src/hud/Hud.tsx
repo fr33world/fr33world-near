@@ -66,7 +66,7 @@ export function Hud({ game }: { game: Game }) {
           </div>
         )}
       </div>
-      <div style={{ ...corner, right: 'calc(var(--safe-r) + 46px)', alignItems: 'flex-end' }}>
+      <div style={{ ...corner, right: 'calc(var(--safe-r) + 32px)', alignItems: 'flex-end' }}>
         <div className="hud-top">
           <div className="glass hud-strip">
             <span className="time">
