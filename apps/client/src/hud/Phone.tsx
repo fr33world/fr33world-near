@@ -272,6 +272,12 @@ function Home({
 function GarageApp({ game, onGo }: { game: Game; onGo: () => void }) {
   const [cars, setCars] = useState<GarageCar[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  /** The car being sent, where to, and how it went. */
+  const [sending, setSending] = useState<number | null>(null);
+  const [to, setTo] = useState('');
+  const [said, setSaid] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [round, setRound] = useState(0);
   useEffect(() => {
     let alive = true;
     game.garage().then(
@@ -281,7 +287,27 @@ function GarageApp({ game, onGo }: { game: Game; onGo: () => void }) {
     return () => {
       alive = false;
     };
-  }, [game]);
+  }, [game, round]);
+  const send = (c: GarageCar) => {
+    const account = to.trim().toLowerCase();
+    if (!account) return setSaid('Enter the NEAR account to send it to.');
+    setBusy(true);
+    setSaid('One moment…');
+    game
+      .carSteps('garage/send', { car: c.id, to: account }, (what) => setSaid(`Signing: ${what}…`))
+      .then(
+        () => {
+          setSaid(`Your ${c.name} is in ${account}’s wallet now.`);
+          setSending(null);
+          setTo('');
+        },
+        (e: unknown) => setSaid(e instanceof Error ? e.message : String(e)),
+      )
+      .finally(() => {
+        setBusy(false);
+        setRound((r) => r + 1);
+      });
+  };
   return (
     <div className="bank">
       {error && <div className="login-error">{error}</div>}
@@ -292,22 +318,99 @@ function GarageApp({ game, onGo }: { game: Game; onGo: () => void }) {
         </div>
       )}
       {cars && cars.length === 0 && <div className="bank-sub">No cars yet</div>}
+      {said && <div className="bank-sub">{said}</div>}
       {cars?.map((c) => {
         const spec = CAR_MODELS[c.model];
         const left = c.expiresAt ? Date.parse(c.expiresAt) - Date.now() : null;
         return (
-          <div key={c.id} className="bank-card garage-card">
-            {spec && <img className="garage-photo" src={`/ui/cars/${spec.id}.webp`} alt="" />}
-            <div>
-              <div className="bank-balance" style={{ fontSize: 24 }}>
-                {c.name}
+          <div key={c.id} className={`bank-card garage-card${left === null ? ' market-card' : ''}`}>
+            {spec && left !== null && (
+              <img className="garage-photo" src={`/ui/cars/${spec.id}.webp`} alt="" />
+            )}
+            {left === null && (
+              <div className="market-top">
+                {spec && <img className="garage-photo" src={`/ui/cars/${spec.id}.webp`} alt="" />}
+                <div className="market-info">
+                  <div className="bank-balance" style={{ fontSize: 24 }}>
+                    {c.name}
+                  </div>
+                  {c.minted && <span className="deed-tag">On NEAR</span>}
+                </div>
               </div>
+            )}
+            <div>
+              {left !== null && (
+                <div className="bank-balance" style={{ fontSize: 24 }}>
+                  {c.name}
+                </div>
+              )}
               {left !== null && (
                 <div className="bank-sub rental-note">
                   Free rental for your first {RENTAL.days} days: due back in {rentalLeft(left)}.
                   Earn enough to buy your own at the Car Dealership before then.
                 </div>
               )}
+              {left === null && (
+                <div className="bank-sub deed-line">
+                  {c.minted ? (
+                    <>
+                      Yours: the deed is in your NEAR wallet.{' '}
+                      {c.deedUrl && (
+                        <a href={c.deedUrl} target="_blank" rel="noreferrer">
+                          See it
+                        </a>
+                      )}
+                    </>
+                  ) : game.usdcAccess() ? (
+                    'Its deed is on its way to your NEAR wallet…'
+                  ) : (
+                    'Make a full account to own it on NEAR.'
+                  )}
+                </div>
+              )}
+              {c.minted &&
+                (sending === c.id ? (
+                  <div className="deed-send">
+                    <input
+                      className="field"
+                      placeholder="NEAR account"
+                      value={to}
+                      autoCapitalize="off"
+                      autoCorrect="off"
+                      spellCheck={false}
+                      onChange={(e) => setTo(e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      disabled={busy}
+                      onClick={() => send(c)}
+                    >
+                      Send
+                    </button>
+                    <button
+                      type="button"
+                      className="btn"
+                      disabled={busy}
+                      onClick={() => setSending(null)}
+                    >
+                      Back
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    className="btn deed-send-open"
+                    onClick={() => {
+                      setSaid(
+                        'Sent to a wallet no player has, it leaves the game until it comes back.',
+                      );
+                      setSending(c.id);
+                    }}
+                  >
+                    Send to a NEAR account
+                  </button>
+                ))}
             </div>
           </div>
         );

@@ -115,6 +115,7 @@ import {
   fetchListings,
   type Listing,
   marketCall,
+  chainSteps,
   leaveFaction,
   takeFactionQuiz,
   type GarageCar,
@@ -1157,6 +1158,22 @@ export class Game {
     if (!this.session.apiToken) throw new Error('Log in to trade cars.');
     await marketCall(await this.session.apiToken(), what, body);
     if (what === 'buy') void this.statement().catch(() => {});
+  }
+
+  /**
+   * A car action on chain (apps/api cars.ts), each step signed by the player's own wallet:
+   * listing for `$`/USDC, taking down, buying with USDC, sending to a NEAR account.
+   */
+  async carSteps<T>(
+    what: 'market/list' | 'market/withdraw' | 'market/buy-usdc' | 'garage/send',
+    body: object,
+    onStep?: (what: string) => void,
+  ): Promise<T> {
+    const access = this.usdcAccess();
+    if (!access) throw new Error('Log in with a full account to trade cars.');
+    const done = await chainSteps<T>(access.token, `/v1/${what}`, body, access.sign, onStep);
+    void this.refreshUsdc().catch(() => {});
+    return done;
   }
 
   /** The inbox's notices; `read` marks them read (the phone's Inbox app). */

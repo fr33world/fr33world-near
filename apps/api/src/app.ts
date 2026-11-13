@@ -519,7 +519,14 @@ export function buildApp(deps: AppDeps): FastifyInstance {
       if (!id) throw new BankError('Please log in again.', 401);
       // A car sent or sold on chain since the last look moves first (at most every 20 s).
       if (deps.cars) await syncCars(deps.cars).catch((e: unknown) => console.error('sync cars', e));
-      return { cars: await garageOf(deps.db, id) };
+      mintSoon(u);
+      const deedUrl = deps.cars?.chain.deedUrl?.bind(deps.cars.chain);
+      return {
+        cars: (await garageOf(deps.db, id)).map((c) => ({
+          ...c,
+          deedUrl: c.minted && c.token && deedUrl ? deedUrl(c.token) : null,
+        })),
+      };
     }),
   );
   // The armoury (armory.ts). Gang ranks come with factions (Phase 9).
@@ -682,14 +689,12 @@ export function buildApp(deps: AppDeps): FastifyInstance {
     });
   app.post('/v1/market/list', (req, reply) =>
     deps.cars
-      ? carsOr(req, reply, (d, u) =>
-          listOnChain(d, u, (req.body ?? {}), priceBounds, listCar),
-        )
+      ? carsOr(req, reply, (d, u) => listOnChain(d, u, req.body ?? {}, priceBounds, listCar))
       : (slow(req, reply, 'market', 20) ??
         bank(req, reply, async (u) => ({ done: await listCar(deps.db, u, req.body ?? {}) }))),
   );
   app.post('/v1/market/withdraw', (req, reply) =>
-    carsOr(req, reply, (d, u) => unlistOnChain(d, u, (req.body ?? {}))),
+    carsOr(req, reply, (d, u) => unlistOnChain(d, u, req.body ?? {})),
   );
   app.post('/v1/market/buy', (req, reply) => {
     if (limited(req.ip, 'market', 20)) return reply.code(429).send({ error: 'Slow down.' });
@@ -708,10 +713,10 @@ export function buildApp(deps: AppDeps): FastifyInstance {
     });
   });
   app.post('/v1/market/buy-usdc', (req, reply) =>
-    carsOr(req, reply, (d, u) => buyForUsdc(d, u, (req.body ?? {}))),
+    carsOr(req, reply, (d, u) => buyForUsdc(d, u, req.body ?? {})),
   );
   app.post('/v1/garage/send', (req, reply) =>
-    carsOr(req, reply, (d, u) => sendCar(d, u, (req.body ?? {}))),
+    carsOr(req, reply, (d, u) => sendCar(d, u, req.body ?? {})),
   );
   // The inbox (inbox.ts): GET reads, POST marks everything read.
   app.get('/v1/inbox', (req, reply) => bank(req, reply, (u) => inbox(deps.db, u)));

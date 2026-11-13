@@ -265,6 +265,12 @@ export class NearEconomy {
     return nearblocks(this.cfg, kind, id);
   }
 
+  /** A car's title deed on NearBlocks. */
+  deedUrl(tokenId: string): string {
+    const host = this.cfg.network === 'testnet' ? 'testnet.nearblocks.io' : 'nearblocks.io';
+    return `https://${host}/nft-token/${this.carsAccount()}/${tokenId}`;
+  }
+
   /** Mints a car to its owner's wallet. The contract refuses a token id it already has. */
   mintCar(tokenId: string, owner: string, metadata: CarMetadata): Promise<Sent> {
     return this.call(this.carsAccount(), 'mint_car', {

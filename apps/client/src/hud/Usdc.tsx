@@ -1,21 +1,33 @@
 /**
- * USDC (Phase 17; D-44): real money, kept visibly apart from the game's `$`, with its own blue
- * mark and word. The top bar shows the balance, read from the chain, and a tap on it opens the
- * wallet: deposit, withdraw, and the record on the chain. Withdrawing is signed on this device,
- * so the game can't move a player's USDC for them. Nothing here turns `$` into USDC or back.
+ * USDC (Phase 17; D-44; owner, 2026-11-13): real money, kept visibly apart from the game's `$`,
+ * with its own blue mark and word. The top bar shows the balance, read from the chain, and a
+ * tap on it opens the wallet: deposit, top up `$`, withdraw, and the record on the chain.
+ * Everything is signed on this device, so the game can't move a player's USDC for them. A
+ * top-up turns USDC into `$`, one way: nothing here turns `$` into USDC.
  */
 import {
   ArrowDown02Icon,
   ArrowUp02Icon,
+  CoinsDollarIcon,
   Copy01Icon,
   DropletIcon,
   LinkSquare02Icon,
   Tick02Icon,
 } from '@hugeicons/core-free-icons';
-import { formatUsdc, USDC } from '@fr33world/shared';
+import { formatUsdc, topupCents, USDC } from '@fr33world/shared';
 import { useEffect, useMemo, useState } from 'react';
 import { encode } from 'uqr';
-import { claimTestUsdc, fetchTestUsdc, finishUsdcSend, startUsdcSend } from '../game/api.ts';
+import {
+  claimTestUsdc,
+  fetchTestUsdc,
+  fetchTopup,
+  finishTopup,
+  finishUsdcSend,
+  formatMoney,
+  startTopup,
+  startUsdcSend,
+  type TopupStatus,
+} from '../game/api.ts';
 import type { Game } from '../game/Game.ts';
 import { Ico, Modal, Tabs, UsdcMark } from '../ui/Modal.tsx';
 
@@ -78,7 +90,9 @@ export function UsdcCard({ game }: { game: Game }) {
 /** The wallet itself: what you hold, where to send USDC in, and taking it out. */
 export function WalletSheet({ game }: { game: Game }) {
   const [open, setOpen] = useState(false);
-  const [tab, setTab] = useState<'deposit' | 'withdraw'>('deposit');
+  const [tab, setTab] = useState<'deposit' | 'topup' | 'withdraw'>('deposit');
+  const [topAmount, setTopAmount] = useState('');
+  const [topup, setTopup] = useState<TopupStatus | null>(null);
   const [to, setTo] = useState('');
   const [amount, setAmount] = useState('');
   const [review, setReview] = useState(false);
@@ -108,6 +122,16 @@ export function WalletSheet({ game }: { game: Game }) {
     }
   };
 
+  const checkTopup = async () => {
+    const a = game.usdcAccess();
+    if (!a) return;
+    try {
+      setTopup(await fetchTopup(await a.token()));
+    } catch {
+      setTopup(null);
+    }
+  };
+
   useEffect(() => {
     game.onWallet = () => {
       if (document.pointerLockElement) void document.exitPointerLock();
@@ -116,7 +140,7 @@ export function WalletSheet({ game }: { game: Game }) {
       setCopied(false);
       setOpen(true);
       // Opening it is what sets the wallet up, the first time.
-      void read(true).then(checkFaucet);
+      void read(true).then(checkFaucet).then(checkTopup);
     };
     return () => {
       game.onWallet = () => {};
@@ -153,6 +177,33 @@ export function WalletSheet({ game }: { game: Game }) {
     } finally {
       setBusy(false);
       void checkFaucet();
+    }
+  };
+
+  const topValue = Math.round(Number(topAmount) * USDC);
+  const topUp = async () => {
+    if (!Number.isFinite(topValue) || topValue <= 0) return setNote('Enter an amount.');
+    if (topValue > micro) return setNote('That’s more than you hold.');
+    setBusy(true);
+    setNote('One moment…');
+    try {
+      const t = await startTopup(await access.token(), topValue);
+      setNote('Signing…');
+      const signature = await access.sign(t.hash);
+      const done = await finishTopup(await access.token(), {
+        topup: t.topup,
+        tx: t.tx,
+        signature,
+      });
+      setNote(`${formatMoney(done.cents)} is in your bank.`);
+      setTopAmount('');
+      void game.statement().catch(() => {});
+      await read();
+    } catch (e) {
+      setNote(e instanceof Error ? e.message : 'That didn’t go through.');
+    } finally {
+      setBusy(false);
+      void checkTopup();
     }
   };
 
@@ -209,6 +260,7 @@ export function WalletSheet({ game }: { game: Game }) {
         tabs={
           [
             ['deposit', 'Deposit', ArrowDown02Icon],
+            ['topup', 'Top up $', CoinsDollarIcon],
             ['withdraw', 'Withdraw', ArrowUp02Icon],
           ] as const
         }
@@ -256,6 +308,45 @@ export function WalletSheet({ game }: { game: Game }) {
               </div>
             )}
           </div>
+        </div>
+      ) : tab === 'topup' ? (
+        <div className="w-pane">
+          <label className="w-label">USDC to spend</label>
+          <div className="w-amount-row">
+            <input
+              className="m-input"
+              placeholder="0.00"
+              inputMode="decimal"
+              value={topAmount}
+              onChange={(e) => setTopAmount(e.target.value)}
+            />
+            <button
+              type="button"
+              className="m-btn small"
+              disabled={!micro || !topup}
+              onClick={() => setTopAmount(String(Math.min(micro, topup?.left ?? 0) / USDC))}
+            >
+              Max
+            </button>
+          </div>
+          <div className="w-amount">
+            {topValue > 0 ? `= ${formatMoney(topupCents(topValue))}` : '= $0'}
+          </div>
+          <p className="w-fine">
+            {topup
+              ? `1 USDC buys ${formatMoney(topup.dollarsPerUsdc * 100)}. You can top up ${formatUsdc(topup.left)} more this week.`
+              : 'Checking…'}{' '}
+            One way: $ can’t be turned back into USDC. The USDC goes to Sol Motors, the city’s
+            dealership.
+          </p>
+          <button
+            type="button"
+            className="m-btn go"
+            disabled={busy || !micro || !topup || topup.left === 0}
+            onClick={() => void topUp()}
+          >
+            {busy ? 'Topping up…' : 'Top up $'}
+          </button>
         </div>
       ) : review ? (
         <div className="w-pane w-review">

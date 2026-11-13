@@ -36,6 +36,8 @@ export type CarCall =
 export interface CarChain {
   carsAccount(): string;
   explorer?(kind: 'address' | 'txns', id: string): string;
+  /** A car's title deed on the block explorer. */
+  deedUrl?(tokenId: string): string;
   mintCar(
     tokenId: string,
     owner: string,

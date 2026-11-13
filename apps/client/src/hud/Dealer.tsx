@@ -2,8 +2,9 @@
  * The showroom at the Car Dealership (Phase 7): opened by stepping into the gold $ at the showroom's
  * door (or its "Buy a car" prompt). The cars for sale (shared CARS_FOR_SALE) down the side,
  * the one picked large with its numbers and price; buying asks once more, pays from the bank
- * (the API, keyed so a retry pays once) and puts the car in the garage. Then it can be driven
- * away from a delivery bay here, or fetched later from any car park.
+ * (the API, keyed so a retry pays once) and puts the car in the garage, its title deed minted
+ * to the buyer's own NEAR wallet (apps/api cars.ts). Then it can be driven away from a delivery
+ * bay here, or fetched later from any car park.
  */
 import { CAR_MODELS, CARS_FOR_SALE, DEALER, DEALER_MODELS } from '@fr33world/shared';
 import { useEffect, useMemo, useState } from 'react';
@@ -124,6 +125,12 @@ export function DealerSheet({ game }: { game: Game }) {
             <div className="m-confirm">
               <p>
                 <b>The {stage.car.name} is yours.</b>
+                {game.usdcAccess() && (
+                  <>
+                    {' '}
+                    Its title deed is on its way to your NEAR wallet: yours to keep, sell or send.
+                  </>
+                )}
               </p>
               <div className="m-actions">
                 <button type="button" className="m-btn" onClick={close}>
@@ -144,7 +151,10 @@ export function DealerSheet({ game }: { game: Game }) {
             </button>
           ) : (
             <div className="m-confirm">
-              <p>Pay {dollars(price)}?</p>
+              <p>
+                Pay {dollars(price)}?
+                {game.usdcAccess() && <> You’ll own it on NEAR, in your own wallet.</>}
+              </p>
               <div className="m-actions">
                 <button
                   type="button"

@@ -236,6 +236,11 @@ export interface GarageCar {
   model: number;
   name: string;
   expiresAt?: string | null;
+  /** Its title deed on NEAR: the token id, and whether it's minted to the owner's wallet yet. */
+  token?: string | null;
+  minted?: boolean;
+  /** The deed on the block explorer, once minted. */
+  deedUrl?: string | null;
 }
 
 export function fetchGarage(privyToken: string): Promise<{ cars: GarageCar[] }> {
@@ -430,15 +435,20 @@ export function fetchInbox(
   return bankCall(privyToken, read ? '/v1/inbox/read' : '/v1/inbox', read ? {} : undefined);
 }
 
-/** A car for sale on the market (apps/api market.ts). */
+/** A car for sale on the market (apps/api market.ts): for `$`, USDC, or both. */
 export interface Listing {
   id: number;
   car_id: number;
   model: number;
   name: string;
-  price: number;
+  /** `$` price in cents, or null when it's for USDC only. */
+  price: number | null;
+  /** USDC price in micro-USDC, or null when it's for `$` only. */
+  micro: number | null;
   seller: string;
   listed_at: string;
+  /** Its title deed on NEAR, once minted. */
+  token: string | null;
 }
 
 export async function fetchListings(): Promise<Listing[]> {
@@ -453,6 +463,52 @@ export function marketCall(
   body: object,
 ): Promise<unknown> {
   return bankCall(privyToken, `/v1/market/${what}`, body);
+}
+
+/** One transaction for the player to sign (apps/api cars.ts), and what it does. */
+export interface ChainStep {
+  tx: string;
+  hash: `0x${string}`;
+  what: string;
+}
+
+/**
+ * Runs a step route (apps/api cars.ts) to the end: each answer is either the next transaction
+ * for the player's own wallet to sign, or done. Steps wait on the chain, so they get longer.
+ */
+export async function chainSteps<T>(
+  privyToken: () => Promise<string>,
+  path: string,
+  body: object,
+  sign: (hash: `0x${string}`) => Promise<string>,
+  onStep?: (what: string) => void,
+): Promise<T> {
+  const call = async (b: object) => {
+    const res = await fetch(`${apiUrl()}${path}`, {
+      method: 'POST',
+      headers: {
+        authorization: `Bearer ${await privyToken()}`,
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify(b),
+      signal: AbortSignal.timeout(60_000),
+    });
+    const data = (await res.json().catch(() => ({}))) as {
+      step?: ChainStep;
+      done?: T;
+      error?: string;
+    };
+    if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
+    return data;
+  };
+  let r = await call(body);
+  for (let i = 0; r.step && i < 4; i += 1) {
+    onStep?.(r.step.what);
+    const signature = await sign(r.step.hash);
+    r = await call({ ...body, tx: r.step.tx, signature });
+  }
+  if (r.step) throw new Error('That took too many steps. Try again.');
+  return r.done as T;
 }
 
 /** A good on Sunny's shelf, sold for `$` only. */
