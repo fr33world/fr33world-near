@@ -38,6 +38,8 @@ export interface PlayerChain {
   walletLinks?(account: string): { token: string; explorer: string };
   getSale(wallet: string, id: string): Promise<string | null>;
   welcomePlayer(account: string): Promise<void>;
+  /** Tops up the player's gas money to prepay `tera` of gas (packages/chain ensureGas). */
+  ensureGas?(account: string, tera?: number): Promise<void>;
   prepare(
     account: string,
     spend: {
@@ -225,6 +227,7 @@ export async function startTopup(d: UsdcDeps, privyUser: string, body: { micro?:
       [id, me.id, me.near, micro, cents],
     );
   });
+  await d.chain.ensureGas?.(me.near, 70);
   const prepared = await d.chain.prepare(me.near, {
     method: 'ft_transfer_call',
     receiver: d.chain.accountOf(DEALERSHIP.account),
@@ -411,6 +414,7 @@ export async function startSend(
     throw new BankError('Bad amount.');
   if (BigInt(micro) > (await d.chain.usdcBalance(me.near)))
     throw new BankError('Not enough USDC.', 402);
+  await d.chain.ensureGas?.(me.near, 20);
   return d.chain.prepare(me.near, { method: 'ft_transfer', receiver: to, amount: micro });
 }
 

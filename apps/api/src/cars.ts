@@ -12,15 +12,7 @@
  *
  * `$` never becomes USDC here: a USDC sale pays the seller from the buyer's own USDC, on chain.
  */
-import {
-  CAR_ASSETS,
-  CAR_MODELS,
-  carIdOf,
-  carTitle,
-  carToken,
-  DEALER,
-  formatUsdc,
-} from '@fr33world/shared';
+import { CAR_ASSETS, CAR_MODELS, carTitle, DEALER, formatUsdc } from '@fr33world/shared';
 import { BankError } from './bank.ts';
 import { type Db, inTx, type Tx } from './db.ts';
 
@@ -57,7 +49,8 @@ export interface CarChain {
   isOffered(tokenId: string): Promise<boolean>;
   /** When the car may next be sent or listed (ms); 0 if now. */
   carLockedUntil(tokenId: string): Promise<number>;
-  ensureGas(account: string): Promise<void>;
+  /** Tops up the player's gas money to prepay `tera` of gas, before they sign. */
+  ensureGas(account: string, tera?: number): Promise<void>;
   usdcBalance(account: string): Promise<bigint>;
   prepareCar(account: string, call: CarCall): Promise<{ tx: string; hash: string }>;
   prepare(
@@ -192,7 +185,7 @@ async function settle<T>(d: CarDeps, look: () => Promise<T>, ok: (v: T) => boole
 export async function queueMints(db: Db | Tx, accountId: string): Promise<number> {
   const r = await db.query(
     `insert into car_chain (car_id, status, wallet, asset)
-     select o.id, 'mint', w.near_account, 'car-' || o.id
+     select o.id, 'mint', w.near_account, 'car-' || o.id || '-' || substr(md5(random()::text), 1, 6)
      from owned_cars o join near_wallets w on w.account_id = o.account_id
      where o.account_id = $1 and not o.starter and not o.away
        and (o.expires_at is null or o.expires_at > now())
@@ -291,9 +284,25 @@ export async function syncCars(d: CarDeps, minGapS = 20): Promise<{ ran: boolean
   return { ran: true, moved };
 }
 
+/** The car a token is the deed of, in this database; null for a token minted elsewhere. */
+async function carOfToken(db: Db | Tx, token: string): Promise<number | null> {
+  const r = await db.query<{ car_id: string }>('select car_id from car_chain where asset = $1', [
+    token,
+  ]);
+  return r.rows[0] ? Number(r.rows[0].car_id) : null;
+}
+
+/** A car's token id, once it has one. */
+async function tokenOf(db: Db | Tx, carId: number): Promise<string | null> {
+  const r = await db.query<{ asset: string }>('select asset from car_chain where car_id = $1', [
+    carId,
+  ]);
+  return r.rows[0]?.asset ?? null;
+}
+
 /** Brings one car in line with its holder on chain. True if it changed hands in the game. */
 async function follow(d: CarDeps, t: ChainCar, links: Map<string, string>): Promise<boolean> {
-  const carId = carIdOf(t.token_id);
+  const carId = await carOfToken(d.db, t.token_id);
   if (carId === null) return false;
   const holder = links.get(t.owner_id) ?? null;
   return inTx(d.db, async (tx) => {
@@ -344,7 +353,8 @@ async function followListings(d: CarDeps, links: Map<string, string>) {
   const listed = new Set<number>();
   for (const l of open.rows) {
     listed.add(Number(l.car_id));
-    const c = onChain.get(carToken(l.car_id));
+    const token = await tokenOf(d.db, Number(l.car_id));
+    const c = token ? onChain.get(token) : undefined;
     const micro = c && links.get(c.seller) === l.seller ? Number(c.price) : null;
     if (micro === (l.micro === null ? null : Number(l.micro))) continue;
     if (micro === null && l.price === null)
@@ -355,7 +365,7 @@ async function followListings(d: CarDeps, links: Map<string, string>) {
     else await d.db.query('update car_listings set micro = $2 where id = $1', [l.id, micro]);
   }
   for (const [token, c] of onChain) {
-    const carId = carIdOf(token);
+    const carId = await carOfToken(d.db, token);
     const seller = links.get(c.seller);
     if (carId === null || !seller || listed.has(carId)) continue;
     await d.db.query(
@@ -484,9 +494,9 @@ export async function unlistOnChain(
   const l = r.rows[0];
   if (!l) throw new BankError('Not your listing, or not for sale any more.');
   await sendSigned(d, me, body);
-  const token = carToken(l.car_id);
-  const minted = await d.chain.carToken(token);
-  if (minted?.owner_id === me.near) {
+  const token = await tokenOf(d.db, l.car_id);
+  const minted = token ? await d.chain.carToken(token) : null;
+  if (token && minted?.owner_id === me.near) {
     const listing = await d.chain.carListing(token);
     if (listing?.seller === me.near)
       return step(d, me, { method: 'delist_car', tokenId: token }, 'Take the USDC price down');
@@ -522,7 +532,8 @@ export async function buyForUsdc(
   }>('select car_id, seller, micro, status, buyer from car_listings where id = $1', [id]);
   const l = r.rows[0];
   if (!l || l.micro === null) throw new BankError('That car isn’t for sale for USDC.', 404);
-  const token = carToken(l.car_id);
+  const token = await tokenOf(d.db, l.car_id);
+  if (!token) throw new BankError('That car isn’t for sale for USDC.', 404);
   const sent = await sendSigned(d, me, body);
   if (sent) {
     const t = await settle(
@@ -566,7 +577,7 @@ export async function buyForUsdc(
   const micro = Number(l.micro);
   if ((await d.chain.usdcBalance(me.near)) < BigInt(micro))
     throw new BankError('Not enough USDC.', 402);
-  await d.chain.ensureGas(me.near);
+  await d.chain.ensureGas(me.near, 200);
   const p = await d.chain.prepare(me.near, {
     method: 'ft_transfer_call',
     receiver: d.chain.carsAccount(),
@@ -616,7 +627,7 @@ export async function sendCar(
     const car = await myCar(d.db, me, body.car);
     minted(car);
   }
-  const token = carToken(Number(body.car));
+  const token = (await tokenOf(d.db, Number(body.car))) as string;
   const sent = await sendSigned(d, me, body);
   if (sent) {
     await settle(

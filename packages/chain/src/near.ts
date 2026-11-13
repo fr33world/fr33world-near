@@ -138,8 +138,8 @@ const REGISTER = 1_250_000_000_000_000_000_000n;
  * refunds what's unused, so this must cover the biggest call; a send really costs far less.
  */
 const PLAYER_GAS = '0.08';
-/** Below this, a player's gas money is topped up before they sign for a car. */
-const LOW_GAS = '0.03';
+/** Left over after a gas top-up, for the next few small calls. */
+const GAS_SPARE = '0.02';
 /** The public community faucet for testnet tokens, including `usdc.fakes.testnet`. */
 const TEST_FAUCET = 'v2.faucet.nonofficial.testnet';
 
@@ -316,14 +316,33 @@ export class NearEconomy {
     return Math.ceil(Number(ns) / 1e6);
   }
 
-  /** Tops a player's gas money back up when it runs low, so they can always sign for a car. */
-  async ensureGas(account: string): Promise<void> {
+  /** The network's gas price now, in yoctoNEAR per unit of gas. */
+  private async gasPrice(): Promise<bigint> {
+    const r = await fetch(this.cfg.rpcUrl, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'gas_price', params: [null] }),
+      signal: AbortSignal.timeout(10_000),
+    });
+    const j = (await r.json()) as { result?: { gas_price?: string } };
+    return BigInt(j.result?.gas_price ?? '1000000000');
+  }
+
+  /**
+   * Makes sure a player's account can prepay `tera` of gas before they sign. NEAR takes the
+   * whole prepaid gas up front and refunds what's unused, so the game tops it up from the
+   * operator when it's short: the player never needs NEAR of their own.
+   */
+  async ensureGas(account: string, tera = 30): Promise<void> {
     const op = this.operator;
     if (!op) throw new Error('no NEAR_OPERATOR_KEY');
+    // Prepaid gas is held at a pessimistic price, about 8x today's for a 200 Tgas call.
+    const need = BigInt(tera) * 10n ** 12n * (await this.gasPrice()) * 10n;
     const state = await new Account(account, this.provider).getState().catch(() => null);
     const has = state ? BigInt(String(state.balance.available)) : 0n;
-    if (has >= nearToYocto(LOW_GAS)) return;
-    const run = () => op.transfer({ receiverId: account, amount: nearToYocto(PLAYER_GAS) });
+    if (has >= need) return;
+    const amount = need - has + nearToYocto(GAS_SPARE);
+    const run = () => op.transfer({ receiverId: account, amount });
     const next = this.queue.then(run, run);
     this.queue = next.catch(() => {});
     await next;

@@ -1,19 +1,38 @@
 /**
- * One player's whole story, through the real API routes and the real testnet:
+ * The economy's whole story, through the real API routes and the real testnet:
  *   pnpm --filter @fr33world/api economy:live
- * Links a wallet, buys a Hot Meal with USDC, watches Sunny's reorder and pay its supplier, takes
- * the delivery, finishes it the way the world server does, is paid on chain, and sends USDC on.
+ * Ava buys a Sedan with `$` and its title deed is minted to her own NEAR wallet. Ben tops up `$`
+ * with USDC, which goes to Sol Motors' wallet. Ava lists the Sedan for `$` and USDC at once;
+ * Ben buys it with USDC, on chain: the car moves to him, Ava is paid, Sol Motors gets its cut.
+ * Ben sells it back to Ava for `$`, and the game hands it over on chain. Ava sends it to a
+ * wallet outside the game, and it leaves her garage.
+ *
  * Only Privy is stood in for: a local key signs the same hash Privy would. The database is a
  * scratch schema in fr33world_test. Needs NEAR_ROOT_KEY and NEAR_OPERATOR_KEY. Testnet only.
+ * New and sold cars are locked for an hour on testnet, so the run sets the locks to nothing
+ * while it runs and puts them back after, whatever happens.
  * With KEEP=1 the API stays up on port 7411 afterwards, to look at the economy page.
  */
-import { economyFromEnv, nearblocks, prepareSpend, submitSigned } from '@fr33world/chain';
-import { fundFromShopper, testWallet } from '@fr33world/chain/testkit';
-import { BUSINESSES, GOODS, unitPrice } from '@fr33world/shared';
-import { internalKey } from '@fr33world/auth';
+import {
+  economyFromEnv,
+  nearblocks,
+  prepareCarCall,
+  prepareSpend,
+  submitSigned,
+} from '@fr33world/chain';
+import {
+  fundFromShopper,
+  setCarLocks,
+  testWallet,
+  type TestWallet,
+} from '@fr33world/chain/testkit';
+import { CAR_ASSETS, CAR_MODELS, carPrice, DEALERSHIP, USDC } from '@fr33world/shared';
 import { buildApp } from './app.ts';
-import { armsOf } from './armory.ts';
 import { tick } from './business.ts';
+import { runMints, syncCars } from './cars.ts';
+import { balanceOf, systemAccount, transfer, walletOf } from './ledger.ts';
+import { priceBounds } from './market.ts';
+import { linkWallet } from './usdc.ts';
 import { testDb } from './test-db.ts';
 
 const near = economyFromEnv();
@@ -24,23 +43,40 @@ if (!rootKey || !process.env.NEAR_OPERATOR_KEY) throw new Error('needs the testn
 const chain = Object.assign(near, {
   prepare: (account: string, spend: Parameters<typeof prepareSpend>[2]) =>
     prepareSpend(near, account, spend),
+  prepareCar: (account: string, call: Parameters<typeof prepareCarCall>[2]) =>
+    prepareCarCall(near, account, call),
   submit: (account: string, tx: string, signature: string) =>
     submitSigned(near, account, tx, signature),
 });
 const db = await testDb('live');
-const wallet = testWallet();
-const privy = 'did:privy:live-run';
-const secret = 'live-run-ticket-secret-0123456789abcdef';
 const alerts: string[] = [];
-const economy = { db, chain, alert: (t: string) => alerts.push(t) };
+const players = new Map<string, { privy: string; wallet: TestWallet }>([
+  ['ava', { privy: 'did:privy:live-ava', wallet: testWallet() }],
+  ['ben', { privy: 'did:privy:live-ben', wallet: testWallet() }],
+]);
+const byPrivy = new Map([...players.values()].map((p) => [p.privy, p.wallet.account]));
+const usdc = {
+  db,
+  chain,
+  confirmGapMs: 1500,
+  walletOf: (privy: string) => Promise.resolve(byPrivy.get(privy) ?? null),
+};
+const cars = {
+  db,
+  chain,
+  confirmGapMs: 1500,
+  link: (privy: string) => linkWallet(usdc, privy),
+  alert: (t: string) => alerts.push(t),
+};
 const app = buildApp({
   db,
-  verify: () => Promise.resolve(privy),
+  verify: (token) => Promise.resolve(players.get(token)?.privy ?? null),
   isGuest: () => Promise.resolve(false),
-  ticketSecret: secret,
+  ticketSecret: 'live-run-ticket-secret-0123456789abcdef',
   corsOrigins: ['http://localhost:5173', 'http://localhost:5199'],
-  economy,
-  usdc: { db, chain, walletOf: () => Promise.resolve(wallet.account) },
+  economy: { db, chain, alert: (t: string) => alerts.push(t) },
+  usdc,
+  cars,
 });
 
 let failures = 0;
@@ -48,121 +84,194 @@ const check = (name: string, ok: boolean, extra = '') => {
   if (!ok) failures += 1;
   console.log(`${ok ? 'ok  ' : 'FAIL'} ${name} ${extra}`);
 };
-const tx = (hash?: string | null) => (hash ? nearblocks(near.cfg, 'txns', hash) : '');
+const link = (hash?: string | null) => (hash ? `     ${nearblocks(near.cfg, 'txns', hash)}` : '');
 
-async function call<T>(method: 'GET' | 'POST', url: string, payload?: object, token = 'player') {
-  const r = await app.inject({
-    method,
-    url,
-    payload,
-    headers: { authorization: `Bearer ${token}` },
-  });
+async function call<T>(who: string, method: 'GET' | 'POST', url: string, payload?: object) {
+  const r = await app.inject({ method, url, payload, headers: { authorization: `Bearer ${who}` } });
   if (r.statusCode >= 400) throw new Error(`${url}: ${r.statusCode} ${r.body}`);
   return r.json<T>();
 }
 
-const made = await db.query<{ id: string }>(
-  "insert into accounts (privy_user_id, display_name, is_guest) values ($1, 'Live', false) returning id",
-  [privy],
-);
-const account = made.rows[0]!.id;
-// Past the job rules' level and character age, which tests cover on their own.
-await db.query(
-  `insert into characters (account_id, name, age, appearance, xp, created_at)
-   values ($1, 'Live Run', 25, 0, 100000, now() - interval '3 days')`,
-  [account],
-);
-
-await tick(economy, 0);
-const linked = await call<{ near: string }>('POST', '/v1/usdc/link');
-check('the wallet is linked', linked.near === wallet.account, linked.near.slice(0, 12));
-await fundFromShopper(near, rootKey, wallet.account, 3_000_000);
-const card = await call<{ micro: number }>('GET', '/v1/usdc');
-check('the card shows the chain’s balance', card.micro === 3_000_000, `${card.micro / 1e6} USDC`);
-
-const market = BUSINESSES.find((b) => b.id === 'market')!;
-const meal = GOODS.find((g) => g.id === 'meal')!;
-const price = unitPrice(market, meal);
-const shelf = await call<{ id: string; micro: number; stock: number }[]>('GET', '/v1/market/shelf');
-check('the shelf has a Hot Meal', (shelf.find((g) => g.id === 'meal')?.stock ?? 0) > 0);
-
-const sale = await call<{ sale: string; micro: number; tx: string; hash: string }>(
-  'POST',
-  '/v1/usdc/sale',
-  { good: 'meal' },
-);
-check('the sale is at the listed price', sale.micro === price, `${price / 1e6} USDC`);
-const paid = await call<{ tx: string | null }>('POST', '/v1/usdc/sale/finish', {
-  sale: sale.sale,
-  tx: sale.tx,
-  signature: wallet.sign(sale.hash),
-});
-console.log(`     ${tx(paid.tx)}`);
-const onChain = await near.getSale(near.accountOf(market.account), sale.sale);
-check('the chain has the sale', onChain === String(price));
-check('the meal is in the bag', (await armsOf(db, account)).care?.meal === 1);
-check(
-  'the money left the player',
-  (await near.usdcBalance(wallet.account)) === BigInt(3_000_000 - price),
-);
-
-// A quiet week at Sunny's in one line: the shelf runs low, so the next tick reorders.
-await db.query("update business_stock set qty = 2 where business = 'market' and good = 'meal'");
-const ticked = await tick(economy, 0);
-check('Sunny’s reordered and paid on chain', ticked.paid >= 1, JSON.stringify(ticked));
-check('no mismatch with the chain', ticked.mismatches === 0);
-const orders = await db.query<{ tx: string | null; amount: string }>(
-  "select tx, amount from business_orders where status = 'paid' order by created_at desc limit 1",
-);
-console.log(`     ${tx(orders.rows[0]?.tx)}`);
-
-const open = await db.query<{ id: string; amount: string; business: string }>(
-  "select id, amount, business from business_jobs where status = 'open' limit 1",
-);
-const job = open.rows[0];
-check('a delivery job is open', Boolean(job));
-if (!job) process.exit(1);
-const biz = BUSINESSES.find((b) => b.id === job.business)!;
-await call('POST', '/v1/usdc/job', { job: job.id });
-const held = await near.getJob(near.accountOf(biz.account), job.id);
-check('the job is fixed to the player on chain', held?.worker === wallet.account, held?.status);
-
-const before = await near.usdcBalance(wallet.account);
-await call('POST', '/v1/internal/haul/finish', { account }, internalKey(secret));
-const after = await near.usdcBalance(wallet.account);
-check(
-  'the delivery paid the player on chain',
-  after - before === BigInt(job.amount),
-  `+${Number(job.amount) / 1e6} USDC`,
-);
-const done = await db.query<{ status: string; tx: string | null }>(
-  'select status, tx from business_jobs where id = $1',
-  [job.id],
-);
-check('the job is closed', done.rows[0]?.status === 'paid');
-console.log(`     ${tx(done.rows[0]?.tx)}`);
-
-const to = near.accountOf('shopper');
-const send = await call<{ tx: string; hash: string }>('POST', '/v1/usdc/send', {
-  to,
-  micro: 500_000,
-});
-const sent = await call<{ tx: string }>('POST', '/v1/usdc/send/finish', {
-  tx: send.tx,
-  signature: wallet.sign(send.hash),
-});
-console.log(`     ${tx(sent.tx)}`);
-check('the player sent USDC on', (await near.usdcBalance(wallet.account)) === after - 500_000n);
-
-const page = await call<{
-  businesses: { name: string; wallet: { balance: string; reserved: string } | null }[];
-  decisions: unknown[];
-}>('GET', '/v1/economy');
-for (const b of page.businesses) {
-  const real = b.wallet ? Number(b.wallet.balance) / 1e6 : null;
-  check(`the economy page reads ${b.name} from the chain`, real !== null, `${real} USDC`);
+type Stepped<T> = { step?: { tx: string; hash: string; what: string }; done?: T };
+/** Calls a step route to the end, signing each step with the player's own key. */
+async function steps<T>(who: string, url: string, body: object): Promise<T> {
+  const wallet = players.get(who)!.wallet;
+  let r = await call<Stepped<T>>(who, 'POST', url, body);
+  while (r.step) {
+    console.log(`     ${who} signs: ${r.step.what}`);
+    r = await call<Stepped<T>>(who, 'POST', url, {
+      ...body,
+      tx: r.step.tx,
+      signature: wallet.sign(r.step.hash),
+    });
+  }
+  return r.done as T;
 }
-check('no alerts', alerts.length === 0, alerts.join(' | '));
+
+async function person(who: string, cents: number) {
+  const p = players.get(who)!;
+  const made = await db.query<{ id: string }>(
+    'insert into accounts (privy_user_id, display_name, is_guest) values ($1, $2, false) returning id',
+    [p.privy, who],
+  );
+  const id = made.rows[0]!.id;
+  await db.query(
+    `insert into characters (account_id, name, age, appearance) values ($1, $2, 25, 0)`,
+    [id, who === 'ava' ? 'Ava Live' : 'Ben Live'],
+  );
+  if (cents > 0)
+    await transfer(db, {
+      kind: 'signup_bonus',
+      key: `live-${id}`,
+      legs: [
+        { account: await systemAccount(db, 'faucet:signup'), amount: -cents },
+        { account: await walletOf(db, id), amount: cents },
+      ],
+    });
+  await call(who, 'POST', '/v1/usdc/link', {});
+  return { id, near: p.wallet.account };
+}
+const dollars = async (id: string) => balanceOf(db, await walletOf(db, id));
+const owner = async (token: string) => (await near.carToken(token))?.owner_id;
+const dealer = near.accountOf(DEALERSHIP.account);
+const dealerHas = async () => BigInt((await near.summary(dealer)).balance);
+
+const setLocks = (ns: number) => setCarLocks(near, rootKey, ns);
+const hourNs = CAR_ASSETS.lockHours.testnet * 3_600_000_000_000;
+
+try {
+  await setLocks(0);
+  await tick({ db, chain, alert: (t: string) => alerts.push(t) }, 0);
+  const sedan = CAR_MODELS.findIndex((m) => m.id === 'sedan');
+  const ava = await person('ava', carPrice(sedan)! + 2_000_000);
+  const ben = await person('ben', 0);
+  check('both wallets are linked', Boolean(ava.near && ben.near));
+
+  // 1. A car bought with `$` is minted to the buyer's own wallet.
+  const bought = await call<{ car: { id: number } }>('ava', 'POST', '/v1/dealer/buy', {
+    model: sedan,
+    key: `live-${Date.now()}`,
+  });
+  await runMints(cars);
+  const token =
+    (
+      await db.query<{ asset: string }>('select asset from car_chain where car_id = $1', [
+        bought.car.id,
+      ])
+    ).rows[0]?.asset ?? 'none';
+  check('the Sedan’s title deed is in Ava’s own wallet', (await owner(token)) === ava.near, token);
+  const garage = await call<{ cars: { id: number; minted: boolean }[] }>(
+    'ava',
+    'GET',
+    '/v1/garage',
+  );
+  check(
+    'her garage shows it on chain',
+    garage.cars.some((c) => c.id === bought.car.id && c.minted),
+  );
+
+  // 2. USDC into `$`, one way: the USDC goes to Sol Motors' wallet first.
+  await fundFromShopper(near, rootKey, ben.near, 12 * USDC);
+  const before = await dealerHas();
+  const t = await call<{ topup: string; tx: string; hash: string; cents: number }>(
+    'ben',
+    'POST',
+    '/v1/usdc/topup',
+    { micro: 2 * USDC },
+  );
+  const topped = await call<{ balance: number; tx: string | null }>(
+    'ben',
+    'POST',
+    '/v1/usdc/topup/finish',
+    {
+      topup: t.topup,
+      tx: t.tx,
+      signature: players.get('ben')!.wallet.sign(t.hash),
+    },
+  );
+  console.log(link(topped.tx));
+  check('Ben’s 2 USDC bought $10,000', topped.balance === 1_000_000, `$${topped.balance / 100}`);
+  check('the USDC is in Sol Motors’ wallet', (await dealerHas()) - before === BigInt(2 * USDC));
+
+  // 3. Listed for `$` and USDC at once; Ben chooses USDC.
+  const price = priceBounds(sedan).min;
+  const listed = await steps<{ id: number }>('ava', '/v1/market/list', {
+    car: bought.car.id,
+    price,
+    micro: 7 * USDC,
+  });
+  const market = await call<{
+    listings: { id: number; price: number | null; micro: number | null }[];
+  }>('ben', 'GET', '/v1/market');
+  check(
+    'the market shows both prices',
+    market.listings.some((l) => l.id === listed.id && l.price === price && l.micro === 7 * USDC),
+  );
+  check(
+    'the $ offer and USDC listing are on chain',
+    (await near.isOffered(token)) && Boolean(await near.carListing(token)),
+  );
+  const avaUsdc = await near.usdcBalance(ava.near);
+  const cutBefore = await dealerHas();
+  const sold = await steps<{ tx: string | null }>('ben', '/v1/market/buy-usdc', { id: listed.id });
+  console.log(link(sold.tx));
+  check('the car is in Ben’s wallet', (await owner(token)) === ben.near);
+  const paidAva = (await near.usdcBalance(ava.near)) - avaUsdc;
+  check('Ava was paid 95%', paidAva === BigInt(6.65 * USDC), `+${Number(paidAva) / USDC} USDC`);
+  // The cut arrives a block or two after the sale.
+  let cut = 0n;
+  for (let i = 0; i < 6 && cut === 0n; i += 1) {
+    await new Promise((r) => setTimeout(r, 1500));
+    cut = (await dealerHas()) - cutBefore;
+  }
+  check('Sol Motors got its 5% cut', cut === BigInt(0.35 * USDC), `+${Number(cut) / USDC} USDC`);
+  const benGarage = await call<{ cars: { id: number }[] }>('ben', 'GET', '/v1/garage');
+  check(
+    'Ben’s garage has it',
+    benGarage.cars.some((c) => c.id === bought.car.id),
+  );
+
+  // 4. Ben sells it for `$` only; the game hands it over on chain.
+  const resale = await steps<{ id: number }>('ben', '/v1/market/list', {
+    car: bought.car.id,
+    price,
+  });
+  const avaBefore = await dollars(ava.id);
+  await call('ava', 'POST', '/v1/market/buy', { id: resale.id });
+  check('the $ sale moved the car back to Ava on chain', (await owner(token)) === ava.near);
+  check('Ava paid in $', avaBefore - (await dollars(ava.id)) === price, `-$${price / 100}`);
+
+  // 5. Sent to a wallet outside the game: it leaves her garage.
+  const away = near.accountOf('shopper');
+  const sent = await steps<{ tx: string | null }>('ava', '/v1/garage/send', {
+    car: bought.car.id,
+    to: away,
+  });
+  console.log(link(sent.tx));
+  check('it’s in the other wallet on chain', (await owner(token)) === away);
+  await syncCars(cars, 0);
+  const left = await call<{ cars: { id: number }[] }>('ava', 'GET', '/v1/garage');
+  check('and gone from every garage', !left.cars.some((c) => c.id === bought.car.id));
+
+  const page = await call<{ businesses: { name: string; wallet: { balance: string } | null }[] }>(
+    'ava',
+    'GET',
+    '/v1/economy',
+  );
+  const motors = page.businesses.find((b) => b.name === DEALERSHIP.name);
+  check(
+    'the economy page reads Sol Motors from the chain',
+    Boolean(motors?.wallet),
+    motors?.wallet?.balance,
+  );
+  check('no alerts', alerts.length === 0, alerts.join(' | '));
+} catch (e) {
+  failures += 1;
+  console.error(e);
+} finally {
+  await setLocks(hourNs);
+  console.log('locks back to', CAR_ASSETS.lockHours.testnet, 'h');
+}
 console.log(failures === 0 ? '\nAll good.' : `\n${failures} failed.`);
 
 if (process.env.KEEP) {

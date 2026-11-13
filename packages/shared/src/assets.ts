@@ -69,14 +69,11 @@ export function fairUsdc(model: number): number | null {
   return cents === null ? null : Math.round((cents / 100 / TOPUP.dollarsPerUsdc) * USDC);
 }
 
-/** A car's token id on the cars contract. */
-export const carToken = (carId: number | string) => `car-${carId}`;
-
-/** The car id from a token id, or null if it isn't one of ours. */
-export function carIdOf(token: string): number | null {
-  const m = /^car-(\d{1,15})$/.exec(token);
-  return m ? Number(m[1]) : null;
-}
+/**
+ * A car's token id on the cars contract: its id and a random tag, so cars from different
+ * databases (the live game, test runs) can never share one on the same contract.
+ */
+export const carToken = (carId: number | string, tag: string) => `car-${carId}-${tag}`;
 
 /** A car's title on chain and in wallets: "Sport #13". */
 export const carTitle = (model: number, carId: number) =>

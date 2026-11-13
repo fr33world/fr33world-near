@@ -13,6 +13,7 @@ import {
   type Business,
   type BusinessId,
   BUSINESSES,
+  DEALERSHIP,
   GOODS,
   jobPay,
   JOB_RULES,
@@ -75,6 +76,12 @@ async function live(db: Db | Tx): Promise<Business[]> {
 
 /** Creates the businesses and their first stock. They start with goods and no money (D-42). */
 export async function seedBusinesses(db: Db, chain: EconomyChain): Promise<void> {
+  // Sol Motors holds no stock here: its wallet gets the cut of USDC car sales and the top-ups.
+  await db.query(
+    `insert into businesses (id, account, name, markup, target) values ($1, $2, $3, 0, 1)
+     on conflict (id) do nothing`,
+    [DEALERSHIP.id, chain.accountOf(DEALERSHIP.account), DEALERSHIP.name],
+  );
   for (const b of BUSINESSES) {
     await db.query(
       `insert into businesses (id, account, name, markup, target) values ($1, $2, $3, $4, $5)

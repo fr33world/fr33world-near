@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/require-await -- the stand-in chain answers at once */
-import { carPrice, CAR_MODELS, carToken, USDC } from '@fr33world/shared';
+import { carPrice, CAR_MODELS, USDC } from '@fr33world/shared';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { BankError } from './bank.ts';
 import {
@@ -183,12 +183,16 @@ async function person(cents: number, opts: { wallet?: boolean } = {}) {
 
 const sedan = CAR_MODELS.findIndex((m) => m.id === 'sedan');
 
+const tokenFor = async (car: number) =>
+  (await db.query<{ asset: string }>('select asset from car_chain where car_id = $1', [car]))
+    .rows[0]!.asset;
+
 /** A seller whose sedan is minted to their wallet, its lock over. */
 async function owner() {
   const p = await person(carPrice(sedan)!);
   const { car } = await buyCar(db, p.privy, { model: sedan, key: `k-${Date.now()}-${n}` });
   await runMints(d);
-  return { ...p, car: car.id, token: carToken(car.id) };
+  return { ...p, car: car.id, token: await tokenFor(car.id) };
 }
 
 /** Runs a step call to the end, signing each step as the player would. */
@@ -216,6 +220,7 @@ describe('title deeds', () => {
   it('a car bought at the dealer is minted to the buyer’s own wallet, once', async () => {
     const p = await owner();
     expect(chain.owners.get(p.token)).toBe(p.near);
+    expect(p.token).toMatch(new RegExp(`^car-${p.car}-[0-9a-f]{6}$`));
     expect(await queueMints(db, p.id)).toBe(0);
     await runMints(d);
     expect(chain.minted.filter((t) => t === p.token)).toHaveLength(1);
@@ -234,7 +239,7 @@ describe('title deeds', () => {
     ]);
     expect(await queueMints(db, p.id)).toBe(1);
     await runMints(d);
-    expect(chain.owners.get(carToken(car.id))).toBe(p.near);
+    expect(chain.owners.get(await tokenFor(car.id))).toBe(p.near);
   });
 
   it('a mint that fails is retried later, without minting twice', async () => {
@@ -246,7 +251,7 @@ describe('title deeds', () => {
     await db.query('update car_chain set next_at = now() where car_id = $1', [car.id]);
     await runMints(d);
     await runMints(d);
-    expect(chain.minted).toEqual([carToken(car.id)]);
+    expect(chain.minted).toEqual([await tokenFor(car.id)]);
   });
 });
 

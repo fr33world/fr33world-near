@@ -48,3 +48,14 @@ export async function fundFromShopper(
     gas: teraToGas('30'),
   });
 }
+
+/** Testnet runs: the admin sets how long new and sold cars stay locked, in nanoseconds. */
+export async function setCarLocks(e: NearEconomy, rootKey: string, ns: number): Promise<void> {
+  if (e.cfg.network !== 'testnet') throw new Error('testnet only');
+  const admin = new Account(e.cfg.root, e.rpc(), rootKey as KeyPairString);
+  await admin.callFunction({
+    contractId: e.carsAccount(),
+    methodName: 'set_locks',
+    args: { after_mint_ns: ns, after_sale_ns: ns },
+  });
+}
