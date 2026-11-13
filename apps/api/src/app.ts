@@ -114,6 +114,7 @@ import {
   syncCars,
   unlistOnChain,
 } from './cars.ts';
+import { dealerTick, type DealerDeps } from './dealer.ts';
 import {
   appointBoss,
   applyTo,
@@ -169,6 +170,8 @@ export interface AppDeps {
   usdc?: UsdcDeps;
   /** Cars on NEAR (cars.ts): absent with no operator key, and cars then stay off chain. */
   cars?: CarDeps;
+  /** Sol Motors' own round (dealer.ts), after each economy tick. */
+  dealer?: DealerDeps;
 }
 
 /** Logins per address per minute (each one verifies a token and touches the database). */
@@ -574,7 +577,8 @@ export function buildApp(deps: AppDeps): FastifyInstance {
       await runMints(deps.cars).catch((e: unknown) => console.error('mint cars', e));
       await syncCars(deps.cars, 0).catch((e: unknown) => console.error('sync cars', e));
     }
-    return ticked;
+    const dealer = deps.dealer && ticked.ran ? await dealerTick(deps.dealer) : null;
+    return { ...ticked, dealer };
   });
   const withUsdc = (
     req: FastifyRequest,

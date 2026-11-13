@@ -30,6 +30,8 @@ import { CAR_ASSETS, CAR_MODELS, carPrice, DEALERSHIP, USDC } from '@fr33world/s
 import { buildApp } from './app.ts';
 import { tick } from './business.ts';
 import { runMints, syncCars } from './cars.ts';
+import { dealerTick } from './dealer.ts';
+import { DEFAULT_MODEL, nearAi } from './advisor.ts';
 import { balanceOf, systemAccount, transfer, walletOf } from './ledger.ts';
 import { priceBounds } from './market.ts';
 import { linkWallet } from './usdc.ts';
@@ -143,7 +145,7 @@ try {
   await setLocks(0);
   await tick({ db, chain, alert: (t: string) => alerts.push(t) }, 0);
   const sedan = CAR_MODELS.findIndex((m) => m.id === 'sedan');
-  const ava = await person('ava', carPrice(sedan)! + 2_000_000);
+  const ava = await person('ava', 2 * carPrice(sedan)! + 2_000_000);
   const ben = await person('ben', 0);
   check('both wallets are linked', Boolean(ava.near && ben.near));
 
@@ -252,6 +254,55 @@ try {
   await syncCars(cars, 0);
   const left = await call<{ cars: { id: number }[] }>('ava', 'GET', '/v1/garage');
   check('and gone from every garage', !left.cars.some((c) => c.id === bought.car.id));
+
+  // 6. Sol Motors buys a car listed far under its worth, the AI deciding, and sells it again.
+  const second = await call<{ car: { id: number } }>('ava', 'POST', '/v1/dealer/buy', {
+    model: sedan,
+    key: `live2-${Date.now()}`,
+  });
+  await runMints(cars);
+  const cheap = await steps<{ id: number }>('ava', '/v1/market/list', {
+    car: second.car.id,
+    micro: 4 * USDC,
+  });
+  const token2 = (
+    await db.query<{ asset: string }>('select asset from car_chain where car_id = $1', [
+      second.car.id,
+    ])
+  ).rows[0]!.asset;
+  const ai = process.env.NEAR_AI_KEY
+    ? nearAi(process.env.NEAR_AI_KEY, process.env.NEAR_AI_MODEL ?? DEFAULT_MODEL)
+    : undefined;
+  const dealerDeps = { db, chain, cars, ask: ai, confirmGapMs: 1500 };
+  let round = await dealerTick(dealerDeps);
+  const said = await db.query<{ source: string; summary: string }>(
+    "select source, summary from business_decisions where business = 'dealer' order by id desc limit 1",
+  );
+  console.log(`     Sol Motors (${said.rows[0]?.source}): ${said.rows[0]?.summary}`);
+  if (!round.bought) {
+    // The AI may wait; the rules alone take the deepest discount, so the rest can be checked.
+    round = await dealerTick({ ...dealerDeps, ask: undefined });
+  }
+  check(
+    'Sol Motors bought the cheap Sedan on chain',
+    (await owner(token2)) === dealer,
+    `listing ${cheap.id}`,
+  );
+  await dealerTick(dealerDeps);
+  const relisted = await near.carListing(token2);
+  check(
+    'and put it back on sale at a fair price',
+    relisted?.seller === dealer && Number(relisted.price) >= 6 * USDC,
+    relisted ? `${Number(relisted.price) / USDC} USDC` : 'not listed',
+  );
+  await syncCars(cars, 0);
+  const shown = await call<{
+    listings: { car_id: number; seller: string; micro: number | null }[];
+  }>('ben', 'GET', '/v1/market');
+  check(
+    'the market shows it from Sol Motors',
+    shown.listings.some((l) => l.car_id === second.car.id && l.seller === DEALERSHIP.name),
+  );
 
   const page = await call<{ businesses: { name: string; wallet: { balance: string } | null }[] }>(
     'ava',

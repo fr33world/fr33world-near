@@ -78,3 +78,44 @@ export const carToken = (carId: number | string, tag: string) => `car-${carId}-$
 /** A car's title on chain and in wallets: "Sport #13". */
 export const carTitle = (model: number, carId: number) =>
   `${CAR_MODELS[model]?.name ?? 'Car'} #${carId}`;
+
+/**
+ * Sol Motors' buybacks (owner, 2026-11-13): the dealership's wallet spends the cut and the
+ * top-ups only on cars players list for USDC far under their worth, and sells them again at a
+ * fair price, so a bargain-bin car always has a buyer. An AI may choose which to buy and the
+ * resale price, inside these limits; the wallet contract's own limits (DEALERSHIP) come last.
+ */
+export const BUYBACK = {
+  /** Buys only a car listed at or under this share of its worth (fairUsdc). */
+  under: 0.6,
+  /** Sells again between these shares of its worth. */
+  relistMin: 0.9,
+  relistMax: 1.2,
+  /** Spends at most this share of its free USDC on one car. */
+  spendShare: 0.5,
+  /** Cars it holds for resale at once. */
+  holdMax: 3,
+} as const;
+
+export interface BuybackOffer {
+  /** Index into the candidates the AI is shown. */
+  buy: number | null;
+  /** The resale price as a share of the car's worth. */
+  relist: number;
+}
+
+/** An AI's buyback answer cut to the rules: a real candidate or none, a price in bounds. */
+export function clampBuyback(
+  answer: { buy?: unknown; relist?: unknown },
+  candidates: number,
+): BuybackOffer {
+  const buy =
+    typeof answer.buy === 'number' &&
+    Number.isInteger(answer.buy) &&
+    answer.buy >= 0 &&
+    answer.buy < candidates
+      ? answer.buy
+      : null;
+  const r = typeof answer.relist === 'number' && Number.isFinite(answer.relist) ? answer.relist : 1;
+  return { buy, relist: Math.min(BUYBACK.relistMax, Math.max(BUYBACK.relistMin, r)) };
+}

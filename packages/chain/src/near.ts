@@ -129,7 +129,8 @@ export interface Sent {
   tx: string;
 }
 
-const GAS = teraToGas('120');
+/** Room for a business wallet's payment to buy a car, which pays onward in the same call. */
+const GAS = teraToGas('250');
 const YOCTO = 1n;
 /** What the USDC contract charges to register an account (0.00125 NEAR). */
 const REGISTER = 1_250_000_000_000_000_000_000n;
@@ -277,6 +278,23 @@ export class NearEconomy {
       token_id: tokenId,
       owner,
       metadata: { ...metadata, issued_at: String(Date.now()) },
+    });
+  }
+
+  /** A business wallet lists a car it owns on the cars contract (the operator asks). */
+  walletListCar(wallet: string, tokenId: string, price: number): Promise<Sent> {
+    return this.call(wallet, 'list_car', {
+      cars: this.carsAccount(),
+      token_id: tokenId,
+      price: String(price),
+    });
+  }
+
+  /** Cars an account holds. */
+  carsOf(account: string): Promise<ChainCar[]> {
+    return this.view(this.carsAccount(), 'nft_tokens_for_owner', {
+      account_id: account,
+      limit: 100,
     });
   }
 

@@ -21,7 +21,8 @@ const DAY_NS: u64 = 86_400_000_000_000;
 /// How long a supplier added after setup waits before it can be paid.
 const SUPPLIER_DELAY_NS: u64 = DAY_NS;
 const GAS_FT_TRANSFER: Gas = Gas::from_tgas(15);
-const GAS_FT_TRANSFER_CALL: Gas = Gas::from_tgas(50);
+/// Enough for the receiver to do real work: buying a car pays its seller and a cut onward.
+const GAS_FT_TRANSFER_CALL: Gas = Gas::from_tgas(170);
 const GAS_FT_BALANCE: Gas = Gas::from_tgas(5);
 const GAS_CALLBACK: Gas = Gas::from_tgas(10);
 const GAS_CARS: Gas = Gas::from_tgas(15);

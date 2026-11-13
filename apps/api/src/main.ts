@@ -41,20 +41,23 @@ function nearDeps() {
     requestTestUsdc: near.cfg.network === 'testnet' ? near.requestTestUsdc.bind(near) : undefined,
   });
   const usdc = { db, chain, walletOf: privyNearWallet(PRIVY_APP_ID!, PRIVY_APP_SECRET!) };
+  const cars = {
+    db,
+    chain,
+    link: (privyUser: string) => linkWallet(usdc, privyUser),
+    alert: (text: string) => void alert(db, 'economy', { text }),
+  };
+  const ask = NEAR_AI_KEY ? nearAi(NEAR_AI_KEY, NEAR_AI_MODEL ?? DEFAULT_MODEL) : undefined;
   return {
     economy: {
       db,
       chain,
       alert: (text: string) => void alert(db, 'economy', { text }),
-      ask: NEAR_AI_KEY ? nearAi(NEAR_AI_KEY, NEAR_AI_MODEL ?? DEFAULT_MODEL) : undefined,
+      ask,
     },
     usdc,
-    cars: {
-      db,
-      chain,
-      link: (privyUser: string) => linkWallet(usdc, privyUser),
-      alert: (text: string) => void alert(db, 'economy', { text }),
-    },
+    cars,
+    dealer: { db, chain, cars, ask },
   };
 }
 if (!PRIVY_APP_ID || !PRIVY_APP_SECRET)
