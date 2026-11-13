@@ -70,11 +70,12 @@ import { type EconomyDeps, finishJob, settleJobs, tick } from './business.ts';
 import {
   buyWithDollars,
   economyView,
-  finishSale,
+  finishTopup,
   finishSend,
   linkWallet,
   shelf,
-  startSale,
+  startTopup,
+  topupStatus,
   startSend,
   takeDelivery,
   usdcWallet,
@@ -556,11 +557,13 @@ export function buildApp(deps: AppDeps): FastifyInstance {
       ? reply.code(429).send({ error: 'Slow down.' })
       : withUsdc(req, reply, (d, u) => claimTestUsdc(d, u)),
   );
-  app.post('/v1/usdc/sale', (req, reply) =>
-    withUsdc(req, reply, (d, u) => startSale(d, u, usdcBody(req))),
+  // `$` for USDC, one way (shared TOPUP): the USDC goes to the dealership's wallet first.
+  app.get('/v1/usdc/topup', (req, reply) => withUsdc(req, reply, (d, u) => topupStatus(d, u)));
+  app.post('/v1/usdc/topup', (req, reply) =>
+    withUsdc(req, reply, (d, u) => startTopup(d, u, usdcBody(req))),
   );
-  app.post('/v1/usdc/sale/finish', (req, reply) =>
-    withUsdc(req, reply, (d, u) => finishSale(d, u, usdcBody(req))),
+  app.post('/v1/usdc/topup/finish', (req, reply) =>
+    withUsdc(req, reply, (d, u) => finishTopup(d, u, usdcBody(req))),
   );
   app.post('/v1/usdc/send', (req, reply) =>
     withUsdc(req, reply, (d, u) => startSend(d, u, usdcBody(req))),

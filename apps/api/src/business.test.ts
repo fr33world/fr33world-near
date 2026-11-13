@@ -12,7 +12,7 @@ let alerts: string[];
 const market = 'sunnys-grocery.test';
 const wholesale = 'harbor-wholesale.test';
 const farm = 'sol-farm.test';
-const run = () => tick({ db, chain, alert: (t) => alerts.push(t) }, 0);
+const run = () => tick({ db, chain, alert: (t) => alerts.push(t), foodChain: true }, 0);
 const stock = async (b: string, g: string) =>
   (
     await db.query<{ qty: number }>(
@@ -76,7 +76,8 @@ describe('the economy', () => {
     expect(r.paid).toBe(1);
     expect((await chain.summary(wholesale)).balance).not.toBe('0');
     expect(await stock('wholesale', 'meal')).toBeLessThan(before);
-    expect(await stock('market', 'meal')).toBe(5);
+    // The goods wait for a carrier; the local `$` supplier tops the shelf up meanwhile.
+    expect(await stock('market', 'meal')).toBe(5 + 6);
   });
 
   it('trims an order to what it can afford', async () => {
@@ -121,13 +122,13 @@ describe('the economy', () => {
     expect(alerts.length).toBeGreaterThan(0);
   });
 
-  it('keeps $ goods on the shelf with no USDC at all', async () => {
+  it('keeps $ goods on the shelf with no USDC at all, the Hot Meal included', async () => {
     await setStock('market', 'water', 0);
-    await run();
-    expect(await stock('market', 'water')).toBe(6);
     await setStock('market', 'meal', 0);
-    await run();
-    expect(await stock('market', 'meal')).toBe(0);
+    await tick({ db, chain, alert: (t) => alerts.push(t) }, 0);
+    expect(await stock('market', 'water')).toBe(6);
+    expect(await stock('market', 'meal')).toBe(6);
+    expect(await db.query('select 1 from business_orders')).toMatchObject({ rowCount: 0 });
   });
 
   it('pays a player for a delivery from money held on chain', async () => {

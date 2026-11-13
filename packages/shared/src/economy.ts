@@ -55,6 +55,17 @@ export const FAUCETS = {
     perHour: 500_000,
     perDay: 800_000,
   },
+  /**
+   * `$` bought with USDC (shared TOPUP): the USDC went to the dealership's wallet on chain
+   * first. One top-up can be a whole week's allowance.
+   */
+  topup: {
+    account: 'faucet:topup',
+    about: 'USDC top-up',
+    maxPayment: 25_000_000,
+    perHour: 25_000_000,
+    perDay: 25_000_000,
+  },
   /** Faction pay for each 10 minutes on duty (D-26). */
   salary: {
     account: 'faucet:salary',

@@ -455,13 +455,12 @@ export function marketCall(
   return bankCall(privyToken, `/v1/market/${what}`, body);
 }
 
-/** A good on Sunny's shelf. `cents` is null for goods sold for USDC only. */
+/** A good on Sunny's shelf, sold for `$` only. */
 export interface ShelfItem {
   id: string;
   name: string;
   heal: number;
-  cents: number | null;
-  micro: number;
+  cents: number;
   stock: number;
 }
 
@@ -498,14 +497,25 @@ export interface UsdcWallet {
 
 export const fetchUsdc = (token: string) => usdcCall<UsdcWallet>(token, 'usdc');
 export const linkUsdc = (token: string) => usdcCall<{ near: string }>(token, 'usdc/link', {});
-export const startUsdcSale = (token: string, good: string) =>
-  usdcCall<{ sale: string; micro: number; tx: string; hash: `0x${string}` }>(token, 'usdc/sale', {
-    good,
-  });
-export const finishUsdcSale = (
+/** `$` for USDC, one way: the rate and what's left of this week's allowance. */
+export interface TopupStatus {
+  dollarsPerUsdc: number;
+  min: number;
+  left: number;
+  perWeek: number;
+}
+export const fetchTopup = (token: string) => usdcCall<TopupStatus>(token, 'usdc/topup');
+export const startTopup = (token: string, micro: number) =>
+  usdcCall<{ topup: string; micro: number; cents: number; tx: string; hash: `0x${string}` }>(
+    token,
+    'usdc/topup',
+    { micro },
+  );
+export const finishTopup = (
   token: string,
-  body: { sale: string; tx: string; signature: string },
-) => usdcCall<{ tx: string | null }>(token, 'usdc/sale/finish', body);
+  body: { topup: string; tx: string; signature: string },
+) =>
+  usdcCall<{ cents: number; balance: number; tx: string | null }>(token, 'usdc/topup/finish', body);
 export const startUsdcSend = (token: string, to: string, micro: number) =>
   usdcCall<{ tx: string; hash: `0x${string}` }>(token, 'usdc/send', { to, micro });
 export const finishUsdcSend = (token: string, tx: string, signature: string) =>

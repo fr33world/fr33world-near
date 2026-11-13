@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/require-await -- the stand-in chain answers at once */
-import { GOODS, unitPrice, BUSINESSES, TEST_USDC } from '@fr33world/shared';
+import { GOODS, TEST_USDC, TOPUP, topupCents } from '@fr33world/shared';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { armsOf } from './armory.ts';
 import { BankError } from './bank.ts';
 import type { Db } from './db.ts';
 import { audit, balanceOf, post, systemAccount, walletOf } from './ledger.ts';
@@ -10,11 +9,11 @@ import { testDb } from './test-db.ts';
 import {
   buyWithDollars,
   claimTestUsdc,
-  expireSales,
-  finishSale,
+  expireTopups,
+  finishTopup,
   linkWallet,
   type PlayerChain,
-  startSale,
+  startTopup,
   startSend,
   testUsdcStatus,
   type UsdcDeps,
@@ -27,7 +26,7 @@ class FakeChain implements PlayerChain {
   welcomed: string[] = [];
   /** What the next signed payment pays; null: it never arrives. */
   pays: bigint | null | 'full' = 'full';
-  prepared = new Map<string, { amount: number; msg?: string }>();
+  prepared = new Map<string, { amount: number; receiver?: string; msg?: string }>();
   accountOf = (s: string) => `${s}.test`;
   async usdcBalance(a: string) {
     return this.balances.get(a) ?? 0n;
@@ -38,7 +37,7 @@ class FakeChain implements PlayerChain {
   async welcomePlayer(a: string) {
     this.welcomed.push(a);
   }
-  async prepare(_a: string, s: { amount: number; msg?: string }) {
+  async prepare(_a: string, s: { amount: number; receiver?: string; msg?: string }) {
     const tx = `tx-${this.prepared.size}`;
     this.prepared.set(tx, s);
     return { tx, hash: '0xabc' };
@@ -64,8 +63,6 @@ let db: Db;
 let chain: FakeChain;
 let d: UsdcDeps;
 let n = 0;
-const market = BUSINESSES.find((b) => b.id === 'market')!;
-const meal = GOODS.find((g) => g.id === 'meal')!;
 const water = GOODS.find((g) => g.id === 'water')!;
 
 async function player(opts: { guest?: boolean; cents?: number } = {}) {
@@ -88,6 +85,14 @@ async function player(opts: { guest?: boolean; cents?: number } = {}) {
       }),
     );
   return { privy, id };
+}
+let chars = 0;
+async function character(id: string) {
+  chars += 1;
+  await db.query(
+    'insert into characters (account_id, name, age, appearance) values ($1, $2, 25, 0)',
+    [id, `Topup Tester${chars}`],
+  );
 }
 const stock = async (g: string) =>
   (
@@ -114,7 +119,7 @@ beforeEach(async () => {
     confirmGapMs: 1,
     walletOf: async () => `${'a'.repeat(62)}${String(n).padStart(2, '0')}`,
   };
-  await db.query('truncate business_sales, business_stock');
+  await db.query('truncate business_sales, business_stock, usdc_topups');
   for (const g of GOODS)
     await db.query("insert into business_stock (business, good, qty) values ('market', $1, 10)", [
       g.id,
@@ -135,77 +140,72 @@ describe('player USDC', () => {
     expect(chain.welcomed).toEqual([near]);
   });
 
-  it('a USDC purchase hands over goods only once the chain shows it paid', async () => {
+  it('a top-up pays `$` only once the chain shows the USDC arrived', async () => {
     const p = await player();
-    await linkWallet(d, p.privy);
-    const s = await startSale(d, p.privy, { good: 'meal' });
-    expect(s.micro).toBe(unitPrice(market, meal));
-    expect(await stock('meal')).toBe(9);
-    await finishSale(d, p.privy, { sale: s.sale, tx: s.tx, signature: 'sig' });
-    expect((await armsOf(db, p.id)).care?.meal).toBe(1);
+    await character(p.id);
+    const { near } = await linkWallet(d, p.privy);
+    chain.balances.set(near, 10n * 1_000_000n);
+    const t = await startTopup(d, p.privy, { micro: 2_000_000 });
+    expect(t.cents).toBe(topupCents(2_000_000));
+    expect(chain.prepared.get(t.tx)).toMatchObject({ receiver: 'sol-motors.test', msg: t.topup });
+    const done = await finishTopup(d, p.privy, { topup: t.topup, tx: t.tx, signature: 'sig' });
+    expect(done.balance).toBe(1_000_000);
+    expect((await audit(db)).total).toBe(0);
   });
 
-  it('gives nothing for a payment that never arrived', async () => {
+  it('pays nothing for a payment that never arrived, or arrived short', async () => {
     const p = await player();
-    await linkWallet(d, p.privy);
-    const s = await startSale(d, p.privy, { good: 'meal' });
+    await character(p.id);
+    const { near } = await linkWallet(d, p.privy);
+    chain.balances.set(near, 10n * 1_000_000n);
+    const t = await startTopup(d, p.privy, { micro: 2_000_000 });
     chain.pays = null;
     await expect(
-      finishSale(d, p.privy, { sale: s.sale, tx: s.tx, signature: 'sig' }),
+      finishTopup(d, p.privy, { topup: t.topup, tx: t.tx, signature: 'sig' }),
     ).rejects.toBeInstanceOf(BankError);
-    expect((await armsOf(db, p.id)).care?.meal).toBeUndefined();
-  });
-
-  it('gives nothing for an underpayment', async () => {
-    const p = await player();
-    await linkWallet(d, p.privy);
-    const s = await startSale(d, p.privy, { good: 'meal' });
+    const u = await startTopup(d, p.privy, { micro: 2_000_000 });
     chain.pays = 1n;
     await expect(
-      finishSale(d, p.privy, { sale: s.sale, tx: s.tx, signature: 'sig' }),
+      finishTopup(d, p.privy, { topup: u.topup, tx: u.tx, signature: 'sig' }),
     ).rejects.toBeInstanceOf(BankError);
-    expect((await armsOf(db, p.id)).care?.meal).toBeUndefined();
+    expect(await balanceOf(db, await walletOf(db, p.id))).toBe(0);
   });
 
-  it('confirming twice gives one item', async () => {
+  it('confirming twice pays once, and nobody else can claim it', async () => {
     const p = await player();
-    await linkWallet(d, p.privy);
-    const s = await startSale(d, p.privy, { good: 'meal' });
-    const body = { sale: s.sale, tx: s.tx, signature: 'sig' };
-    await finishSale(d, p.privy, body);
-    await finishSale(d, p.privy, body);
-    expect((await armsOf(db, p.id)).care?.meal).toBe(1);
-  });
-
-  it('someone else cannot claim my sale', async () => {
-    const p = await player();
-    await linkWallet(d, p.privy);
+    await character(p.id);
+    const { near } = await linkWallet(d, p.privy);
+    chain.balances.set(near, 10n * 1_000_000n);
     const other = await player();
     await linkWallet(d, other.privy);
-    const s = await startSale(d, p.privy, { good: 'meal' });
-    await expect(
-      finishSale(d, other.privy, { sale: s.sale, tx: s.tx, signature: 'sig' }),
-    ).rejects.toBeInstanceOf(BankError);
+    const t = await startTopup(d, p.privy, { micro: 1_000_000 });
+    const body = { topup: t.topup, tx: t.tx, signature: 'sig' };
+    await expect(finishTopup(d, other.privy, body)).rejects.toBeInstanceOf(BankError);
+    await finishTopup(d, p.privy, body);
+    const again = await finishTopup(d, p.privy, body);
+    expect(again.balance).toBe(500_000);
   });
 
-  it('an unsigned sale gives its stock back', async () => {
+  it('keeps to the weekly cap, pending top-ups included', async () => {
     const p = await player();
-    await linkWallet(d, p.privy);
-    await startSale(d, p.privy, { good: 'meal' });
-    await db.query("update business_sales set created_at = now() - interval '1 hour'");
-    await expireSales(db);
-    expect(await stock('meal')).toBe(10);
+    await character(p.id);
+    const { near } = await linkWallet(d, p.privy);
+    chain.balances.set(near, 1_000n * 1_000_000n);
+    await startTopup(d, p.privy, { micro: TOPUP.perWeek - 1_000_000 });
+    await expect(startTopup(d, p.privy, { micro: 2_000_000 })).rejects.toThrow(/more this week/);
+    // An unsigned one stops counting once it expires.
+    await db.query("update usdc_topups set created_at = now() - interval '1 hour'");
+    await expireTopups(db);
+    await startTopup(d, p.privy, { micro: 2_000_000 });
   });
 
-  it('a payment that lands after the sale timed out still delivers', async () => {
+  it('refuses less than the minimum, or more than the wallet holds', async () => {
     const p = await player();
-    await linkWallet(d, p.privy);
-    const s = await startSale(d, p.privy, { good: 'meal' });
-    await db.query("update business_sales set created_at = now() - interval '1 hour'");
-    await expireSales(db);
-    await finishSale(d, p.privy, { sale: s.sale, tx: s.tx, signature: 'sig' });
-    expect((await armsOf(db, p.id)).care?.meal).toBe(1);
-    expect(await stock('meal')).toBe(9);
+    await character(p.id);
+    const { near } = await linkWallet(d, p.privy);
+    chain.balances.set(near, 1_000_000n);
+    await expect(startTopup(d, p.privy, { micro: 10 })).rejects.toThrow(/at least/);
+    await expect(startTopup(d, p.privy, { micro: 2_000_000 })).rejects.toThrow(/Not enough/);
   });
 
   it('won’t send more than the wallet holds, or to a bad address', async () => {
@@ -329,11 +329,10 @@ describe("$ at Sunny's", () => {
     expect((await audit(db)).total).toBe(0);
   });
 
-  it('refuses a USDC-only good for $', async () => {
+  it('sells the Hot Meal for $ too: no food is sold for USDC', async () => {
     const p = await player({ cents: 5_000 });
-    await expect(
-      buyWithDollars(db, { account: p.id, good: 'meal', key: 'buy-meal-1' }),
-    ).rejects.toThrow('USDC only');
+    const r = await buyWithDollars(db, { account: p.id, good: 'meal', key: 'buy-meal-1' });
+    expect(r.cents).toBe(2_500);
   });
 
   it('a failed payment takes no stock', async () => {

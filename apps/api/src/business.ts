@@ -49,7 +49,15 @@ export interface EconomyDeps {
   confirmGapMs?: number;
   /** The AI advisor (advisor.ts); without one, businesses simply keep to their rules. */
   ask?: Ask;
+  /** Runs the food chain on USDC (default FOOD_CHAIN_USDC: off); its tests turn it on. */
+  foodChain?: boolean;
 }
+
+/**
+ * The Farm → Wholesale → Sunny's chain paying each other in USDC (D-42). Off since the owner
+ * made `$` the only money the game sells for (2026-11-13); the code stays for the record.
+ */
+export const FOOD_CHAIN_USDC = false;
 
 const byId = (id: string) => BUSINESSES.find((b) => b.id === id) as Business;
 
@@ -171,7 +179,7 @@ async function replenish(db: Db, all: Business[]): Promise<void> {
       farm.target,
     ]);
   const market = all.find((b) => b.id === 'market') as Business;
-  for (const g of GOODS.filter((x) => !x.usdcOnly))
+  for (const g of GOODS)
     await db.query(
       `update business_stock set qty = least(greatest(qty, $3), qty + $4)
        where business = $1 and good = $2`,
@@ -455,14 +463,17 @@ export async function tick(d: EconomyDeps, minGapS = 600): Promise<TickResult> {
   await seedBusinesses(d.db, d.chain);
   const all = await live(d.db);
   await replenish(d.db, all);
+  // Food is sold for `$` only now (owner, 2026-11-13), so the food chain orders and offers
+  // nothing in USDC: what was already under way is finished, and its held money freed.
   await runJobs(d, all);
   const late = await vans(d);
-  const ordered = await restock(d, all);
+  const food = d.foodChain ?? FOOD_CHAIN_USDC;
+  const ordered = food ? await restock(d, all) : 0;
   const paid = await payOrders(d, all);
-  const offered = await offerJobs(d, all);
+  const offered = food ? await offerJobs(d, all) : 0;
   await runJobs(d, all);
   const mismatches = await reconcile(d);
-  await adviseDaily(d);
+  if (food) await adviseDaily(d);
   await d.db.query('update businesses set last_tick = now()');
   return { ran: true, ordered, paid, offered, vans: late, mismatches };
 }

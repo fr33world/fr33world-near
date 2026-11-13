@@ -23,14 +23,12 @@ export interface Good {
   cost: number;
   /** Health a player gets back from it. */
   heal: number;
-  /** Sold for USDC only: the premium goods whose money runs the supply chain. */
-  usdcOnly?: boolean;
 }
 
 export const GOODS: readonly Good[] = [
   { id: 'water', name: 'Water', cents: 300, cost: 20_000, heal: 5 },
   { id: 'sandwich', name: 'Sandwich', cents: 900, cost: 60_000, heal: 15 },
-  { id: 'meal', name: 'Hot Meal', cents: 0, cost: 150_000, heal: 60, usdcOnly: true },
+  { id: 'meal', name: 'Hot Meal', cents: 2_500, cost: 150_000, heal: 60 },
 ];
 
 export type BusinessId = 'farm' | 'wholesale' | 'market';

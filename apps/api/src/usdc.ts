@@ -1,18 +1,34 @@
 /**
- * Players and USDC (Phase 17; D-42 to D-44). A player's USDC is in their own NEAR account, the
- * Privy embedded wallet whose key the game never sees: the game prepares a transfer, the player
- * signs it on their device, and the game sends it. Goods are handed over only once the sale is
- * on chain at the right amount. No function here takes `$` and gives USDC, or the reverse.
+ * Players and USDC (Phase 17; D-42 to D-44; owner, 2026-11-13). A player's USDC is in their own
+ * NEAR account, the Privy embedded wallet whose key the game never sees: the game prepares a
+ * transfer, the player signs it on their device, and the game sends it. The game sells nothing
+ * for USDC but `$` top-ups, one way, paid only once the USDC is on chain at the right amount.
+ * No function here takes `$` and gives USDC.
  */
 import { randomUUID } from 'node:crypto';
-import { BUSINESSES, GOODS, levelOf, TEST_USDC, unitPrice } from '@fr33world/shared';
+import {
+  DEALERSHIP,
+  formatUsdc,
+  GOODS,
+  levelOf,
+  TEST_USDC,
+  TOPUP,
+  topupCents,
+} from '@fr33world/shared';
 import { add, armsOf } from './armory.ts';
 import { BankError } from './bank.ts';
 import { takeJob } from './business.ts';
 import type { Db, Tx } from './db.ts';
 import { inTx } from './db.ts';
-import { spend } from './economy.ts';
-import { AccountFrozen, EconomyPaused, InsufficientFunds, LedgerError } from './ledger.ts';
+import { earn, spend } from './economy.ts';
+import {
+  AccountFrozen,
+  balanceOf,
+  EconomyPaused,
+  InsufficientFunds,
+  LedgerError,
+  walletOf as walletOfLedger,
+} from './ledger.ts';
 
 /** What this module needs of NEAR (packages/chain), so tests can stand in. */
 export interface PlayerChain {
@@ -46,9 +62,6 @@ export interface UsdcDeps {
 }
 
 const MAX_CARRY = 5;
-/** How long a USDC sale holds its stock while the player signs. */
-const SALE_MINUTES = 10;
-const market = BUSINESSES.find((b) => b.id === 'market')!;
 
 async function accountOf(db: Db, privyUser: string) {
   const r = await db.query<{ id: string; is_guest: boolean; near: string | null }>(
@@ -104,8 +117,7 @@ export async function shelf(db: Db) {
     id: g.id,
     name: g.name,
     heal: g.heal,
-    cents: g.usdcOnly ? null : g.cents,
-    micro: unitPrice(market, g),
+    cents: g.cents,
     stock: stock.get(g.id) ?? 0,
   }));
 }
@@ -120,7 +132,6 @@ export async function buyWithDollars(
   if (typeof key !== 'string' || !/^[\w:-]{8,96}$/.test(key)) throw new BankError('Bad key.');
   const good = GOODS.find((g) => g.id === input.good);
   if (!good) throw new BankError('Not sold here.');
-  if (good.usdcOnly) throw new BankError(`${good.name} is sold for USDC only.`);
   try {
     return await inTx(db, async (tx) => {
       await tx.query('select pg_advisory_xact_lock(hashtext($1))', [account]);
@@ -160,88 +171,129 @@ export async function buyWithDollars(
   }
 }
 
-/** Holds one for the player and prepares the USDC payment for them to sign. */
-export async function startSale(d: UsdcDeps, privyUser: string, body: { good?: unknown }) {
+/** USDC topped up in the last seven days, pending ones included, so a cap can't be raced. */
+async function toppedUp(db: Db | Tx, account: string): Promise<number> {
+  const r = await db.query<{ n: string }>(
+    `select coalesce(sum(micro), 0)::bigint as n from usdc_topups
+     where account_id = $1 and status in ('pending', 'confirmed')
+       and created_at > now() - interval '7 days'`,
+    [account],
+  );
+  return Number(r.rows[0]?.n ?? 0);
+}
+
+/** What the top-up card shows: the rate and how much is left this week. */
+export async function topupStatus(d: UsdcDeps, privyUser: string) {
+  const me = await accountOf(d.db, privyUser);
+  const used = await toppedUp(d.db, me.id);
+  return {
+    dollarsPerUsdc: TOPUP.dollarsPerUsdc,
+    min: TOPUP.min,
+    left: Math.max(0, TOPUP.perWeek - used),
+    perWeek: TOPUP.perWeek,
+  };
+}
+
+/**
+ * Starts a top-up: `$` for USDC, one way (shared TOPUP). The USDC goes from the player's own
+ * wallet to the dealership's (contracts/business-wallet) with this top-up's id; `$` is paid
+ * only once the chain shows it arrived. Full accounts with a character, within the weekly cap.
+ */
+export async function startTopup(d: UsdcDeps, privyUser: string, body: { micro?: unknown }) {
   const me = await needWallet(d.db, privyUser);
-  const good = GOODS.find((g) => g.id === body.good);
-  if (!good) throw new BankError('Not sold here.');
-  await expireSales(d.db);
-  const micro = unitPrice(market, good);
-  const id = `s-${randomUUID().slice(0, 18)}`;
+  const micro = body.micro;
+  if (typeof micro !== 'number' || !Number.isSafeInteger(micro) || micro < TOPUP.min)
+    throw new BankError(`Top up at least ${formatUsdc(TOPUP.min)}.`);
+  const c = await d.db.query('select 1 from characters where account_id = $1', [me.id]);
+  if (c.rowCount === 0) throw new BankError('Make your character first.', 403);
+  await expireTopups(d.db);
+  if (BigInt(micro) > (await d.chain.usdcBalance(me.near)))
+    throw new BankError('Not enough USDC.', 402);
+  const id = `t-${randomUUID().slice(0, 18)}`;
+  const cents = topupCents(micro);
   await inTx(d.db, async (tx) => {
-    const taken = await tx.query(
-      `update business_stock set qty = qty - 1
-       where business = 'market' and good = $1 and qty > 0`,
-      [good.id],
-    );
-    if (taken.rowCount === 0) throw new BankError('Sold out for now.');
+    await tx.query('select pg_advisory_xact_lock(hashtext($1))', [`topup:${me.id}`]);
+    const used = await toppedUp(tx, me.id);
+    if (used + micro > TOPUP.perWeek)
+      throw new BankError(
+        `You can top up ${formatUsdc(Math.max(0, TOPUP.perWeek - used))} more this week.`,
+        429,
+      );
     await tx.query(
-      `insert into business_sales (id, business, good, qty, currency, amount, buyer, status)
-       values ($1, 'market', $2, 1, 'usdc', $3, $4, 'pending')`,
-      [id, good.id, micro, me.id],
+      `insert into usdc_topups (id, account_id, near_account, micro, cents, status)
+       values ($1, $2, $3, $4, $5, 'pending')`,
+      [id, me.id, me.near, micro, cents],
     );
   });
   const prepared = await d.chain.prepare(me.near, {
     method: 'ft_transfer_call',
-    receiver: d.chain.accountOf(market.account),
+    receiver: d.chain.accountOf(DEALERSHIP.account),
     amount: micro,
     msg: id,
   });
-  return { sale: id, micro, ...prepared };
+  return { topup: id, micro, cents, ...prepared };
 }
 
-/** The sale on chain, allowing a node a few seconds to catch up with a payment just sent. */
-async function confirmed(d: UsdcDeps, wallet: string, sale: string): Promise<string | null> {
+/** The payment on chain, allowing a node a few seconds to catch up with one just sent. */
+async function confirmed(d: UsdcDeps, wallet: string, id: string): Promise<string | null> {
   for (let i = 0; i < 5; i += 1) {
-    const paid = await d.chain.getSale(wallet, sale);
+    const paid = await d.chain.getSale(wallet, id);
     if (paid !== null) return paid;
     await new Promise((r) => setTimeout(r, d.confirmGapMs ?? 1000));
   }
   return null;
 }
 
-/** Sends the signed payment, then hands over the goods only if the chain shows it paid in full. */
-export async function finishSale(
+/** Sends the signed payment, then pays the `$` only if the chain shows the USDC arrived in full. */
+export async function finishTopup(
   d: UsdcDeps,
   privyUser: string,
-  body: { sale?: unknown; tx?: unknown; signature?: unknown },
+  body: { topup?: unknown; tx?: unknown; signature?: unknown },
 ) {
   const me = await needWallet(d.db, privyUser);
-  const { sale, tx, signature } = body;
-  if (typeof sale !== 'string' || typeof tx !== 'string' || typeof signature !== 'string')
+  const { topup, tx, signature } = body;
+  if (typeof topup !== 'string' || typeof tx !== 'string' || typeof signature !== 'string')
     throw new BankError('Bad request.');
-  const r = await d.db.query<{ good: string; amount: string; status: string }>(
-    `select good, amount, status from business_sales
-     where id = $1 and buyer = $2 and currency = 'usdc'`,
-    [sale, me.id],
+  const r = await d.db.query<{ micro: string; cents: string; status: string }>(
+    'select micro, cents, status from usdc_topups where id = $1 and account_id = $2',
+    [topup, me.id],
   );
   const row = r.rows[0];
-  if (!row) throw new BankError('No such sale.', 404);
-  const wallet = d.chain.accountOf(market.account);
+  if (!row) throw new BankError('No such top-up.', 404);
+  const wallet = d.chain.accountOf(DEALERSHIP.account);
   let sent: string | null = null;
-  if (row.status !== 'confirmed' && !(await d.chain.getSale(wallet, sale)))
+  if (row.status !== 'confirmed' && !(await d.chain.getSale(wallet, topup)))
     sent = (await d.chain.submit(me.near, tx, signature)).tx;
-  const paid = await confirmed(d, wallet, sale);
-  if (paid === null || BigInt(paid) !== BigInt(row.amount))
+  const paid = await confirmed(d, wallet, topup);
+  if (paid === null || BigInt(paid) !== BigInt(row.micro))
     throw new BankError('The payment didn’t arrive.', 402);
   return inTx(d.db, async (t) => {
-    // Paid is paid, even if the sale had timed out and its stock gone back.
-    const done = await t.query<{ was: string }>(
-      `update business_sales s set status = 'confirmed', tx = coalesce($2, s.tx)
-       from (select id, status as was from business_sales where id = $1 for update) o
-       where s.id = o.id and o.was in ('pending', 'expired') returning o.was`,
-      [sale, sent],
+    // Paid is paid, even if the top-up had timed out waiting.
+    const done = await t.query(
+      `update usdc_topups set status = 'confirmed', tx = coalesce($2, tx)
+       where id = $1 and status in ('pending', 'expired')`,
+      [topup, sent],
     );
-    const was = done.rows[0]?.was;
-    if (was === 'expired')
-      await t.query(
-        `update business_stock set qty = greatest(qty - 1, 0)
-         where business = 'market' and good = $1`,
-        [row.good],
-      );
-    if (was) await add(t, me.id, `care:${row.good}`, 1, MAX_CARRY);
-    return { arms: await armsOf(t, me.id), tx: sent };
+    if (done.rowCount)
+      await earn(t, {
+        accountId: me.id,
+        faucet: 'topup',
+        cents: Number(row.cents),
+        key: `topup:${topup}`,
+        memo: { topup, micro: row.micro },
+      });
+    const wallet$ = await walletOfLedger(t, me.id);
+    return { cents: Number(row.cents), balance: await balanceOf(t, wallet$), tx: sent };
   });
+}
+
+/** Top-ups never signed stop counting against the week. */
+export async function expireTopups(db: Db): Promise<void> {
+  await db.query(
+    `update usdc_topups set status = 'expired'
+     where status = 'pending' and created_at < now() - make_interval(mins => $1)`,
+    [TOPUP.minutes],
+  );
 }
 
 /** Takes a delivery job. Only full accounts with a wallet, at the right level and age. */
@@ -341,23 +393,6 @@ export async function claimTestUsdc(d: UsdcDeps, privyUser: string) {
     console.error('test usdc', e);
     throw new BankError('The faucet didn’t answer. Try again in a minute.', 502);
   }
-}
-
-/** Sales never signed give their stock back. */
-export async function expireSales(db: Db): Promise<void> {
-  await inTx(db, async (tx) => {
-    const r = await tx.query<{ good: string }>(
-      `update business_sales set status = 'expired'
-       where status = 'pending' and created_at < now() - make_interval(mins => $1)
-       returning good`,
-      [SALE_MINUTES],
-    );
-    for (const s of r.rows)
-      await tx.query(
-        "update business_stock set qty = qty + 1 where business = 'market' and good = $1",
-        [s.good],
-      );
-  });
 }
 
 const NEAR_ACCOUNT = /^(([a-z\d]+[-_])*[a-z\d]+\.)*([a-z\d]+[-_])*[a-z\d]+$/;

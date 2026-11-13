@@ -60,6 +60,7 @@ export type SystemAccount =
   | 'faucet:corrections'
   | 'faucet:tutorial'
   | 'faucet:daily'
+  | 'faucet:topup'
   | 'sink:fees'
   | 'sink:purchases'
   | 'sink:corrections';
