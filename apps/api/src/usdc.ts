@@ -7,6 +7,7 @@
  */
 import { randomUUID } from 'node:crypto';
 import {
+  CAR_MODELS,
   DEALERSHIP,
   formatUsdc,
   GOODS,
@@ -429,26 +430,34 @@ export async function finishSend(
   return d.chain.submit(me.near, body.tx, body.signature);
 }
 
-/** The public view of the economy: no login, so anyone can check it against the chain. */
+/**
+ * The public view of the economy: no login, so anyone can check it against the chain. Sol
+ * Motors is the business that runs itself now; the food chain's wallets sit idle (business.ts
+ * FOOD_CHAIN_USDC), so they're left off.
+ */
 export async function economyView(
   db: Db,
   summary?: (account: string) => Promise<{ balance: string; reserved: string }>,
 ) {
-  const [businesses, stock, orders, jobs, decisions] = await Promise.all([
-    db.query('select id, account, name, markup, target, last_tick from businesses order by id'),
-    db.query('select business, good, qty from business_stock order by business, good'),
-    db.query(
-      `select id, buyer, seller, good, qty, amount, status, tx, created_at from business_orders
-       order by created_at desc limit 30`,
-    ),
-    db.query(
-      `select id, business, amount, status, tx, created_at from business_jobs
-       order by (status = 'open') desc, created_at desc limit 30`,
-    ),
+  const [businesses, decisions, sales, deeds] = await Promise.all([
+    db.query("select id, account, name from businesses where id = 'dealer'"),
     db.query(
       `select business, source, summary, details, at from business_decisions
-       order by id desc limit 30`,
+       where business = 'dealer' order by id desc limit 30`,
     ),
+    db.query<{
+      model: number;
+      price: string | null;
+      micro: string | null;
+      paid_in: string;
+      tx: string | null;
+      at: string;
+    }>(
+      `select o.model, l.price, l.micro, l.paid_in, l.tx, l.closed_at as at from car_listings l
+       join owned_cars o on o.id = l.car_id
+       where l.status = 'sold' and l.paid_in is not null order by l.closed_at desc limit 30`,
+    ),
+    db.query<{ n: number }>("select count(*)::int as n from car_chain where status = 'done'"),
   ]);
   // Balances are the chain's, read now: the page never shows the game's own opinion of them.
   const withBalances = await Promise.all(
@@ -459,9 +468,14 @@ export async function economyView(
   );
   return {
     businesses: withBalances,
-    stock: stock.rows,
-    orders: orders.rows,
-    jobs: jobs.rows,
     decisions: decisions.rows,
+    carSales: sales.rows.map((r) => ({
+      car: CAR_MODELS[r.model]?.name ?? 'Car',
+      paidIn: r.paid_in,
+      amount: Number(r.paid_in === 'usdc' ? r.micro : r.price),
+      tx: r.tx,
+      at: r.at,
+    })),
+    deeds: deeds.rows[0]?.n ?? 0,
   };
 }

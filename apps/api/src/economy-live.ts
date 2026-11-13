@@ -11,7 +11,8 @@
  * scratch schema in fr33world_test. Needs NEAR_ROOT_KEY and NEAR_OPERATOR_KEY. Testnet only.
  * New and sold cars are locked for an hour on testnet, so the run sets the locks to nothing
  * while it runs and puts them back after, whatever happens.
- * With KEEP=1 the API stays up on port 7411 afterwards, to look at the economy page.
+ * With KEEP=1 the API stays up afterwards (port KEEP_PORT, default 7411), to look at the
+ * economy page; on 7410 the page at localhost finds it.
  */
 import {
   economyFromEnv,
@@ -326,8 +327,9 @@ try {
 console.log(failures === 0 ? '\nAll good.' : `\n${failures} failed.`);
 
 if (process.env.KEEP) {
-  await app.listen({ port: 7411, host: '127.0.0.1' });
-  console.log('API up on http://127.0.0.1:7411');
+  const port = Number(process.env.KEEP_PORT ?? 7411);
+  await app.listen({ port, host: '127.0.0.1' });
+  console.log(`API up on http://127.0.0.1:${port}`);
 } else {
   await app.close();
   await db.end();

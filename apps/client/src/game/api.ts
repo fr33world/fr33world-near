@@ -520,13 +520,6 @@ export interface ShelfItem {
   stock: number;
 }
 
-export interface EconomyJob {
-  id: string;
-  business: string;
-  amount: string;
-  status: string;
-}
-
 async function usdcCall<T>(token: string, path: string, body?: unknown): Promise<T> {
   const r = await fetch(`${apiUrl()}/v1/${path}`, {
     method: body === undefined ? 'GET' : 'POST',
@@ -581,17 +574,8 @@ export const fetchTestUsdc = (token: string) =>
   usdcCall<{ micro: number; refused: string | null }>(token, 'usdc/faucet');
 export const claimTestUsdc = (token: string) =>
   usdcCall<{ micro: number; tx: string }>(token, 'usdc/faucet', {});
-export const takeUsdcJob = (token: string, job: string) =>
-  usdcCall<{ ok: boolean }>(token, 'usdc/job', { job });
 
 export async function fetchShelf(): Promise<ShelfItem[]> {
   const r = await fetch(`${apiUrl()}/v1/market/shelf`);
   return r.ok ? ((await r.json()) as ShelfItem[]) : [];
-}
-
-export async function fetchOpenJobs(): Promise<EconomyJob[]> {
-  const r = await fetch(`${apiUrl()}/v1/economy`);
-  if (!r.ok) return [];
-  const e = (await r.json()) as { jobs: EconomyJob[] };
-  return e.jobs.filter((j) => j.status === 'open');
 }

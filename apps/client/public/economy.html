@@ -10,18 +10,20 @@
     <main>
       <h1>The city's economy</h1>
       <p class="lead">
-        Every business here runs itself and holds its own wallet on NEAR. All USDC comes from
-        players: the game adds none, and nobody can sweep a wallet. Balances below are read from the
-        chain. This is testnet: test USDC has no real value.
+        The game sells everything for its own <b>$</b>. What players buy to keep is theirs on NEAR:
+        every car bought at the dealership is minted to the buyer's own wallet. Players sell cars to
+        each other for $ or USDC, and the buyer chooses. Sol Motors, the dealership, runs itself:
+        its wallet gets 5% of every USDC sale and the $ top-ups, and its AI buys cars listed far
+        under their worth and sells them again, within limits written into its contract. All USDC
+        comes from players. Balances are read from the chain. This is testnet: test USDC has no real
+        value.
       </p>
       <p id="state" class="note">Loading…</p>
       <section id="businesses" class="cards"></section>
-      <h2>Why they did it</h2>
+      <h2>Why Sol Motors did it</h2>
       <ul id="decisions" class="list"></ul>
-      <h2>Payments between businesses</h2>
-      <ul id="orders" class="list"></ul>
-      <h2>Delivery jobs for players</h2>
-      <ul id="jobs" class="list"></ul>
+      <h2>Cars sold between players</h2>
+      <ul id="sales" class="list"></ul>
     </main>
     <script type="module" src="/economy.js"></script>
   </body>

@@ -1,44 +1,58 @@
-# fr33world: a city whose businesses run themselves on NEAR
+# fr33world: cars you truly own, in a city that runs itself on NEAR
 
 **Built at NEAR HACKATHON.** Tracks: Games With Real Economies, Autonomous Business, Agent Economy, AI Security & Defense.
 
-fr33world is a multiplayer open-world life game in the browser. For this hackathon its shops became real businesses: each has its own NEAR account and wallet contract, watches its stock, reorders from its supplier, pays in USDC on chain, and hires players for deliveries, with nobody at the controls.
+fr33world is a multiplayer open-world city game in the browser. Like any city game it has its own play money, `$`, earned from jobs and spent on everything. For this hackathon, what players buy to keep became theirs for real: every car bought at the dealership is minted to the buyer's own NEAR wallet, its title deed. Players sell cars to each other for `$` or USDC, and the buyer chooses. The dealership, Sol Motors, is a business that runs itself, with its own wallet and an AI that trades within limits written into its contract.
 
-**The problem:** "NPC economies" are usually scripted, and "AI agents with wallets" usually means trusting an AI with a key. Here the money is real and verifiable, and the AI can't overspend even if it's wrong or attacked.
+**The problem:** in GTA Online or any other city game, players own nothing. A ban, a wipe or a shutdown and the garage is gone. "AI agents with wallets" usually means trusting an AI with a key. Here the cars are provably the player's, and the AI can't overspend even if it's wrong or attacked.
 
 ## Disclosure (hackathon rules Q-001 to Q-004)
 
-fr33world existed before this work, as a game with a Solana integration. **Only the NEAR work is the submission.** Tag `pre-hackathon` marks the game before it, and Solana was removed after it. [The diff between `pre-hackathon` and `hackathon-submission`](https://github.com/fr33world/fr33world-near/compare/pre-hackathon...hackathon-submission) holds the NEAR integration, which is what to judge. That diff also holds ordinary game work done in the same weeks, which is not part of the submission and touches no USDC: faction join points, uniforms, police patrols, 911 screens, passengers, daily rewards, private messages and accessory fixes.
+fr33world existed before this work, as a game with a Solana integration. **Only the NEAR work is the submission.** Tag `pre-hackathon` marks the game before it, and Solana was removed after it. [The diff between `pre-hackathon` and `hackathon-submission`](https://github.com/fr33world/fr33world-near/compare/pre-hackathon...hackathon-submission) holds the NEAR integration, which is what to judge. That diff also holds ordinary game work done in the same weeks, which is not part of the submission and touches no USDC: faction join points, uniforms, police patrols, 911 screens, passengers, daily rewards, private messages, garages, the game screen and accessory fixes. An earlier design in the same diff ran a food supply chain on USDC; it is switched off (`FOOD_CHAIN_USDC` in apps/api/src/business.ts) and kept for the record.
 
-## How the money works
+## How it works
 
-- **All USDC comes from players.** The game adds none: no treasury, no minting. Businesses start with stock and no cash, and their first USDC is a player's first purchase.
-- **Test USDC for trying it:** on testnet the wallet's "Get 5 test USDC" asks the public community faucet (`v2.faucet.nonofficial.testnet`) to pay the player's own account directly. The game adds none of its own. Limits: once a day per game account and per wallet, only while the wallet holds under 5, 100 claims a day across all players ([`TEST_USDC`](packages/shared/src/business.ts)). There's no faucet on mainnet.
-- **Goods and services only.** Nothing here is a wager.
-- **Two currencies, no bridge.** In-game `$` is off chain. No code path turns `$` into USDC.
-- **Players hold their own USDC** in a Privy NEAR wallet, signed on their device. The game can't move it.
-- **Three locks on spending:** AI proposes, fixed rules validate, and [the wallet contract](contracts/business-wallet/src/lib.rs) enforces. The worker's key can only pay approved suppliers within per-payment and daily limits. There is no withdraw method, and a new supplier waits a day before it can be paid.
-- **The AI sees only numbers,** never player text, so it can't be prompt-injected. Its answer is clamped to [limits in one readable file](packages/shared/src/business.ts).
+- **`$` is the game's money.** The game sells everything for it: cars, fuel, food, fines. No code turns `$` into USDC.
+- **Cars are NEP-171 tokens** on [the cars contract](contracts/cars/src/lib.rs), minted to the buyer's own NEAR wallet (a Privy embedded wallet, signed on their device). They show in any NEAR wallet, can be sent to any account, and stay the player's even if the game bans them. The garage follows the chain: a car sent or sold on chain moves to the player whose wallet holds it, or leaves every garage while an unlinked wallet holds it.
+- **The buyer chooses the currency.** A seller asks `$`, USDC or both.
+  - **USDC sale:** the buyer's own USDC goes to the contract, which in one step moves the car, pays the seller and sends Sol Motors 5%.
+  - **`$` sale:** the seller first signs `offer_to_game` for that one car. The game then hands it to whoever pays the `$` price, inside the same database transaction as the payment: if the chain refuses, no `$` moves. The game can move no car that wasn't offered to it.
+- **New and just-sold cars are locked** (1 hour on testnet, a day on mainnet), so farming cars to cash them out at once doesn't pay. At most 3 listings and 3 USDC sales a day per player.
+- **USDC into `$`, one way:** 1 USDC buys $5,000, at most 50 USDC a week. The USDC goes to Sol Motors' wallet, and `$` is paid only once the chain shows it arrived. There's no way back from `$` to USDC.
+- **Sol Motors runs itself.** All its USDC comes from players: the 5% cut and the top-ups. It has three locks on spending:
+  1. **The AI proposes:** NEAR AI Cloud picks which car listed far under its worth to buy, and the resale price. It sees only numbers, never player text, so it can't be prompt-injected.
+  2. **Rules clamp:** [shared BUYBACK](packages/shared/src/assets.ts) allows only cars at most 60% of their worth, half the free balance at most, three cars held, and resale at 90 to 120% of worth.
+  3. **The [wallet contract](contracts/business-wallet/src/lib.rs) enforces:** it can pay only the cars contract, at most 25 USDC a payment and 100 a day. It has no withdraw method, and a new payee waits a day.
+- **Test USDC for trying it:** on testnet the wallet's "Get 5 test USDC" asks the public community faucet (`v2.faucet.nonofficial.testnet`) to pay the player's own account. The game adds none of its own.
 
 ## Try it
 
-Needs Node 24, pnpm and PostgreSQL. No NEAR account is needed for steps 1 to 3.
+Needs Node 24, pnpm, Rust with cargo-near, and PostgreSQL. No NEAR account is needed for steps 1 to 3.
 
-1. **Do:** `cd contracts/business-wallet && cargo test`. **See:** 28 tests pass, including a stolen admin key failing to pay itself.
-2. **Do:** `pnpm install && pnpm db:start && createdb fr33world_test && pnpm --filter @fr33world/api economy:week`. **See:** a simulated week, ending in `No USDC created: it all adds up.`
-3. **Do:** read a live wallet from the chain:
-   `curl -s https://test.rpc.fastnear.com -H 'content-type: application/json' -d '{"jsonrpc":"2.0","id":1,"method":"query","params":{"request_type":"call_function","finality":"final","account_id":"sunnys-grocery.fr33world.testnet","method_name":"summary","args_base64":"e30="}}'`
-   **See:** a result whose bytes decode to Sunny's balance, limits and suppliers. Or open [the account on NearBlocks](https://testnet.nearblocks.io/address/sunnys-grocery.fr33world.testnet).
-4. **Do (needs testnet keys in `.env`):** `pnpm --filter @fr33world/chain smoke:near`. **See:** a sale, a supplier payment and a delivery paid on the real chain, then each attack refused with its reason. Ends in `All good.`
-5. **Do (needs testnet keys in `.env`):** `pnpm --filter @fr33world/api economy:live`. **See:** one player's whole story through the real API routes and the real chain: wallet linked, a Hot Meal bought with USDC, Sunny's reordering and paying its supplier, the delivery paid to the player, USDC sent on, with a NearBlocks link for each payment. Only Privy is stood in for, by a local key signing the same hash. Ends in `All good.`
+1. **Do:** `cd contracts/cars && cargo test`, then `cd ../business-wallet && cargo test`. **See:** 35 and 31 tests pass, among them: the minter and admin can't move a player's car, a `$` sale works only for an offered car and only once, a wrong amount is refunded, and a stolen admin key can't pay itself.
+2. **Do:** `pnpm install && pnpm db:start && createdb fr33world_test && pnpm --filter @fr33world/api exec vitest run src/cars.test.ts src/dealer.test.ts src/usdc.test.ts`. **See:** the economy's rules against a stand-in chain, all passing: deeds minted once, the garage following the chain, both currencies, the handover undone if the chain refuses, the top-up's cap, and the AI's answers cut to the rules.
+3. **Do:** read the live contracts:
+   `curl -s https://test.rpc.fastnear.com -H 'content-type: application/json' -d '{"jsonrpc":"2.0","id":1,"method":"query","params":{"request_type":"call_function","finality":"final","account_id":"sol-motors.fr33world.testnet","method_name":"summary","args_base64":"e30="}}'`
+   **See:** a result whose bytes decode to Sol Motors' balance, limits and its one approved payee, `cars.fr33world.testnet`. Or open [the cars contract on NearBlocks](https://testnet.nearblocks.io/address/cars.fr33world.testnet) to see the mints, sales and Sol Motors' buybacks.
+4. **Do (needs testnet keys in `.env`):** `pnpm --filter @fr33world/api economy:live`. **See:** the whole story through the real API routes and the real chain, each payment with a NearBlocks link, ending in `All good.`:
+   - Ava buys a Sedan with `$` and its deed is minted to her wallet.
+   - Ben tops up `$` with USDC.
+   - Ava lists the Sedan for `$` and USDC, and Ben pays USDC: the car moves, Ava gets 95% and Sol Motors 5%.
+   - Ben resells it for `$`, and it's handed over on chain.
+   - Ava sends it to a wallet outside the game, and it leaves her garage.
+   - Sol Motors' AI buys a second Sedan listed at 4 USDC (worth 7) and relists it near its worth.
+
+   Only Privy is stood in for, by a local key signing the same hash.
+
+5. **Do:** open https://fr33worldgame.xyz/economy.html. **See:** Sol Motors' balance read from the chain, every AI decision with its reason, and car sales with proof links.
 
 ## Built with (Q-005)
 
 No hackathon template or starter was used. The NEAR work uses:
 
-- **Contract:** Rust with [near-sdk](https://crates.io/crates/near-sdk) 5.30, built with cargo-near.
+- **Contracts:** Rust with [near-sdk](https://crates.io/crates/near-sdk) 5.30 and [near-contract-standards](https://crates.io/crates/near-contract-standards) 5.30 (NEP-171 core, enumeration and metadata), built with cargo-near.
 - **Chain access:** [near-api-js](https://www.npmjs.com/package/near-api-js) 7.4, with FastNEAR's public testnet RPC.
-- **Player wallets:** [Privy](https://privy.io) embedded NEAR wallets (`@privy-io/react-auth`, `@privy-io/node`), signed on the player's device.
+- **Player wallets:** [Privy](https://privy.io) embedded NEAR wallets (`@privy-io/react-auth`, `@privy-io/node`), signed on the player's device. The game tops up their gas, so players need no NEAR of their own.
 - **AI:** [NEAR AI Cloud](https://cloud.near.ai) (OpenAI-compatible), model `deepseek-ai/DeepSeek-V4.1-Flash-1017`.
 - **Test token and faucet:** `usdc.fakes.testnet` and `v2.faucet.nonofficial.testnet`, both community-run.
 - **Around it, from before the hackathon:** Fastify and PostgreSQL (API), Three.js, React and Vite (client), Cloudflare Workers and Render (hosting).
@@ -51,8 +65,9 @@ The people behind fr33world submit no other project to this hackathon.
 
 - This public copy leaves out the character animation files, whose licence doesn't allow sharing them on their own. Steps 1 to 4 don't need them. To play with animations, use the hosted game.
 - It runs on NEAR Testnet with `usdc.fakes.testnet`, a community test token from the public faucet, not Circle's USDC. Test USDC has no value. Mainnet needs everything in [docs/mainnet-checklist.md](docs/mainnet-checklist.md).
-- The chain can't see a delivery happen: the game server reports it. That's why limits live in the contract: a compromised server can only do what those allow.
-- Contracts are unaudited. Player-owned businesses are designed for but not built.
+- No real Privy login has signed one of these transactions yet. Every flow ran on testnet through the real API routes, signed by a local key making the same raw signature Privy's embedded wallet makes.
+- Sol Motors' operator key can list a car the dealership holds at any price within the contract's range, so a stolen operator key could sell a held car cheaply. It can't move money or other players' cars.
+- Contracts are unaudited. Houses (the hill villas) and enterprises are designed to follow the same pattern but aren't built.
 
 ---
 

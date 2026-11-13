@@ -9,7 +9,6 @@
     "migrate": "node --env-file-if-exists=../../.env src/migrate.ts",
     "typecheck": "tsc --noEmit",
     "simulate": "node src/simulate-run.ts",
-    "economy:week": "node --env-file-if-exists=../../.env src/economy-week.ts",
     "economy:live": "node --env-file-if-exists=../../.env src/economy-live.ts"
   },
   "dependencies": {

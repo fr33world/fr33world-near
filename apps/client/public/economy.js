@@ -5,7 +5,9 @@ const API =
     ? 'http://localhost:7410'
     : 'https://fr33world-api.onrender.com';
 const SCAN = 'https://testnet.nearblocks.io';
+const CARS = 'cars.fr33world.testnet';
 const usdc = (micro) => `${(Number(micro) / 1e6).toFixed(2)} USDC`;
+const dollars = (cents) => `$${Math.round(Number(cents) / 100).toLocaleString('en-US')}`;
 const when = (t) => new Date(t).toLocaleString();
 
 function el(tag, cls, text) {
@@ -38,50 +40,48 @@ async function load() {
   const e = await r.json();
   state.textContent = e.businesses.length ? '' : 'The economy has not started yet.';
 
-  const names = new Map(e.businesses.map((b) => [b.id, b.name]));
-  const nameOf = (id) => names.get(id) ?? id;
-  const goods = { water: 'Water', sandwich: 'Sandwich', meal: 'Hot Meal' };
-  const goodOf = (id) => goods[id] ?? id;
-
   const cards = document.getElementById('businesses');
   for (const b of e.businesses) {
     const c = el('article', 'card');
     c.append(el('h3', '', b.name));
     c.append(el('div', 'balance', b.wallet ? usdc(b.wallet.balance) : 'unavailable'));
-    if (b.wallet) c.append(el('div', 'small', `${usdc(b.wallet.reserved)} held for jobs`));
-    const stock = e.stock
-      .filter((s) => s.business === b.id)
-      .map((s) => `${goodOf(s.good)} ${s.qty}`);
-    c.append(el('div', 'small', `Stock: ${stock.join(', ')}`));
-    c.append(el('div', 'small', `Markup ${Math.round(b.markup * 100)}%, target ${b.target}`));
+    c.append(
+      el('div', 'small', 'Its own wallet: it can pay only the cars contract, within its limits'),
+    );
     const a = el('div', 'small');
     a.append(link(`${SCAN}/address/${b.account}`, b.account));
     c.append(a);
     cards.append(c);
   }
+  const deeds = el('article', 'card');
+  deeds.append(el('h3', '', 'Cars owned on NEAR'));
+  deeds.append(el('div', 'balance', String(e.deeds ?? 0)));
+  deeds.append(el('div', 'small', 'Each one a title deed in its owner’s own wallet'));
+  const d = el('div', 'small');
+  d.append(link(`${SCAN}/address/${CARS}`, CARS));
+  deeds.append(d);
+  cards.append(deeds);
 
   const decisions = document.getElementById('decisions');
-  for (const d of e.decisions)
+  if (e.decisions.length === 0) decisions.append(el('li', 'small', 'Nothing yet.'));
+  for (const x of e.decisions)
     row(decisions, [
-      el('span', `tag ${d.source === 'ai' ? 'ai' : ''}`, d.source === 'ai' ? 'AI' : 'Rule'),
-      `${nameOf(d.business)}: ${d.summary} `,
-      el('span', 'small', when(d.at)),
+      el('span', `tag ${x.source === 'ai' ? 'ai' : ''}`, x.source === 'ai' ? 'AI' : 'Rule'),
+      `${x.summary} `,
+      el('span', 'small', when(x.at)),
     ]);
 
-  const orders = document.getElementById('orders');
-  for (const o of e.orders)
+  const sales = document.getElementById('sales');
+  if ((e.carSales ?? []).length === 0) sales.append(el('li', 'small', 'None yet.'));
+  for (const s of e.carSales ?? [])
     row(
-      orders,
+      sales,
       [
-        `${nameOf(o.buyer)} paid ${nameOf(o.seller)} ${usdc(o.amount)} for ${o.qty} ${goodOf(o.good)} `,
-        el('span', 'small', o.status),
+        `A ${s.car} for ${s.paidIn === 'usdc' ? usdc(s.amount) : dollars(s.amount)} `,
+        el('span', 'small', when(s.at)),
       ],
-      o.tx,
+      s.tx,
     );
-
-  const jobs = document.getElementById('jobs');
-  for (const j of e.jobs)
-    row(jobs, [`${nameOf(j.business)}: ${usdc(j.amount)} `, el('span', 'small', j.status)], j.tx);
 }
 
 load().catch((err) => {
