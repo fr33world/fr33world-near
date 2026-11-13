@@ -5,6 +5,7 @@ import type { Game } from '../game/Game.ts';
 import { isTouchDevice } from '../game/quality.ts';
 import { Dashboard } from './Dashboard.tsx';
 import { DealerSheet } from './Dealer.tsx';
+import { HomeSheet } from './Home.tsx';
 import { DispatchCard } from './Dispatch.tsx';
 import { Guide } from './Guide.tsx';
 import { ComputerSheet } from './Computer.tsx';
@@ -161,6 +162,7 @@ export function Hud({ game }: { game: Game }) {
       <Guide game={game} touch={touch} />
       <ParkingSheet game={game} />
       <DealerSheet game={game} />
+      <HomeSheet game={game} />
       <GunStoreSheet game={game} />
       <CounterSheet game={game} />
       <TillSheet game={game} />

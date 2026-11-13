@@ -63,7 +63,8 @@ export type PointKind =
   | 'lift'
   | 'ramp'
   | 'dock'
-  | 'bay';
+  | 'bay'
+  | 'home';
 
 export interface InteractionPoint {
   kind: PointKind;
@@ -81,6 +82,8 @@ export interface InteractionPoint {
   gang?: string;
   /** The public building an entrance, exit or locker belongs to. */
   service?: ServiceId;
+  /** A home's door: the villa's number (shared HOMES, city villaHomes). */
+  home?: number;
   /** An entrance: the middle of the building's front, for its sign. */
   front?: { x: number; z: number };
 }

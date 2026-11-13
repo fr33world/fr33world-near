@@ -20,6 +20,10 @@
 //! it can't be sent or listed until then, so farming cars to cash them out at once doesn't pay.
 //! The admin sets the cut and the locks within hard caps; the minter mints and settles `$`
 //! sales of offered cars. Neither can move any other car, or anyone's USDC.
+//!
+//! The same code runs the homes contract (the hill villas, shared HOME_ASSETS): a deployment
+//! takes its collection's `name` and `symbol` when it's set up, and a home is its title deed
+//! just as a car is. ("Car" in the messages below reads as whatever the collection holds.)
 use std::collections::HashMap;
 
 use near_contract_standards::non_fungible_token::core::{
@@ -147,6 +151,8 @@ impl Cars {
         lock_after_mint_ns: u64,
         lock_after_sale_ns: u64,
         base_uri: Option<String>,
+        name: Option<String>,
+        symbol: Option<String>,
     ) -> Self {
         require!(fee_bps <= MAX_FEE_BPS, "fee is over the cap");
         require!(
@@ -163,8 +169,8 @@ impl Cars {
             ),
             metadata: NFTContractMetadata {
                 spec: NFT_METADATA_SPEC.to_string(),
-                name: "fr33world cars".to_string(),
-                symbol: "F33CAR".to_string(),
+                name: name.unwrap_or_else(|| "fr33world cars".to_string()),
+                symbol: symbol.unwrap_or_else(|| "F33CAR".to_string()),
                 icon: None,
                 base_uri,
                 reference: None,

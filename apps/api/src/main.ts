@@ -57,6 +57,7 @@ function nearDeps() {
     },
     usdc,
     cars,
+    homes: { db, chain, link: cars.link },
     dealer: { db, chain, cars, ask },
   };
 }

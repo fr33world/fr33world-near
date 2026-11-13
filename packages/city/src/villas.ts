@@ -26,6 +26,8 @@ export interface HillVilla {
   north: boolean;
   toZ: number;
   seed: number;
+  /** Which hill road it stands on (index into the roads it was placed along). */
+  road: number;
 }
 
 /** A level pad the terrain is graded to: a capsule round the segment ab, `flat` m wide. */
@@ -128,6 +130,7 @@ export function placeVillas(
           north: side > 0,
           toZ: b.z,
           seed: hash2(seed, 0x7112 + villas.length),
+          road: ri,
         };
         const pad = villaPad(v);
         if (roadGap(pad) < ROAD_FLAT) continue;

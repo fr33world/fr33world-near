@@ -13,7 +13,7 @@
  *   CHAIN_ALLOW_MAINNET must be "yes" to use mainnet, so a stray variable can't spend real USDC
  */
 import { createHash } from 'node:crypto';
-import { CAR_ASSETS } from '@fr33world/shared';
+import { CAR_ASSETS, HOME_ASSETS } from '@fr33world/shared';
 import {
   Account,
   actions,
@@ -338,6 +338,36 @@ export class NearEconomy {
   async carLockedUntil(tokenId: string): Promise<number> {
     const ns = await this.view<number>(this.carsAccount(), 'locked_until', { token_id: tokenId });
     return Math.ceil(Number(ns) / 1e6);
+  }
+
+  // ---- Homes (contracts/cars' code as the homes contract, shared HOME_ASSETS) ------------
+
+  /** The homes contract's account. */
+  homesAccount(): string {
+    return this.accountOf(HOME_ASSETS.account);
+  }
+
+  /** A home's title deed on NearBlocks. */
+  homeDeedUrl(tokenId: string): string {
+    const host = this.cfg.network === 'testnet' ? 'testnet.nearblocks.io' : 'nearblocks.io';
+    return `https://${host}/nft-token/${this.homesAccount()}/${tokenId}`;
+  }
+
+  /** Mints a home to its owner's wallet. The contract refuses a token id it already has. */
+  mintHome(tokenId: string, owner: string, metadata: CarMetadata): Promise<Sent> {
+    return this.call(this.homesAccount(), 'mint_car', {
+      token_id: tokenId,
+      owner,
+      metadata: { ...metadata, issued_at: String(Date.now()) },
+    });
+  }
+
+  homeToken(tokenId: string): Promise<ChainCar | null> {
+    return this.view(this.homesAccount(), 'nft_token', { token_id: tokenId });
+  }
+
+  homeTokens(from: number, limit: number): Promise<ChainCar[]> {
+    return this.view(this.homesAccount(), 'nft_tokens', { from_index: String(from), limit });
   }
 
   /** The network's gas price now, in yoctoNEAR per unit of gas. */

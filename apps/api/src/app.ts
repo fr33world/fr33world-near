@@ -116,6 +116,14 @@ import {
 } from './cars.ts';
 import { dealerTick, type DealerDeps } from './dealer.ts';
 import {
+  buyHome,
+  type HomeDeps,
+  homesView,
+  queueHomeMints,
+  runHomeMints,
+  syncHomes,
+} from './homes.ts';
+import {
   appointBoss,
   applyTo,
   decide,
@@ -170,6 +178,8 @@ export interface AppDeps {
   usdc?: UsdcDeps;
   /** Cars on NEAR (cars.ts): absent with no operator key, and cars then stay off chain. */
   cars?: CarDeps;
+  /** Homes on NEAR (homes.ts): the hill villas' title deeds. */
+  homes?: HomeDeps;
   /** Sol Motors' own round (dealer.ts), after each economy tick. */
   dealer?: DealerDeps;
 }
@@ -198,6 +208,17 @@ export function buildApp(deps: AppDeps): FastifyInstance {
       await runMints(c);
     })().catch((e: unknown) => console.error('mint soon', e));
   };
+  /** After a home is bought: its title deed goes to the buyer's wallet, in the background. */
+  const homesSoon = (privyUser: string, accountId: string) => {
+    const h = deps.homes;
+    if (!h) return;
+    void (async () => {
+      await h.link(privyUser);
+      await queueHomeMints(deps.db, accountId);
+      await runHomeMints(h);
+    })().catch((e: unknown) => console.error('home deeds', e));
+  };
+  const homeDeedUrl = deps.homes?.chain.homeDeedUrl?.bind(deps.homes.chain);
   const app = Fastify({ logger: deps.logger ?? false, bodyLimit: 16 * 1024, trustProxy: true });
   const origins = new Set(deps.corsOrigins);
 
@@ -577,6 +598,10 @@ export function buildApp(deps: AppDeps): FastifyInstance {
       await runMints(deps.cars).catch((e: unknown) => console.error('mint cars', e));
       await syncCars(deps.cars, 0).catch((e: unknown) => console.error('sync cars', e));
     }
+    if (deps.homes && ticked.ran) {
+      await runHomeMints(deps.homes).catch((e: unknown) => console.error('home deeds', e));
+      await syncHomes(deps.homes, 0).catch((e: unknown) => console.error('sync homes', e));
+    }
     const dealer = deps.dealer && ticked.ran ? await dealerTick(deps.dealer) : null;
     return { ...ticked, dealer };
   });
@@ -769,6 +794,35 @@ export function buildApp(deps: AppDeps): FastifyInstance {
       if (e instanceof BankError) return reply.code(e.status).send({ error: e.message });
       throw e;
     }
+  });
+  app.get('/v1/homes', (req, reply) =>
+    bank(req, reply, async (u) => {
+      const r = await deps.db.query<{ id: string }>(
+        'select id from accounts where privy_user_id = $1',
+        [u],
+      );
+      const id = r.rows[0]?.id ?? null;
+      // A home sent on chain since the last look moves first (at most every 20 s).
+      if (deps.homes)
+        await syncHomes(deps.homes).catch((e: unknown) => console.error('sync homes', e));
+      if (deps.homes && id) {
+        await queueHomeMints(deps.db, id);
+        void runHomeMints(deps.homes).catch((e: unknown) => console.error('home deeds', e));
+      }
+      return { homes: await homesView(deps.db, id, homeDeedUrl) };
+    }),
+  );
+  app.post('/v1/homes/buy', (req, reply) => {
+    if (limited(req.ip, 'homes', 20)) return reply.code(429).send({ error: 'Slow down.' });
+    return bank(req, reply, async (u) => {
+      const bought = await buyHome(deps.db, u, req.body ?? {}, homeDeedUrl);
+      const r = await deps.db.query<{ id: string }>(
+        'select id from accounts where privy_user_id = $1',
+        [u],
+      );
+      if (r.rows[0]) homesSoon(u, r.rows[0].id);
+      return bought;
+    });
   });
   app.post('/v1/dealer/buy', (req, reply) => {
     if (limited(req.ip, 'dealer', 20)) return reply.code(429).send({ error: 'Slow down.' });

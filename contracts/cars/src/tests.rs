@@ -50,6 +50,8 @@ fn contract() -> Cars {
         DAY_NS,
         DAY_NS,
         None,
+        None,
+        None,
     )
 }
 
@@ -312,6 +314,28 @@ fn the_wallets_see_the_cars() {
     assert_eq!(mine.len(), 1);
     assert_eq!(mine[0].metadata.as_ref().and_then(|m| m.title.clone()), Some("Sport".into()));
     assert_eq!(c.nft_metadata().symbol, "F33CAR");
+}
+
+#[test]
+fn the_same_code_holds_homes_under_their_own_name() {
+    as_caller("admin.testnet");
+    let mut c = Cars::new(
+        id("usdc.testnet"),
+        id("admin.testnet"),
+        id("worker.testnet"),
+        id("dealer.testnet"),
+        500,
+        DAY_NS,
+        DAY_NS,
+        None,
+        Some("fr33world homes".into()),
+        Some("F33HOME".into()),
+    );
+    assert_eq!(c.nft_metadata().name, "fr33world homes");
+    assert_eq!(c.nft_metadata().symbol, "F33HOME");
+    as_caller("worker.testnet");
+    c.mint_car("home-4-ab12cd".into(), id("alice.testnet"), TokenMetadata::default());
+    assert_eq!(c.nft_supply_for_owner(id("alice.testnet")).0, 1);
 }
 
 fn offered() -> Cars {

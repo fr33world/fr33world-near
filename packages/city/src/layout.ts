@@ -39,7 +39,7 @@ import { type Dealership, dealership } from './dealership.ts';
 import { type ParkingLot, parkingLots, placeLots } from './parking.ts';
 import { cityPoints, type InteractionPoint } from './points.ts';
 import { makeRamps, type Ramp, type RampPoint, rampHeightAt } from './ramps.ts';
-import { hillRoads, hillVillas, terrainHeight } from './terrain.ts';
+import { hillRoads, hillVillas, terrainHeight, villaHomes } from './terrain.ts';
 import { hash2, rng } from './random.ts';
 
 export const CITY_SEED = 0x105_501e5;
@@ -354,6 +354,10 @@ export function generateCity(seed = CITY_SEED): CityLayout {
   lots.push(...nearLots);
   for (const lot of nearLots)
     points.points.push({ kind: 'parking', ...lot.entrance, radius: 5, name: lot.name });
+  // Each hill villa's door, where it's bought (shared HOMES). Last, so older points keep their index.
+  villaHomes().forEach((h, home) =>
+    points.points.push({ kind: 'home', ...h.door, radius: 4, name: h.address, home }),
+  );
   plantPlaza(plaza, seed, palms);
   plantBoulevards(roads, seed, palms);
   plantPalmHeights(roads, seed, palms);

@@ -17,6 +17,7 @@ fr33world existed before this work, as a game with a Solana integration. **Only 
 - **The buyer chooses the currency.** A seller asks `$`, USDC or both.
   - **USDC sale:** the buyer's own USDC goes to the contract, which in one step moves the car, pays the seller and sends Sol Motors 5%.
   - **`$` sale:** the seller first signs `offer_to_game` for that one car. The game then hands it to whoever pays the `$` price, inside the same database transaction as the payment: if the chain refuses, no `$` moves. The game can move no car that wasn't offered to it.
+- **Homes work the same way.** The 36 villas in the hills are bought for `$` at their front door, one owner each, and each is minted to the buyer's wallet as a NEP-171 token on the homes contract: the cars contract's code, deployed again as "fr33world homes" (`homes.fr33world.testnet`). Its picture in a wallet is that villa, photographed in the game.
 - **New and just-sold cars are locked** (1 hour on testnet, a day on mainnet), so farming cars to cash them out at once doesn't pay. At most 3 listings and 3 USDC sales a day per player.
 - **USDC into `$`, one way:** 1 USDC buys $5,000, at most 50 USDC a week. The USDC goes to Sol Motors' wallet, and `$` is paid only once the chain shows it arrived. There's no way back from `$` to USDC.
 - **Sol Motors runs itself.** All its USDC comes from players: the 5% cut and the top-ups. It has three locks on spending:
@@ -29,8 +30,8 @@ fr33world existed before this work, as a game with a Solana integration. **Only 
 
 Needs Node 24, pnpm, Rust with cargo-near, and PostgreSQL. No NEAR account is needed for steps 1 to 3.
 
-1. **Do:** `cd contracts/cars && cargo test`, then `cd ../business-wallet && cargo test`. **See:** 35 and 31 tests pass, among them: the minter and admin can't move a player's car, a `$` sale works only for an offered car and only once, a wrong amount is refunded, and a stolen admin key can't pay itself.
-2. **Do:** `pnpm install && pnpm db:start && createdb fr33world_test && pnpm --filter @fr33world/api exec vitest run src/cars.test.ts src/dealer.test.ts src/usdc.test.ts`. **See:** the economy's rules against a stand-in chain, all passing: deeds minted once, the garage following the chain, both currencies, the handover undone if the chain refuses, the top-up's cap, and the AI's answers cut to the rules.
+1. **Do:** `cd contracts/cars && cargo test`, then `cd ../business-wallet && cargo test`. **See:** 36 and 31 tests pass, among them: the minter and admin can't move a player's car, a `$` sale works only for an offered car and only once, a wrong amount is refunded, and a stolen admin key can't pay itself.
+2. **Do:** `pnpm install && pnpm db:start && createdb fr33world_test && pnpm --filter @fr33world/api exec vitest run src/cars.test.ts src/homes.test.ts src/dealer.test.ts src/usdc.test.ts`. **See:** the economy's rules against a stand-in chain, all passing: deeds minted once, a home sold to one buyer only (two at the same moment: one gets it, the other pays nothing), the garage following the chain, both currencies, the handover undone if the chain refuses, the top-up's cap, and the AI's answers cut to the rules.
 3. **Do:** read the live contracts:
    `curl -s https://test.rpc.fastnear.com -H 'content-type: application/json' -d '{"jsonrpc":"2.0","id":1,"method":"query","params":{"request_type":"call_function","finality":"final","account_id":"sol-motors.fr33world.testnet","method_name":"summary","args_base64":"e30="}}'`
    **See:** a result whose bytes decode to Sol Motors' balance, limits and its one approved payee, `cars.fr33world.testnet`. Or open [the cars contract on NearBlocks](https://testnet.nearblocks.io/address/cars.fr33world.testnet) to see the mints, sales and Sol Motors' buybacks.

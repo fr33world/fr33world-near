@@ -130,6 +130,33 @@ export function hillRoads(): HillRoad[] {
   return hillRoadsBuilt;
 }
 
+/** A villa as a home players can buy (shared HOMES): its street address and its doorstep. */
+export interface VillaHome {
+  villa: HillVilla;
+  address: string;
+  /** Where the player stands to use it: the middle of the front, facing out (yaw 0 = +z). */
+  door: { x: number; z: number; yaw: number };
+}
+
+/**
+ * Every hill villa as a home, in placement order (its index is the villa's number in shared
+ * HOMES and on chain). Numbers count along each road, odd on the north-facing side.
+ */
+export function villaHomes(): VillaHome[] {
+  const roads = hillRoads();
+  const along = new Map<number, number>();
+  return hillVillas().map((v) => {
+    const k = along.get(v.road) ?? 0;
+    along.set(v.road, k + 1);
+    const out = v.north ? -1 : 1;
+    return {
+      villa: v,
+      address: `${100 + k * 2 + (v.north ? 1 : 0)} ${roads[v.road]?.name ?? 'Hill Road'}`,
+      door: { x: v.x, z: v.z + out * (v.d / 2 + 2.2), yaw: v.north ? Math.PI : 0 },
+    };
+  });
+}
+
 /** The villas along the hill roads (villas.ts), placed on first use. */
 export function hillVillas(): HillVilla[] {
   villasBuilt ??= placeVillas(

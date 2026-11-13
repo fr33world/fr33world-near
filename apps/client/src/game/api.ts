@@ -260,6 +260,31 @@ export function buyCar(
   return bankCall(privyToken, '/v1/dealer/buy', { model, key });
 }
 
+/** A hill villa as a home (apps/api homes.ts): its owner and title deed on NEAR. */
+export interface Home {
+  villa: number;
+  address: string;
+  /** Cents. */
+  price: number;
+  /** The owner's character name; null while it's for sale. */
+  owner: string | null;
+  mine: boolean;
+  deed: { token: string; minted: boolean; url: string | null } | null;
+}
+
+export function fetchHomes(privyToken: string): Promise<{ homes: Home[] }> {
+  return bankCall(privyToken, '/v1/homes');
+}
+
+/** Buys a villa for `$`, keyed so a retry pays once; its deed then goes to the buyer's wallet. */
+export function buyHome(
+  privyToken: string,
+  villa: number,
+  key: string,
+): Promise<{ home: Home; balance: number }> {
+  return bankCall(privyToken, '/v1/homes/buy', { villa, key });
+}
+
 export interface Conversation {
   name: string;
   text: string;

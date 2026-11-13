@@ -68,6 +68,8 @@ import {
   levelOf,
   FALL,
   VEHICLE_ENTER_RADIUS,
+  HOMES,
+  homePrice,
 } from '@fr33world/shared';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
@@ -108,6 +110,9 @@ import {
   gangAction,
   type GangStatus,
   buyCar,
+  buyHome,
+  fetchHomes,
+  type Home,
   type FactionStatus,
   fetchBlocks,
   fetchFactions,
@@ -395,6 +400,11 @@ export class Game {
   private rideTo = '';
   /** Opens the Gun Store counter or the black market (their point). */
   onGunStore: (point: number) => void = () => {};
+  /** A villa's door (city 'home' point): its sheet, to buy it or see its deed (hud/Home.tsx). */
+  onHome: (point: number) => void = () => {};
+  /** Every villa's owner and deed, as the API last said (null until asked). */
+  homeList: Home[] | null = null;
+  private homesAskedAt = 0;
   /** The Hospital's counter, and an applications computer (at this building). */
   onCounter: () => void = () => {};
   /** Sunny's till. */
@@ -1046,6 +1056,33 @@ export class Game {
   }
 
   /** Buys a car of `model` at the dealership (`key`: this purchase's id, so a retry pays once). */
+  /** Every villa, with its owner and deed; offline, all for sale. */
+  async homes(): Promise<Home[]> {
+    this.homesAskedAt = performance.now();
+    if (!this.session.apiToken) {
+      this.homeList ??= HOMES.map(([address], villa) => ({
+        villa,
+        address,
+        price: homePrice(villa) as number,
+        owner: null,
+        mine: false,
+        deed: null,
+      }));
+      return this.homeList;
+    }
+    const r = await fetchHomes(await this.session.apiToken());
+    this.homeList = r.homes;
+    return r.homes;
+  }
+
+  async buyHome(villa: number, key: string): Promise<Home> {
+    if (!this.session.apiToken) throw new Error('Log in to buy a home.');
+    const r = await buyHome(await this.session.apiToken(), villa, key);
+    this.hud.money = r.balance;
+    if (this.homeList) this.homeList[villa] = r.home;
+    return r.home;
+  }
+
   async buyCar(model: number, key: string): Promise<{ id: number; model: number; name: string }> {
     if (!this.session.apiToken) throw new Error('Log in to buy a car.');
     const r = await buyCar(await this.session.apiToken(), model, key);
@@ -1829,6 +1866,22 @@ export class Game {
       // A car park: pick one of your cars; the dealership: buy one (the markers open them by
       // themselves too).
       this.layout.points.forEach((p, i) => {
+        if (p.kind === 'home') {
+          const n = near(i);
+          if (!n) return;
+          // Who owns it, freshened at most every half minute while someone's at a door.
+          if (performance.now() - this.homesAskedAt > 30_000) void this.homes().catch(() => {});
+          const h = this.homeList?.[p.home ?? -1];
+          offers.push({
+            key: `home:${i}`,
+            label: !h ? 'Villa' : h.mine ? 'Your home' : h.owner ? `${h.owner}’s home` : 'For sale',
+            icon: 'door',
+            at: { x: p.x, y: this.groundAt(p.x, p.z) + 2.4, z: p.z },
+            distance: n.distance,
+            run: () => this.onHome(i),
+          });
+          return;
+        }
         if (p.kind === 'gunstore' || p.kind === 'black_market') {
           const n = near(i);
           if (n)

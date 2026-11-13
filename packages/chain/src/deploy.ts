@@ -1,7 +1,8 @@
 /**
  * Sets up the economy on NEAR, safe to run again: the operator account, one account and wallet
  * contract per business (shared BUSINESSES, then the dealership, shared DEALERSHIP), each
- * registered to hold USDC, and the cars contract (contracts/cars, shared CAR_ASSETS).
+ * registered to hold USDC, the cars contract (contracts/cars, shared CAR_ASSETS), and the homes
+ * contract: the same code under its own name (shared HOME_ASSETS).
  *
  *   node --env-file=../../.env src/deploy.ts          create what's missing
  *   node --env-file=../../.env src/deploy.ts --upgrade  new code on existing wallets, state kept
@@ -12,7 +13,7 @@
  * Needs NEAR_ROOT_KEY. A new operator key goes into .env (git-ignored), never to the screen.
  */
 import { appendFileSync, readFileSync } from 'node:fs';
-import { BUSINESSES, CAR_ASSETS, DEALERSHIP } from '@fr33world/shared';
+import { BUSINESSES, CAR_ASSETS, DEALERSHIP, HOME_ASSETS } from '@fr33world/shared';
 import { Account, KeyPair, type KeyPairString, nearToYocto } from 'near-api-js';
 import { nearConfig, nearProvider } from './near.ts';
 
@@ -123,8 +124,13 @@ async function makeBusiness(b: WalletSpec, code: Uint8Array) {
 }
 
 /** The cars contract: the operator mints, the root is admin, the dealership gets the cut. */
-async function makeCars(code: Uint8Array) {
-  const id = `${CAR_ASSETS.account}.${cfg.root}`;
+async function makeCars(
+  code: Uint8Array,
+  assets: { account: string; name?: string; symbol?: string } = CAR_ASSETS,
+  /** NEAR to open it with: about 2.9 holds the code, a hundredth more each token. */
+  near: `${number}` = '4',
+) {
+  const id = `${assets.account}.${cfg.root}`;
   if (process.argv.includes('--reset-cars') && (await exists(id))) {
     if (cfg.network !== 'testnet') throw new Error('--reset-cars is for testnet');
     await new Account(id, provider, rootKey).deleteAccount(cfg.root);
@@ -133,9 +139,9 @@ async function makeCars(code: Uint8Array) {
   // Its code takes most of this; the rest pays for cars and listings as they're stored.
   if (!(await exists(id))) {
     await root.createSubAccount({
-      accountOrPrefix: CAR_ASSETS.account,
+      accountOrPrefix: assets.account,
       publicKey: rootPublic,
-      nearToTransfer: nearToYocto('4'),
+      nearToTransfer: nearToYocto(near),
     });
     console.log(`made ${id}`);
   }
@@ -156,6 +162,8 @@ async function makeCars(code: Uint8Array) {
         lock_after_mint_ns: Number(lockNs),
         lock_after_sale_ns: Number(lockNs),
         base_uri: null,
+        name: assets.name ?? null,
+        symbol: assets.symbol ?? null,
       },
     });
     console.log(`deployed ${id}`);
@@ -191,5 +199,7 @@ for (const b of BUSINESSES) {
 }
 // The dealership may pay only the cars contract: buying back a listed car is its one spend.
 await makeBusiness({ ...DEALERSHIP, suppliers: [`${CAR_ASSETS.account}.${cfg.root}`] }, code);
-await makeCars(new Uint8Array(readFileSync(CARS_WASM)));
+const carsCode = new Uint8Array(readFileSync(CARS_WASM));
+await makeCars(carsCode);
+await makeCars(carsCode, HOME_ASSETS, '3.4');
 console.log('done');
