@@ -13,6 +13,7 @@
  *   CHAIN_ALLOW_MAINNET must be "yes" to use mainnet, so a stray variable can't spend real USDC
  */
 import { createHash } from 'node:crypto';
+import { CAR_ASSETS } from '@fr33world/shared';
 import {
   Account,
   actions,
@@ -101,6 +102,28 @@ export interface ChainJob {
   status: 'open' | 'assigned' | 'releasing' | 'paid' | 'cancelled';
 }
 
+/** A car on the cars contract (NEP-171), as `nft_token` and `nft_tokens` return it. */
+export interface ChainCar {
+  token_id: string;
+  owner_id: string;
+  metadata?: { title?: string | null; extra?: string | null } | null;
+}
+
+/** A car for sale for USDC on the cars contract. */
+export interface ChainListing {
+  seller: string;
+  price: string;
+  listed_at: number;
+}
+
+/** What a car's title deed says in a wallet. */
+export interface CarMetadata {
+  title: string;
+  description: string;
+  media: string | null;
+  extra: string;
+}
+
 /** The transaction a write went out in. */
 export interface Sent {
   tx: string;
@@ -115,6 +138,8 @@ const REGISTER = 1_250_000_000_000_000_000_000n;
  * refunds what's unused, so this must cover the biggest call; a send really costs far less.
  */
 const PLAYER_GAS = '0.08';
+/** Below this, a player's gas money is topped up before they sign for a car. */
+const LOW_GAS = '0.03';
 /** The public community faucet for testnet tokens, including `usdc.fakes.testnet`. */
 const TEST_FAUCET = 'v2.faucet.nonofficial.testnet';
 
@@ -228,6 +253,82 @@ export class NearEconomy {
     return this.call(wallet, 'cancel_job', { job_id: jobId });
   }
 
+  // ---- Cars (contracts/cars) ------------------------------------------------------------
+
+  /** The cars contract's account. */
+  carsAccount(): string {
+    return this.accountOf(CAR_ASSETS.account);
+  }
+
+  /** A link to a car's account or a transaction on NearBlocks. */
+  explorer(kind: 'address' | 'txns', id: string): string {
+    return nearblocks(this.cfg, kind, id);
+  }
+
+  /** Mints a car to its owner's wallet. The contract refuses a token id it already has. */
+  mintCar(tokenId: string, owner: string, metadata: CarMetadata): Promise<Sent> {
+    return this.call(this.carsAccount(), 'mint_car', {
+      token_id: tokenId,
+      owner,
+      metadata: { ...metadata, issued_at: String(Date.now()) },
+    });
+  }
+
+  /** Hands a car its owner offered for `$` to the player who paid. */
+  gameTransfer(tokenId: string, receiver: string): Promise<Sent> {
+    return this.call(this.carsAccount(), 'game_transfer', {
+      token_id: tokenId,
+      receiver_id: receiver,
+    });
+  }
+
+  carToken(tokenId: string): Promise<ChainCar | null> {
+    return this.view(this.carsAccount(), 'nft_token', { token_id: tokenId });
+  }
+
+  carTokens(from: number, limit: number): Promise<ChainCar[]> {
+    return this.view(this.carsAccount(), 'nft_tokens', { from_index: String(from), limit });
+  }
+
+  carListing(tokenId: string): Promise<ChainListing | null> {
+    return this.view(this.carsAccount(), 'get_listing', { token_id: tokenId });
+  }
+
+  async carListings(): Promise<[string, ChainListing][]> {
+    const all: [string, ChainListing][] = [];
+    for (let from = 0; ; from += 100) {
+      const page = await this.view<[string, ChainListing][]>(this.carsAccount(), 'listings', {
+        from_index: from,
+        limit: 100,
+      });
+      all.push(...page);
+      if (page.length < 100) return all;
+    }
+  }
+
+  isOffered(tokenId: string): Promise<boolean> {
+    return this.view(this.carsAccount(), 'is_offered', { token_id: tokenId });
+  }
+
+  /** When a car may next be sent or listed, as a time in ms; 0 if it's free now. */
+  async carLockedUntil(tokenId: string): Promise<number> {
+    const ns = await this.view<number>(this.carsAccount(), 'locked_until', { token_id: tokenId });
+    return Math.ceil(Number(ns) / 1e6);
+  }
+
+  /** Tops a player's gas money back up when it runs low, so they can always sign for a car. */
+  async ensureGas(account: string): Promise<void> {
+    const op = this.operator;
+    if (!op) throw new Error('no NEAR_OPERATOR_KEY');
+    const state = await new Account(account, this.provider).getState().catch(() => null);
+    const has = state ? BigInt(String(state.balance.available)) : 0n;
+    if (has >= nearToYocto(LOW_GAS)) return;
+    const run = () => op.transfer({ receiverId: account, amount: nearToYocto(PLAYER_GAS) });
+    const next = this.queue.then(run, run);
+    this.queue = next.catch(() => {});
+    await next;
+  }
+
   /** Brings a new player's account to life with gas money, and lets it hold USDC. */
   async welcomePlayer(account: string): Promise<void> {
     const op = this.operator;
@@ -281,7 +382,7 @@ export interface Prepared {
   hash: `0x${string}`;
 }
 
-/** What a player may sign through the game: USDC only, these two methods, nothing else. */
+/** What a player may sign through the game: these USDC methods and these car methods only. */
 export interface PlayerSpend {
   method: 'ft_transfer' | 'ft_transfer_call';
   receiver: string;
@@ -289,35 +390,92 @@ export interface PlayerSpend {
   msg?: string;
 }
 
-/** Builds a USDC transfer for a player's own wallet to sign. The game can't sign it for them. */
-export async function prepareSpend(
+export type PlayerCarCall =
+  | { method: 'list_car'; tokenId: string; price: number }
+  | { method: 'delist_car' | 'offer_to_game' | 'withdraw_offer'; tokenId: string }
+  | { method: 'nft_transfer'; tokenId: string; receiver: string }
+  | { method: 'claim' };
+
+async function preparePlayer(
   e: NearEconomy,
   account: string,
-  spend: PlayerSpend,
+  receiverId: string,
+  method: string,
+  args: Record<string, unknown>,
+  tera: `${number}`,
+  deposit: bigint,
 ): Promise<Prepared> {
   const provider = e.rpc();
   const publicKey = implicitPublicKey(account);
   const tx = await new Account(account, provider).createTransaction({
-    receiverId: e.cfg.usdc,
+    receiverId,
     publicKey,
-    actions: [
-      actions.functionCall(
-        spend.method,
-        {
-          receiver_id: spend.receiver,
-          amount: String(spend.amount),
-          ...(spend.msg === undefined ? {} : { msg: spend.msg }),
-        },
-        teraToGas(spend.method === 'ft_transfer' ? '20' : '70'),
-        YOCTO,
-      ),
-    ],
+    actions: [actions.functionCall(method, args, teraToGas(tera), deposit)],
   });
   const bytes = encodeTransaction(tx);
   return {
     tx: Buffer.from(bytes).toString('base64'),
     hash: `0x${createHash('sha256').update(bytes).digest('hex')}`,
   };
+}
+
+/** Builds a USDC transfer for a player's own wallet to sign. The game can't sign it for them. */
+export function prepareSpend(
+  e: NearEconomy,
+  account: string,
+  spend: PlayerSpend,
+): Promise<Prepared> {
+  // Buying a car pays out to the seller and the dealership in the same call: more gas.
+  const tera =
+    spend.method === 'ft_transfer' ? '20' : spend.receiver === e.carsAccount() ? '200' : '70';
+  return preparePlayer(
+    e,
+    account,
+    e.cfg.usdc,
+    spend.method,
+    {
+      receiver_id: spend.receiver,
+      amount: String(spend.amount),
+      ...(spend.msg === undefined ? {} : { msg: spend.msg }),
+    },
+    tera,
+    YOCTO,
+  );
+}
+
+/** Builds a call on the cars contract for a player's own wallet to sign: their car, their key. */
+export function prepareCarCall(
+  e: NearEconomy,
+  account: string,
+  c: PlayerCarCall,
+): Promise<Prepared> {
+  const cars = e.carsAccount();
+  switch (c.method) {
+    case 'list_car':
+      return preparePlayer(
+        e,
+        account,
+        cars,
+        c.method,
+        { token_id: c.tokenId, price: String(c.price) },
+        '20',
+        YOCTO,
+      );
+    case 'nft_transfer':
+      return preparePlayer(
+        e,
+        account,
+        cars,
+        c.method,
+        { token_id: c.tokenId, receiver_id: c.receiver },
+        '30',
+        YOCTO,
+      );
+    case 'claim':
+      return preparePlayer(e, account, cars, c.method, {}, '60', 0n);
+    default:
+      return preparePlayer(e, account, cars, c.method, { token_id: c.tokenId }, '20', YOCTO);
+  }
 }
 
 /** Adds the player's signature and sends. The transaction must be the one for this account. */
@@ -329,7 +487,8 @@ export async function submitSigned(
 ): Promise<Sent> {
   const transaction = decodeTransaction(Buffer.from(tx, 'base64'));
   if (transaction.signerId !== account) throw new Error('not this player’s transaction');
-  if (transaction.receiverId !== e.cfg.usdc) throw new Error('not a USDC transaction');
+  if (transaction.receiverId !== e.cfg.usdc && transaction.receiverId !== e.carsAccount())
+    throw new Error('not a USDC or car transaction');
   const data = Buffer.from(signature.replace(/^0x/, ''), 'hex');
   if (data.length !== 64) throw new Error('bad signature');
   const signed = new SignedTransaction({

@@ -102,7 +102,18 @@ import {
 } from './armory.ts';
 import { chargeFare } from './fares.ts';
 import { inbox } from './inbox.ts';
-import { buyListed, listCar, listings, withdraw } from './market.ts';
+import { buyListed, listCar, listings, priceBounds } from './market.ts';
+import {
+  buyForUsdc,
+  type CarDeps,
+  dollarSaleToken,
+  listOnChain,
+  queueMints,
+  runMints,
+  sendCar,
+  syncCars,
+  unlistOnChain,
+} from './cars.ts';
 import {
   appointBoss,
   applyTo,
@@ -156,6 +167,8 @@ export interface AppDeps {
   /** NEAR (Phase 17): absent when no operator key is set, and USDC routes then say so. */
   economy?: EconomyDeps;
   usdc?: UsdcDeps;
+  /** Cars on NEAR (cars.ts): absent with no operator key, and cars then stay off chain. */
+  cars?: CarDeps;
 }
 
 /** Logins per address per minute (each one verifies a token and touches the database). */
@@ -163,6 +176,25 @@ const SESSION_LIMIT = 20;
 
 export function buildApp(deps: AppDeps): FastifyInstance {
   const supers = superAdmins(deps.superAdmins);
+  /**
+   * After a purchase or a wallet link: the player's cars get their title deeds, in the
+   * background so nobody waits on the chain. Guests have no wallet, so their cars stay off chain.
+   */
+  const mintSoon = (privyUser: string) => {
+    const c = deps.cars;
+    if (!c) return;
+    void (async () => {
+      const r = await deps.db.query<{ id: string; guest: boolean }>(
+        'select id, is_guest as guest from accounts where privy_user_id = $1',
+        [privyUser],
+      );
+      const me = r.rows[0];
+      if (!me || me.guest) return;
+      await c.link(privyUser);
+      await queueMints(deps.db, me.id);
+      await runMints(c);
+    })().catch((e: unknown) => console.error('mint soon', e));
+  };
   const app = Fastify({ logger: deps.logger ?? false, bodyLimit: 16 * 1024, trustProxy: true });
   const origins = new Set(deps.corsOrigins);
 
@@ -485,6 +517,8 @@ export function buildApp(deps: AppDeps): FastifyInstance {
       );
       const id = r.rows[0]?.id;
       if (!id) throw new BankError('Please log in again.', 401);
+      // A car sent or sold on chain since the last look moves first (at most every 20 s).
+      if (deps.cars) await syncCars(deps.cars).catch((e: unknown) => console.error('sync cars', e));
       return { cars: await garageOf(deps.db, id) };
     }),
   );
@@ -528,7 +562,12 @@ export function buildApp(deps: AppDeps): FastifyInstance {
   app.post('/v1/economy/tick', async (req, reply) => {
     if (limited(req.ip, 'tick', 6)) return reply.code(429).send();
     if (!deps.economy) return reply.code(503).send({ error: 'The economy isn’t on here.' });
-    return tick(deps.economy);
+    const ticked = await tick(deps.economy);
+    if (deps.cars && ticked.ran) {
+      await runMints(deps.cars).catch((e: unknown) => console.error('mint cars', e));
+      await syncCars(deps.cars, 0).catch((e: unknown) => console.error('sync cars', e));
+    }
+    return ticked;
   });
   const withUsdc = (
     req: FastifyRequest,
@@ -549,7 +588,13 @@ export function buildApp(deps: AppDeps): FastifyInstance {
     }),
   );
   app.get('/v1/usdc', (req, reply) => withUsdc(req, reply, (d, u) => usdcWallet(d, u)));
-  app.post('/v1/usdc/link', (req, reply) => withUsdc(req, reply, (d, u) => linkWallet(d, u)));
+  app.post('/v1/usdc/link', (req, reply) =>
+    withUsdc(req, reply, async (d, u) => {
+      const linked = await linkWallet(d, u);
+      mintSoon(u);
+      return linked;
+    }),
+  );
   // Test USDC from the public testnet faucet, within shared TEST_USDC's limits (usdc.ts).
   app.get('/v1/usdc/faucet', (req, reply) => withUsdc(req, reply, (d, u) => testUsdcStatus(d, u)));
   app.post('/v1/usdc/faucet', (req, reply) =>
@@ -623,22 +668,51 @@ export function buildApp(deps: AppDeps): FastifyInstance {
     async (req, reply) =>
       slow(req, reply, 'market-read', 60) ?? { listings: await listings(deps.db) },
   );
-  app.post(
-    '/v1/market/list',
-    (req, reply) =>
-      slow(req, reply, 'market', 20) ??
-      bank(req, reply, (u) => listCar(deps.db, u, req.body ?? {})),
+  // Listing for `$`, USDC or both, and taking down: in steps the player signs (cars.ts).
+  // Without the chain here, only cars not on chain trade, and only for `$`.
+  const carsOr = (
+    req: FastifyRequest,
+    reply: FastifyReply,
+    run: (d: CarDeps, u: string) => Promise<unknown>,
+  ) =>
+    slow(req, reply, 'market', 30) ??
+    bank(req, reply, (u) => {
+      if (!deps.cars) throw new BankError('Car sales on chain aren’t on here.', 503);
+      return run(deps.cars, u);
+    });
+  app.post('/v1/market/list', (req, reply) =>
+    deps.cars
+      ? carsOr(req, reply, (d, u) =>
+          listOnChain(d, u, (req.body ?? {}), priceBounds, listCar),
+        )
+      : (slow(req, reply, 'market', 20) ??
+        bank(req, reply, async (u) => ({ done: await listCar(deps.db, u, req.body ?? {}) }))),
   );
-  app.post(
-    '/v1/market/withdraw',
-    (req, reply) =>
-      slow(req, reply, 'market', 20) ??
-      bank(req, reply, (u) => withdraw(deps.db, u, req.body ?? {})),
+  app.post('/v1/market/withdraw', (req, reply) =>
+    carsOr(req, reply, (d, u) => unlistOnChain(d, u, (req.body ?? {}))),
   );
   app.post('/v1/market/buy', (req, reply) => {
     if (limited(req.ip, 'market', 20)) return reply.code(429).send({ error: 'Slow down.' });
-    return bank(req, reply, (u) => buyListed(deps.db, u, req.body ?? {}));
+    return bank(req, reply, (u) => {
+      const c = deps.cars;
+      return buyListed(
+        deps.db,
+        u,
+        req.body ?? {},
+        c && {
+          tokenFor: (car) => dollarSaleToken(c, car),
+          buyerWallet: async () => (await c.link(u)).near,
+          transfer: (token, to) => c.chain.gameTransfer(token, to),
+        },
+      );
+    });
   });
+  app.post('/v1/market/buy-usdc', (req, reply) =>
+    carsOr(req, reply, (d, u) => buyForUsdc(d, u, (req.body ?? {}))),
+  );
+  app.post('/v1/garage/send', (req, reply) =>
+    carsOr(req, reply, (d, u) => sendCar(d, u, (req.body ?? {}))),
+  );
   // The inbox (inbox.ts): GET reads, POST marks everything read.
   app.get('/v1/inbox', (req, reply) => bank(req, reply, (u) => inbox(deps.db, u)));
   app.post(
@@ -689,7 +763,11 @@ export function buildApp(deps: AppDeps): FastifyInstance {
   });
   app.post('/v1/dealer/buy', (req, reply) => {
     if (limited(req.ip, 'dealer', 20)) return reply.code(429).send({ error: 'Slow down.' });
-    return bank(req, reply, (u) => buyCar(deps.db, u, req.body ?? {}));
+    return bank(req, reply, async (u) => {
+      const bought = await buyCar(deps.db, u, req.body ?? {});
+      mintSoon(u);
+      return bought;
+    });
   });
 
   app.get('/v1/messages', (req, reply) => bank(req, reply, (u) => conversations(deps.db, u)));

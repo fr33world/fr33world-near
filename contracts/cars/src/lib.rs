@@ -10,10 +10,16 @@
 //! payout fails (say the seller can't hold USDC yet) the money waits here under their name and
 //! they `claim` it later: nothing is lost and nothing goes back to the game.
 //!
+//! Selling for `$` (the game's play money, off chain): the owner signs `offer_to_game` for one
+//! car, which lets the game's minter hand that car, once, to the player who pays the `$` price.
+//! The owner can `withdraw_offer` at any time, and sending or selling the car ends the offer.
+//! The minter can move no car that wasn't offered to it. A car may be listed for USDC and
+//! offered for `$` at once: whichever buyer comes first gets it.
+//!
 //! A new or newly sold car is locked for a while (`lock_after_mint_ns`, `lock_after_sale_ns`):
 //! it can't be sent or listed until then, so farming cars to cash them out at once doesn't pay.
-//! The admin sets the cut and the locks within hard caps; the minter only mints. Neither can
-//! move a car or anyone's USDC.
+//! The admin sets the cut and the locks within hard caps; the minter mints and settles `$`
+//! sales of offered cars. Neither can move any other car, or anyone's USDC.
 use std::collections::HashMap;
 
 use near_contract_standards::non_fungible_token::core::{
@@ -55,6 +61,7 @@ enum Key {
     Listings,
     Locks,
     Owed,
+    Offers,
 }
 
 #[derive(BorshSerialize, BorshDeserialize, Serialize, Deserialize, Clone, PartialEq, Debug)]
@@ -99,6 +106,8 @@ pub struct Cars {
     locks: LookupMap<TokenId, u64>,
     /// USDC held for sellers whose payout failed, until they claim it.
     owed: LookupMap<AccountId, u128>,
+    /// Cars their owner has offered for sale in `$`, and who offered them.
+    offers: LookupMap<TokenId, AccountId>,
     fees_owed: u128,
     /// Counts sales, so each cut sent to the dealership has its own id.
     sales: u64,
@@ -171,6 +180,7 @@ impl Cars {
             listings: IterableMap::new(Key::Listings),
             locks: LookupMap::new(Key::Locks),
             owed: LookupMap::new(Key::Owed),
+            offers: LookupMap::new(Key::Offers),
             fees_owed: 0,
             sales: 0,
         }
@@ -247,6 +257,7 @@ impl Cars {
         }
         let seller = listing.seller.clone();
         self.listings.remove(&token_id);
+        self.offers.remove(&token_id);
         self.tokens.internal_transfer(&seller, &sender_id, &token_id, None, Some("sold".into()));
         self.locks.insert(token_id.clone(), env::block_timestamp() + self.lock_after_sale_ns);
 
@@ -270,6 +281,46 @@ impl Cars {
             let _ = self.send_fee(fee);
         }
         PromiseOrValue::Value(U128(0))
+    }
+
+    // ---- Selling for `$` (the game settles the `$`; the owner allows this one move) ----------
+
+    /// Lets the game hand this car to whoever pays your `$` price. Only for this car, once.
+    #[payable]
+    pub fn offer_to_game(&mut self, token_id: TokenId) {
+        assert_one_yocto();
+        let owner = env::predecessor_account_id();
+        require!(self.owner_of(&token_id) == owner, "not your car");
+        self.require_unlocked(&token_id);
+        self.offers.insert(token_id.clone(), owner.clone());
+        event("offered", format!("{{\"token_id\":\"{}\",\"owner\":\"{}\"}}", token_id, owner));
+    }
+
+    #[payable]
+    pub fn withdraw_offer(&mut self, token_id: TokenId) {
+        assert_one_yocto();
+        let offered_by = self.offers.get(&token_id).cloned().expect("not offered");
+        require!(offered_by == env::predecessor_account_id(), "not your offer");
+        self.offers.remove(&token_id);
+        event("offer_withdrawn", format!("{{\"token_id\":\"{}\"}}", token_id));
+    }
+
+    /// The game: a player paid the `$` price, so the offered car goes to their wallet.
+    pub fn game_transfer(&mut self, token_id: TokenId, receiver_id: AccountId) {
+        require!(env::predecessor_account_id() == self.minter, "minter only");
+        let offered_by = self.offers.remove(&token_id).expect("not offered to the game");
+        let owner = self.owner_of(&token_id);
+        require!(offered_by == owner, "the offer is out of date");
+        self.listings.remove(&token_id);
+        self.tokens.internal_transfer(&owner, &receiver_id, &token_id, None, Some("sold for $".into()));
+        self.locks.insert(token_id.clone(), env::block_timestamp() + self.lock_after_sale_ns);
+        event(
+            "sold_for_dollars",
+            format!(
+                "{{\"token_id\":\"{}\",\"seller\":\"{}\",\"buyer\":\"{}\"}}",
+                token_id, owner, receiver_id
+            ),
+        );
     }
 
     /// Sends you the USDC a failed payout left here.
@@ -368,6 +419,14 @@ impl Cars {
         }
     }
 
+    /// Whether the car's owner has offered it for `$`.
+    pub fn is_offered(&self, token_id: TokenId) -> bool {
+        match (self.offers.get(&token_id), self.tokens.owner_by_id.get(&token_id)) {
+            (Some(by), Some(owner)) => *by == owner,
+            _ => false,
+        }
+    }
+
     pub fn owed_to(&self, account_id: AccountId) -> U128 {
         U128(self.owed.get(&account_id).copied().unwrap_or(0))
     }
@@ -393,6 +452,7 @@ impl Cars {
         if self.listings.remove(token_id).is_some() {
             event("delisted", format!("{{\"token_id\":\"{}\"}}", token_id));
         }
+        self.offers.remove(token_id);
     }
 
     fn payout_promise(&self, to: AccountId, amount: u128, memo: String) -> Promise {

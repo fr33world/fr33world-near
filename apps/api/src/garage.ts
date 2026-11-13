@@ -9,6 +9,7 @@
 import { CAR_MODELS, carPrice, DEALER, RENTAL } from '@fr33world/shared';
 import { BankError } from './bank.ts';
 import { type Db, inTx, type Tx } from './db.ts';
+import { deedsOf, queueMints } from './cars.ts';
 import { spend } from './economy.ts';
 import {
   AccountFrozen,
@@ -35,6 +36,9 @@ export interface OwnedCar {
   health: number;
   /** A rental: when it's due back (ISO time); null for a car of one's own. */
   expiresAt: string | null;
+  /** Its title deed on NEAR (contracts/cars): the token id once queued, and whether it's minted. */
+  token: string | null;
+  minted: boolean;
 }
 
 type Row = {
@@ -47,7 +51,8 @@ type Row = {
 };
 /** The garage's columns; cars past their rental are left out everywhere. */
 const COLUMNS = 'id, model, colour, fuel, health, expires_at';
-const CURRENT = '(expires_at is null or expires_at > now())';
+/** Rentals past their time, and cars an unlinked wallet holds on chain, are left out. */
+const CURRENT = '(expires_at is null or expires_at > now()) and not away';
 
 async function giveStarter(db: Db | Tx, accountId: string): Promise<void> {
   await db.query(
@@ -62,7 +67,17 @@ const named = ({ expires_at, ...c }: Row): OwnedCar => ({
   ...c,
   name: CAR_MODELS[c.model]?.name ?? 'Car',
   expiresAt: expires_at ? new Date(expires_at).toISOString() : null,
+  token: null,
+  minted: false,
 });
+
+async function withDeeds(db: Db | Tx, cars: OwnedCar[]): Promise<OwnedCar[]> {
+  const deeds = await deedsOf(
+    db,
+    cars.map((c) => c.id),
+  );
+  return cars.map((c) => ({ ...c, ...deeds.get(c.id) }));
+}
 
 export async function garageOf(db: Db, accountId: string): Promise<OwnedCar[]> {
   await giveStarter(db, accountId);
@@ -70,7 +85,7 @@ export async function garageOf(db: Db, accountId: string): Promise<OwnedCar[]> {
     `select ${COLUMNS} from owned_cars where account_id = $1 and ${CURRENT} order by id`,
     [accountId],
   );
-  return r.rows.map(named);
+  return withDeeds(db, r.rows.map(named));
 }
 
 /**
@@ -133,12 +148,14 @@ export async function buyCar(
          on conflict (purchase_tx) do nothing`,
         [me.id, model, paid.txId],
       );
+      // Its title deed goes to the buyer's NEAR wallet (cars.ts runMints), once one is linked.
+      await queueMints(tx, me.id);
       const car = await tx.query<Row>(`select ${COLUMNS} from owned_cars where purchase_tx = $1`, [
         paid.txId,
       ]);
       return {
         status: paid.status,
-        car: named(car.rows[0] as Row),
+        car: (await withDeeds(tx, [named(car.rows[0] as Row)]))[0] as OwnedCar,
         balance: await balanceOf(tx, wallet),
       };
     });

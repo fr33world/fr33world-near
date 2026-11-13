@@ -15,10 +15,11 @@
  * Applies pending migrations on start, then runs the economy's invariant monitor.
  */
 import { assertSecret, privyGuestCheck, privyNearWallet, privyVerifier } from '@fr33world/auth';
-import { economyFromEnv, prepareSpend, submitSigned } from '@fr33world/chain';
+import { economyFromEnv, prepareCarCall, prepareSpend, submitSigned } from '@fr33world/chain';
 import { DEFAULT_MODEL, nearAi } from './advisor.ts';
 import { buildApp } from './app.ts';
 import { createDb } from './db.ts';
+import { linkWallet } from './usdc.ts';
 import { migrate } from './migrate.ts';
 import { alert, startMonitor } from './monitor.ts';
 
@@ -34,9 +35,12 @@ function nearDeps() {
       prepareSpend(near, account, spend),
     submit: (account: string, tx: string, signature: string) =>
       submitSigned(near, account, tx, signature),
+    prepareCar: (account: string, call: Parameters<typeof prepareCarCall>[2]) =>
+      prepareCarCall(near, account, call),
     // The public faucet is testnet's: elsewhere the wallet offers no test USDC.
     requestTestUsdc: near.cfg.network === 'testnet' ? near.requestTestUsdc.bind(near) : undefined,
   });
+  const usdc = { db, chain, walletOf: privyNearWallet(PRIVY_APP_ID!, PRIVY_APP_SECRET!) };
   return {
     economy: {
       db,
@@ -44,7 +48,13 @@ function nearDeps() {
       alert: (text: string) => void alert(db, 'economy', { text }),
       ask: NEAR_AI_KEY ? nearAi(NEAR_AI_KEY, NEAR_AI_MODEL ?? DEFAULT_MODEL) : undefined,
     },
-    usdc: { db, chain, walletOf: privyNearWallet(PRIVY_APP_ID!, PRIVY_APP_SECRET!) },
+    usdc,
+    cars: {
+      db,
+      chain,
+      link: (privyUser: string) => linkWallet(usdc, privyUser),
+      alert: (text: string) => void alert(db, 'economy', { text }),
+    },
   };
 }
 if (!PRIVY_APP_ID || !PRIVY_APP_SECRET)

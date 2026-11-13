@@ -43,6 +43,8 @@ export const CAR_ASSETS = {
   /** Open USDC listings per player, and USDC car sales one player may make in a day. */
   maxListings: 3,
   salesPerDay: 3,
+  /** Where a car's picture is, for its title deed in wallets. */
+  mediaBase: 'https://fr33worldgame.xyz/ui/cars/',
 } as const;
 
 /** Real money into play money, one way: never `$` back to USDC (owner, 2026-11-13). */

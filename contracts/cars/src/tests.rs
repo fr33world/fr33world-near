@@ -313,3 +313,82 @@ fn the_wallets_see_the_cars() {
     assert_eq!(mine[0].metadata.as_ref().and_then(|m| m.title.clone()), Some("Sport".into()));
     assert_eq!(c.nft_metadata().symbol, "F33CAR");
 }
+
+fn offered() -> Cars {
+    let mut c = with_car();
+    at("alice.testnet", LATER, 1);
+    c.offer_to_game("car-1".into());
+    c
+}
+
+#[test]
+fn the_game_hands_an_offered_car_to_its_dollar_buyer() {
+    let mut c = offered();
+    assert!(c.is_offered("car-1".into()));
+    at("worker.testnet", LATER, 0);
+    c.game_transfer("car-1".into(), id("bob.testnet"));
+    assert_eq!(owner(&c, "car-1"), id("bob.testnet"));
+    assert!(!c.is_offered("car-1".into()));
+    assert_eq!(c.locked_until("car-1".into()), LATER + DAY_NS);
+}
+
+#[test]
+#[should_panic(expected = "not offered to the game")]
+fn the_game_cant_move_a_car_not_offered() {
+    let mut c = with_car();
+    at("worker.testnet", LATER, 0);
+    c.game_transfer("car-1".into(), id("worker.testnet"));
+}
+
+#[test]
+#[should_panic(expected = "not offered to the game")]
+fn the_offer_is_good_once() {
+    let mut c = offered();
+    at("worker.testnet", LATER, 0);
+    c.game_transfer("car-1".into(), id("bob.testnet"));
+    c.game_transfer("car-1".into(), id("worker.testnet"));
+}
+
+#[test]
+#[should_panic(expected = "minter only")]
+fn only_the_minter_settles_a_dollar_sale() {
+    let mut c = offered();
+    at("bob.testnet", LATER, 0);
+    c.game_transfer("car-1".into(), id("bob.testnet"));
+}
+
+#[test]
+#[should_panic(expected = "not offered to the game")]
+fn the_owner_can_withdraw_the_offer() {
+    let mut c = offered();
+    at("alice.testnet", LATER, 1);
+    c.withdraw_offer("car-1".into());
+    at("worker.testnet", LATER, 0);
+    c.game_transfer("car-1".into(), id("bob.testnet"));
+}
+
+#[test]
+fn sending_the_car_ends_the_offer() {
+    let mut c = offered();
+    at("alice.testnet", LATER, 1);
+    c.nft_transfer(id("carol.testnet"), "car-1".into(), None, None);
+    assert!(!c.is_offered("car-1".into()));
+}
+
+#[test]
+fn a_usdc_sale_ends_the_dollar_offer_too() {
+    let mut c = offered();
+    at("alice.testnet", LATER, 1);
+    c.list_car("car-1".into(), U128(10 * USDC));
+    at("usdc.testnet", LATER, 0);
+    let _ = c.ft_on_transfer(id("bob.testnet"), U128(10 * USDC), "car-1".into());
+    assert!(!c.is_offered("car-1".into()));
+}
+
+#[test]
+#[should_panic(expected = "this car is still locked")]
+fn a_new_car_cant_be_offered_at_once() {
+    let mut c = with_car();
+    at("alice.testnet", START + DAY_NS / 2, 1);
+    c.offer_to_game("car-1".into());
+}
