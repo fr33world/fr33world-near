@@ -107,6 +107,11 @@ describe('chat commands', () => {
       args: ['Ivy Lane', '24', 'spam', 'bots'],
     });
     expect(parse('/GOTO Ivy Lane')).toEqual({ name: 'goto', args: ['Ivy', 'Lane'] });
+    // A phone's keyboard types curly quotes.
+    expect(parse('/money \u201CDavid Horjet\u201D +1000000 testing')).toEqual({
+      name: 'money',
+      args: ['David Horjet', '+1000000', 'testing'],
+    });
   });
 
   it('/help tells the staff online where the player is, once a minute', async () => {

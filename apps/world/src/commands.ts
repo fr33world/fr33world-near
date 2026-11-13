@@ -92,12 +92,17 @@ interface Command {
 
 const HELP_EVERY_S = 60;
 
-/** Splits a command line: `/ban "Ada Byron" 24 spam` or `/ban Ada Byron` (names have a space). */
+/**
+ * Splits a command line: `/ban "Ada Byron" 24 spam` or `/ban Ada Byron` (names have a space).
+ * Phone keyboards type curly quotes (“Ada Byron”); they count as straight ones (the owner's
+ * /money on a phone failed on them, 2026-11-13).
+ */
 export function parse(line: string): { name: string; args: string[] } {
   const parts: string[] = [];
   const re = /"([^"]*)"|(\S+)/g;
+  const text = line.slice(1).replace(/[\u201C\u201D\u201E\u201F\u00AB\u00BB\u2033]/g, '"');
   let m: RegExpExecArray | null;
-  while ((m = re.exec(line.slice(1))) !== null) parts.push(m[1] ?? m[2] ?? '');
+  while ((m = re.exec(text)) !== null) parts.push(m[1] ?? m[2] ?? '');
   return { name: (parts.shift() ?? '').toLowerCase(), args: parts };
 }
 
