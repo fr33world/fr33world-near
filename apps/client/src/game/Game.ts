@@ -2726,7 +2726,14 @@ export class Game {
     const drive = this.input.drive;
     this.sounds?.update(dt, {
       listener: this.camera,
-      walker: car ? null : player,
+      walker: car
+        ? null
+        : {
+            position: player.position,
+            mode: player.mode,
+            grounded: player.grounded,
+            footfalls: heardFeet(player.character),
+          },
       driving: car && {
         id: car.spec.id,
         top: car.spec.topSpeed,
@@ -2752,7 +2759,12 @@ export class Game {
         : [],
       walkers: [...this.remote.bodies.values()]
         .filter((b) => b.kind === ENTITY_KIND.PLAYER)
-        .map((b) => ({ id: b.id, pos: b.pos, mode: modeOf(b.state) })),
+        .map((b) => ({
+          id: b.id,
+          pos: b.pos,
+          mode: modeOf(b.state),
+          footfalls: heardFeet(b.character),
+        })),
     });
   }
 
@@ -2798,6 +2810,14 @@ export class Game {
  * an installed app resumed from the background): load the new game. At most once in five
  * minutes, so a server deployed ahead of the page can't send it round in circles.
  */
+/** A character's feet landed so far, listened for from now on; null without a model yet. */
+function heardFeet(c: Character | null | undefined): number | null {
+  const a = c?.animator;
+  if (!a) return null;
+  a.listenFeet = true;
+  return a.footfalls;
+}
+
 function reloadForUpdate() {
   const KEY = 'fr33.reloadedForUpdate';
   try {

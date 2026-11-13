@@ -158,7 +158,10 @@ class Engine {
 /** Nearby cars with their own engine sound, nearest first. */
 const ENGINE_VOICES = 4;
 const ENGINE_RANGE = 45;
+/** Seconds between steps, only until a character's model loads and its feet are heard landing. */
 const STEPS = { walk: 0.52, run: 0.33 };
+/** Footstep loudness: little steps, never stomps (owner, 2026-11-13). Grass's samples are quieter. */
+const STEP_GAIN = { concrete: 0.16, grass: 0.28 };
 /** Other players' footsteps: the nearest few within earshot. */
 const STEP_VOICES = 6;
 const STEP_RANGE = 24;
@@ -166,7 +169,13 @@ const STEP_RANGE = 24;
 export interface SoundState {
   listener: THREE.Camera;
   /** The player on foot: where, how they move, on the ground or not. Null in a car. */
-  walker: { position: THREE.Vector3; mode: number; grounded: boolean } | null;
+  walker: {
+    position: THREE.Vector3;
+    mode: number;
+    grounded: boolean;
+    /** Feet landed so far (Animator.footfalls), null before the model loads. */
+    footfalls: number | null;
+  } | null;
   /**
    * The car the player drives: its model, speed (m/s), throttle (0–1), sideways slide (m/s),
    * braking or the handbrake on, and the horn held.
@@ -192,7 +201,7 @@ export interface SoundState {
     state: number;
   }>;
   /** Other players on foot: where, and how they move (MODE). */
-  walkers: Iterable<{ id: number; pos: THREE.Vector3; mode: number }>;
+  walkers: Iterable<{ id: number; pos: THREE.Vector3; mode: number; footfalls: number | null }>;
 }
 
 export class GameSounds {
@@ -208,8 +217,10 @@ export class GameSounds {
   private gunReload: AudioBuffer | null = null;
   private gunDry: AudioBuffer | null = null;
   private stepIn = 0;
-  /** Other players' next footstep, by entity id (seconds). */
+  private myFeet: number | null = null;
+  /** Other players' next footstep (seconds), or feet landed so far, by entity id. */
   private readonly theirSteps = new Map<number, number>();
+  private readonly theirFeet = new Map<number, number>();
 
   constructor() {
     void sound('engine.wav').then((b) => (this.engineBuffer = b));
@@ -229,10 +240,17 @@ export class GameSounds {
     const t = ctx.currentTime;
     this.placeListener(s.listener);
 
-    // Footsteps at the walk's or the run's cadence.
+    // Footsteps as the feet land.
     const w = s.walker;
     const moving = w && w.grounded && (w.mode === MODE.WALK || w.mode === MODE.RUN);
-    if (w && moving) {
+    const landed = w?.footfalls ?? null;
+    if (w && moving && landed !== null) {
+      if (this.myFeet !== null && landed > this.myFeet)
+        this.step(
+          districtAt(w.position.x, w.position.z) === 'hills' ? 'grass' : 'concrete',
+          w.mode,
+        );
+    } else if (w && moving) {
       this.stepIn -= dt;
       if (this.stepIn <= 0) {
         this.stepIn = w.mode === MODE.WALK ? STEPS.walk : STEPS.run;
@@ -242,6 +260,7 @@ export class GameSounds {
         );
       }
     } else this.stepIn = 0.12;
+    this.myFeet = landed;
 
     // Other players walking or running nearby, each at their own cadence, from where they are.
     const ears = s.listener.position;
@@ -254,14 +273,29 @@ export class GameSounds {
     const heard = new Set<number>();
     for (const p of walking) {
       heard.add(p.id);
-      // A random start, so two players side by side don't step in unison.
+      const surface = districtAt(p.pos.x, p.pos.z) === 'hills' ? 'grass' : 'concrete';
+      if (p.footfalls !== null) {
+        const before = this.theirFeet.get(p.id);
+        if (before !== undefined && p.footfalls > before) this.step(surface, p.mode, p.pos);
+        this.theirSteps.delete(p.id);
+        continue;
+      }
+      // No model yet: a timer, from a random start so two side by side don't step in unison.
       const due = (this.theirSteps.get(p.id) ?? Math.random() * 0.3) - dt;
       if (due <= 0) {
-        this.step(districtAt(p.pos.x, p.pos.z) === 'hills' ? 'grass' : 'concrete', p.mode, p.pos);
+        this.step(surface, p.mode, p.pos);
         this.theirSteps.set(p.id, p.mode === MODE.WALK ? STEPS.walk : STEPS.run);
       } else this.theirSteps.set(p.id, due);
     }
     for (const id of this.theirSteps.keys()) if (!heard.has(id)) this.theirSteps.delete(id);
+    // Every player's count, heard or not, so one walking into earshot isn't heard for old steps.
+    const present = new Set<number>();
+    for (const p of s.walkers) {
+      present.add(p.id);
+      if (p.footfalls === null) this.theirFeet.delete(p.id);
+      else this.theirFeet.set(p.id, p.footfalls);
+    }
+    for (const id of this.theirFeet.keys()) if (!present.has(id)) this.theirFeet.delete(id);
 
     // The car being driven: engine, tyres, horn.
     const d = s.driving;
@@ -342,7 +376,11 @@ export class GameSounds {
     // A little different each time, and firmer when running.
     src.playbackRate.value = 0.92 + Math.random() * 0.16;
     const g = ctx.createGain();
-    g.gain.value = (surface === 'grass' ? 0.5 : 0.65) * (mode === MODE.RUN ? 1 : 0.7);
+    g.gain.value =
+      STEP_GAIN[surface] * (mode === MODE.RUN ? 1 : 0.75) * (0.85 + Math.random() * 0.3);
+    // The low thud off: a light step, not a stomp.
+    const thin = new BiquadFilterNode(ctx, { type: 'highpass', frequency: 160, Q: 0.6 });
+    src.connect(thin);
     if (at) {
       const panner = new PannerNode(ctx, {
         panningModel: 'equalpower',
@@ -354,8 +392,8 @@ export class GameSounds {
         positionY: at.y,
         positionZ: at.z,
       });
-      src.connect(g).connect(panner).connect(effectsBus());
-    } else src.connect(g).connect(effectsBus());
+      thin.connect(g).connect(panner).connect(effectsBus());
+    } else thin.connect(g).connect(effectsBus());
     src.start();
   }
 

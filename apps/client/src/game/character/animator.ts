@@ -177,6 +177,22 @@ const BEND_PARENT = new THREE.Quaternion();
 const BEND_TURN = new THREE.Quaternion();
 const BEND_LOCAL = new THREE.Quaternion();
 
+/** A foot, for hearing it land: its lowest height over the character's root, and lifted or not. */
+interface Foot {
+  bone: THREE.Object3D;
+  low: number | null;
+  up: boolean;
+}
+const FOOT_AT = new THREE.Vector3();
+/**
+ * Lifted past this over its lowest (m), a foot is in the air; back within FOOT_DOWN, it has
+ * landed. Measured on the real clips: the ankle lifts 0.17 to 0.2 m walking and 0.6 m running,
+ * and halfway through a walking swing it dips to 3 cm over the ground, so a dip alone, or a
+ * looser FOOT_DOWN, would hear two steps for one.
+ */
+const FOOT_UP = 0.04;
+const FOOT_DOWN = 0.01;
+
 /** Spine, neck, head, shoulders, arms and hands; the hips and legs stay with locomotion. */
 const UPPER_BONE = /(Spine|Neck|Head|Shoulder|Arm|Hand)[^.]*\./;
 
@@ -395,6 +411,16 @@ export class Animator {
   /** Each spine bone before and after last frame's bend (to take it off again, see update). */
   private readonly unbent: THREE.Quaternion[] = [];
   private readonly bent: THREE.Quaternion[] = [];
+  /**
+   * Feet that land, counted while `listenFeet` is on (the player and other players, for their
+   * footsteps; never the crowd). A foot lands when, after a swing, it stops coming down: the
+   * clip's own contact, whatever the gait or its speed, so a step is heard as a foot touches.
+   */
+  listenFeet = false;
+  footfalls = 0;
+  private feet: Foot[] | null = null;
+  /** The clip the feet's lowest points were measured in: a new clip measures again. */
+  private feetClip: string | null = null;
 
   private constructor(root: THREE.Object3D, clips: THREE.AnimationClip[], hipsRestY: number) {
     this.root = root;
@@ -610,6 +636,41 @@ export class Animator {
     this.mixer.update(dt);
     this.bendSpine(dt);
     this.foldShins();
+    this.countFootfalls(dt);
+  }
+
+  private countFootfalls(dt: number) {
+    if (!this.listenFeet || dt <= 0) return;
+    const walking =
+      this.move !== null && this.move !== 'idle' && !this.seat && !this.sitting && !this.oneShot;
+    if (!walking) {
+      // Standing: both feet down, so the first step counts only once a foot has lifted.
+      for (const f of this.feet ?? []) {
+        f.up = false;
+        f.low = null;
+      }
+      return;
+    }
+    this.feet ??= ['Left', 'Right'].flatMap((side) => {
+      const bone = this.root.getObjectByName(`mixamorig${side}Foot`);
+      return bone ? [{ bone, low: null, up: false }] : [];
+    });
+    const ground = this.root.getWorldPosition(FOOT_AT).y;
+    const fresh = this.feetClip !== this.current;
+    this.feetClip = this.current;
+    for (const f of this.feet) {
+      const y = f.bone.getWorldPosition(FOOT_AT).y - ground;
+      if (fresh) {
+        f.low = null;
+        f.up = false;
+      }
+      f.low = f.low === null ? y : Math.min(f.low, y);
+      if (!f.up && y > f.low + FOOT_UP) f.up = true;
+      else if (f.up && y < f.low + FOOT_DOWN) {
+        f.up = false;
+        this.footfalls += 1;
+      }
+    }
   }
 
   /**
