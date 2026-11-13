@@ -309,3 +309,27 @@ fn sync_ignores_an_answer_overtaken_by_a_payment() {
     w.on_synced(Ok(U128(500)));
     assert_eq!(w.summary().balance.0, 420);
 }
+
+#[test]
+fn the_operator_lists_a_car_on_an_approved_contract() {
+    let mut w = wallet();
+    as_caller("worker.testnet");
+    let _ = w.list_car(id("farm.testnet"), "car-1".into(), U128(10));
+    let _ = w.delist_car(id("farm.testnet"), "car-1".into());
+}
+
+#[test]
+#[should_panic(expected = "supplier is not approved")]
+fn cars_are_listed_only_on_an_approved_contract() {
+    let mut w = wallet();
+    as_caller("worker.testnet");
+    let _ = w.list_car(id("thief.testnet"), "car-1".into(), U128(10));
+}
+
+#[test]
+#[should_panic(expected = "operator only")]
+fn only_the_operator_lists_cars() {
+    let mut w = wallet();
+    as_caller("admin.testnet");
+    let _ = w.list_car(id("farm.testnet"), "car-1".into(), U128(10));
+}

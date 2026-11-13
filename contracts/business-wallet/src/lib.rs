@@ -24,6 +24,7 @@ const GAS_FT_TRANSFER: Gas = Gas::from_tgas(15);
 const GAS_FT_TRANSFER_CALL: Gas = Gas::from_tgas(50);
 const GAS_FT_BALANCE: Gas = Gas::from_tgas(5);
 const GAS_CALLBACK: Gas = Gas::from_tgas(10);
+const GAS_CARS: Gas = Gas::from_tgas(15);
 const MAX_ID: usize = 64;
 
 #[derive(BorshSerialize, BorshStorageKey)]
@@ -126,6 +127,13 @@ trait FungibleToken {
         msg: String,
     ) -> U128;
     fn ft_balance_of(&self, account_id: AccountId) -> U128;
+}
+
+#[ext_contract(ext_cars)]
+#[allow(dead_code)]
+trait Cars {
+    fn list_car(&mut self, token_id: String, price: U128);
+    fn delist_car(&mut self, token_id: String);
 }
 
 fn event(kind: &str, data: String) {
@@ -296,6 +304,30 @@ impl BusinessWallet {
         event("job_cancelled", format!("{{\"job\":\"{}\"}}", job_id));
     }
 
+    // ---- Cars this business owns (bought back through `pay_supplier` to the cars contract) --
+
+    /// Puts a car this business owns up for sale on an approved cars contract. The money from
+    /// a sale comes back here by plain transfer, so `sync` counts it.
+    pub fn list_car(&mut self, cars: AccountId, token_id: String, price: U128) -> Promise {
+        self.only_operator();
+        self.approved_now(&cars);
+        check_id(&token_id);
+        ext_cars::ext(cars)
+            .with_attached_deposit(NearToken::from_yoctonear(1))
+            .with_static_gas(GAS_CARS)
+            .list_car(token_id, price)
+    }
+
+    pub fn delist_car(&mut self, cars: AccountId, token_id: String) -> Promise {
+        self.only_operator();
+        self.approved_now(&cars);
+        check_id(&token_id);
+        ext_cars::ext(cars)
+            .with_attached_deposit(NearToken::from_yoctonear(1))
+            .with_static_gas(GAS_CARS)
+            .delist_car(token_id)
+    }
+
     // ---- Answers from the token contract --------------------------------------------------
 
     #[private]
@@ -445,6 +477,11 @@ impl BusinessWallet {
 
     fn only_admin(&self) {
         require!(env::predecessor_account_id() == self.admin, "admin only");
+    }
+
+    fn approved_now(&self, account: &AccountId) {
+        let active_from = *self.suppliers.get(account).expect("supplier is not approved");
+        require!(env::block_timestamp() >= active_from, "supplier is still in its waiting period");
     }
 
     fn free(&self) -> u128 {
