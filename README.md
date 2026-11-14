@@ -1,6 +1,6 @@
 # fr33world
 
-**A multiplayer open-world city game in the browser, where the cars and homes you buy are really yours, on NEAR.**
+**A multiplayer open-world city game in the browser. The cars and homes players buy are NFTs in their own NEAR wallets, and the car dealership is an AI-run business whose spending is capped by its smart contract.**
 
 Built at NEAR HACKATHON · Tracks: Games With Real Economies, Autonomous Business, Agent Economy, AI Security & Defense
 
@@ -15,6 +15,12 @@ fr33world is a city life game you play in the browser, on desktop or phone. You 
 In most city games you own nothing: a ban, a wipe or a shutdown and your garage is gone. In fr33world, every car you buy at the dealership and every villa you buy in the hills is minted to **your own NEAR wallet** as a title deed. You can sell it to other players for `$` or real USDC, send it to any NEAR account, and it stays yours even if the game bans you.
 
 The dealership, **Sol Motors**, runs itself. It has its own wallet and an AI that buys underpriced cars and sells them again, but the AI can only do what its smart contract allows, so a wrong or tricked AI can't drain it.
+
+**The chain stays out of the way.** Players never need NEAR, a seed phrase or a wallet app:
+
+- A NEAR wallet is made for them when they sign in (Privy embedded wallet), and the game pays their gas.
+- Everything in the game is priced in `$`. A deed simply shows up in the Garage as "On NEAR", with a link to see it.
+- USDC only appears if a player chooses it: to sell a car to another player, or to top up `$`.
 
 ![Police, medics, the Kings and the Vipers in their uniforms](docs/readme/factions.jpg)
 
@@ -67,6 +73,18 @@ All of Sol Motors' USDC comes from players (the 5% cut and top-ups); the game pu
 
 <sub>Above: the economy page during the recorded demo run. Those trades are real on testnet: Sol Motors bought the Sedan `car-4-b9b3bd` at 4 USDC and relisted it at 7.70 ([see it on NearBlocks](https://testnet.nearblocks.io/address/sol-motors.fr33world.testnet)). The hosted page's lists fill as players trade there.</sub>
 
+## Claims and where to check them
+
+| Claim                                                                       | Code                                                                                    | Proof                                                                                                                                                                                             |
+| --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Cars are NEP-171 tokens minted to the buyer's wallet                        | [contracts/cars](contracts/cars/src/lib.rs)                                             | [`car-12-d59960`](https://testnet.nearblocks.io/nft-token/cars.fr33world.testnet/car-12-d59960) on NearBlocks                                                                                     |
+| The game and its admin can't move a player's car                            | [contracts/cars](contracts/cars/src/lib.rs)                                             | `the_minter_cant_move_a_players_car`, `the_admin_cant_move_a_players_car` in [tests.rs](contracts/cars/src/tests.rs)                                                                              |
+| A `$` sale moves only a car its owner offered, once                         | [apps/api/src/cars.ts](apps/api/src/cars.ts)                                            | `the_game_hands_an_offered_car_to_its_dollar_buyer` in [tests.rs](contracts/cars/src/tests.rs), [cars.test.ts](apps/api/src/cars.test.ts)                                                         |
+| Sol Motors can pay only the cars contract, ≤ 25 USDC a payment, ≤ 100 a day | [contracts/business-wallet](contracts/business-wallet/src/lib.rs)                       | `unapproved_suppliers_are_refused`, `the_payment_limit_holds`, `the_daily_limit_holds`, `the_admin_cannot_pay_either` in [tests.rs](contracts/business-wallet/src/tests.rs); live `summary` below |
+| The AI sees only numbers and its answer is clamped to the rules             | [apps/api/src/dealer.ts](apps/api/src/dealer.ts), [advisor.ts](apps/api/src/advisor.ts) | [dealer.test.ts](apps/api/src/dealer.test.ts)                                                                                                                                                     |
+| The AI really traded on testnet                                             |                                                                                         | Sol Motors' [`on_order_paid` and `list_car`](https://testnet.nearblocks.io/address/sol-motors.fr33world.testnet) for `car-4-b9b3bd`                                                               |
+| Villas are deeds too, one owner each                                        | [apps/api/src/homes.ts](apps/api/src/homes.ts)                                          | [homes.test.ts](apps/api/src/homes.test.ts); [`home-13-05a449`](https://testnet.nearblocks.io/nft-token/homes.fr33world.testnet/home-13-05a449)                                                   |
+
 ## Try it in the browser
 
 1. Open [fr33worldgame.xyz](https://fr33worldgame.xyz) and sign in (email, Google, Discord or X). A NEAR wallet is made for you; the game pays its gas.
@@ -92,25 +110,26 @@ Open http://localhost:5173. With no `.env`, login is off and you play as a guest
 
 ### Check the NEAR part
 
-**Contracts.** 36 + 31 tests, including: the minter and admin can't move a player's car, a `$` sale works only for an offered car and only once, a wrong amount is refunded, and a stolen admin key can't pay itself.
+**Contracts.** Plain `cargo test`. **See:** `36 passed` and `31 passed`. They include: the minter and admin can't move a player's car, a `$` sale works only for an offered car and only once, a wrong amount is refunded, and a stolen admin key can't pay itself.
 
 ```bash
 cd contracts/cars && cargo test
 cd ../business-wallet && cargo test
 ```
 
-**Economy rules** against a stand-in chain: deeds minted once, a home sold to one buyer only, the garage following the chain, both currencies, the handover undone if the chain refuses, the top-up cap, and the AI's answers cut to the rules.
+**Economy rules** against a stand-in chain. **See:** `Tests  45 passed`. They cover deeds minted once, a home sold to one buyer only, the garage following the chain, both currencies, the handover undone if the chain refuses, the top-up cap, and the AI's answers cut to the rules.
 
 ```bash
-pnpm db:start                # or start PostgreSQL your own way
+# with PostgreSQL running (on a Mac with Homebrew's postgresql@18: pnpm db:start)
 createdb fr33world_test
 pnpm --filter @fr33world/api exec vitest run src/cars.test.ts src/homes.test.ts src/dealer.test.ts src/usdc.test.ts
 ```
 
-**The live contracts.** Read Sol Motors' wallet straight from testnet: its balance, limits and its one approved payee, `cars.fr33world.testnet`.
+**The live contracts.** Read Sol Motors' wallet straight from testnet. **See:** JSON with `"per_payment":"25000000"`, `"per_day":"100000000"` (25 and 100 USDC, 6 decimals), its `balance`, and `"suppliers":["cars.fr33world.testnet"]`, its only allowed payee.
 
 ```bash
-curl -s https://test.rpc.fastnear.com -H 'content-type: application/json' -d '{"jsonrpc":"2.0","id":1,"method":"query","params":{"request_type":"call_function","finality":"final","account_id":"sol-motors.fr33world.testnet","method_name":"summary","args_base64":"e30="}}'
+curl -s https://test.rpc.fastnear.com -H 'content-type: application/json' -d '{"jsonrpc":"2.0","id":1,"method":"query","params":{"request_type":"call_function","finality":"final","account_id":"sol-motors.fr33world.testnet","method_name":"summary","args_base64":"e30="}}' \
+  | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>console.log(Buffer.from(JSON.parse(s).result.result).toString()))'
 ```
 
 **The whole story on chain** (needs testnet keys in `.env`, see [.env.example](.env.example)): `pnpm --filter @fr33world/api economy:live`. Two players buy, list, sell for USDC and `$`, top up, and send a car out of the game, and Sol Motors' AI buys an underpriced Sedan. Every payment prints a NearBlocks link, ending in `All good.`
@@ -132,7 +151,7 @@ curl -s https://test.rpc.fastnear.com -H 'content-type: application/json' -d '{"
 - **AI:** [NEAR AI Cloud](https://cloud.near.ai), model `deepseek-ai/DeepSeek-V4.1-Flash-1017`
 - **The game (from before the hackathon):** Three.js, React and Vite; Fastify and PostgreSQL; Cloudflare and Render
 
-No hackathon template or starter was used.
+No hackathon template or starter was used. **AI-generated code (Q-005):** most of the code, the NEAR work included, was written with an AI coding assistant (Claude Code), directed and reviewed by the author.
 
 ## Repo map
 
