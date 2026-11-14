@@ -45,7 +45,7 @@ Needs Node 24, pnpm, Rust with cargo-near, and PostgreSQL. No NEAR account is ne
 
    Only Privy is stood in for, by a local key signing the same hash.
 
-5. **Do:** open https://fr33worldgame.xyz/economy.html. **See:** Sol Motors' balance read from the chain, every AI decision with its reason, and car sales with proof links.
+5. **Do:** open https://fr33worldgame.xyz/economy.html. **See:** Sol Motors' balance, limits and payee read live from the chain, and the number of deeds minted. Its lists of AI decisions (each with its reason) and car sales fill as players trade in the hosted game; at submission they were still empty there, because the AI's trades so far ran through step 4's test runs. Those trades are real testnet transactions: [Sol Motors' account on NearBlocks](https://testnet.nearblocks.io/address/sol-motors.fr33world.testnet) shows it paying for the Sedan `car-4-b9b3bd` at 4 USDC (`on_order_paid`) and relisting it at 7.70 (`list_car`); a player has since bought it.
 
 ## Built with (Q-005)
 
@@ -68,7 +68,7 @@ The people behind fr33world submit no other project to this hackathon.
 - It runs on NEAR Testnet with `usdc.fakes.testnet`, a community test token from the public faucet, not Circle's USDC. Test USDC has no value. Mainnet needs everything in [docs/mainnet-checklist.md](docs/mainnet-checklist.md).
 - No real Privy login has signed one of these transactions yet. Every flow ran on testnet through the real API routes, signed by a local key making the same raw signature Privy's embedded wallet makes.
 - Sol Motors' operator key can list a car the dealership holds at any price within the contract's range, so a stolen operator key could sell a held car cheaply. It can't move money or other players' cars.
-- Contracts are unaudited. Houses (the hill villas) and enterprises are designed to follow the same pattern but aren't built.
+- Contracts are unaudited. Other businesses (shops, enterprises) are designed to follow Sol Motors' pattern but aren't built; only cars and the hill villas are owned on NEAR.
 
 ---
 
