@@ -166,19 +166,6 @@ No hackathon template or starter was used. **AI-generated code (Q-005):** most o
 
 More on running and deploying the whole game: [docs/development.md](docs/development.md).
 
-## For the judges
-
-**What's judged (Q-001 to Q-004).** The game itself was started before this hackathon; only its NEAR integration is the submission. Tag `pre-hackathon` marks the game before it; [this diff](https://github.com/fr33world/fr33world-near/compare/pre-hackathon...hackathon-submission) holds the NEAR work. The same diff also has ordinary game work from those weeks that touches no USDC (factions, uniforms, police patrols, messages, garages, daily rewards). An earlier design that ran a food supply chain on USDC is switched off (`FOOD_CHAIN_USDC` in `apps/api/src/business.ts`) and kept for the record.
-
-**Other submissions (Q-015).** The team behind fr33world submits no other project.
-
-**Honest limits.**
-
-- Testnet only, with a community test token. Mainnet needs [docs/mainnet-checklist.md](docs/mainnet-checklist.md).
-- At submission, no real Privy login had signed these transactions yet. Every flow ran on testnet through the real API routes, signed by a local key making the same raw signature Privy's embedded wallet makes.
-- A stolen Sol Motors operator key could list a car the dealership holds at a low price (within the contract's range). It can't move money or players' cars.
-- The contracts are unaudited. Only cars and villas are on NEAR so far; other businesses are planned to follow Sol Motors' pattern.
-
 ## Licence
 
 See [LICENSE](LICENSE). Every art asset's source and licence is listed in [assets/registry.yaml](assets/registry.yaml).
