@@ -168,7 +168,7 @@ More on running and deploying the whole game: [docs/development.md](docs/develop
 
 ## For the judges
 
-**What's judged (Q-001 to Q-004).** fr33world existed before this hackathon, with a Solana integration. Only the NEAR work is the submission. Tag `pre-hackathon` marks the game before it; [this diff](https://github.com/fr33world/fr33world-near/compare/pre-hackathon...hackathon-submission) holds the NEAR work. The same diff also has ordinary game work from those weeks that touches no USDC (factions, uniforms, police patrols, messages, garages, daily rewards). An earlier design that ran a food supply chain on USDC is switched off (`FOOD_CHAIN_USDC` in `apps/api/src/business.ts`) and kept for the record. Solana was removed.
+**What's judged (Q-001 to Q-004).** The game itself was started before this hackathon; only its NEAR integration is the submission. Tag `pre-hackathon` marks the game before it; [this diff](https://github.com/fr33world/fr33world-near/compare/pre-hackathon...hackathon-submission) holds the NEAR work. The same diff also has ordinary game work from those weeks that touches no USDC (factions, uniforms, police patrols, messages, garages, daily rewards). An earlier design that ran a food supply chain on USDC is switched off (`FOOD_CHAIN_USDC` in `apps/api/src/business.ts`) and kept for the record.
 
 **Other submissions (Q-015).** The team behind fr33world submits no other project.
 
